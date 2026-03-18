@@ -36,3 +36,29 @@ function view comparison_chart(text title, text body, text a_label, text a_value
         };
     };
 }
+
+function text metric_bars_body(textlist labels, textlist values, textlist widths, textlist tones) {
+    variable i = 0;
+    sharp {
+        variable out = "";
+        while (i < count(labels)) {
+            out = join(out, signal_bar(
+                at(labels, i),
+                at(values, i),
+                at(widths, i),
+                at(tones, i)
+            ));
+            i = i + 1;
+        }
+        return out;
+    }
+}
+
+function view metric_bars(text title, text body, textlist labels, textlist values, textlist widths, textlist tones) {
+    return box(modifier(padding("24px"), modifier(corner_radius("28px"), modifier(background("#fffdf9"), shadow("0 18px 50px rgba(15,23,42,0.10)"))))) {
+        column_box(gap_space("18px")) {
+            intro(title, body);
+            metric_bars_body(labels, values, widths, tones);
+        };
+    };
+}

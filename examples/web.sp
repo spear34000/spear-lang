@@ -1,54 +1,55 @@
 run {
     const title = "Spear Web";
-    string html = spectacle_page(title, showcase_shell(showcase_stack(
-        hero_showcase(
-            brand_header("Spear Web", "Readable blocks. Sharp output.", "#vision", "Vision", "#components", "Components", "#launch", "Launch"),
+    string html = landing_page(title, theme_product_bg(), showcase_stack(
+        hero_scene(
+            brand_header("Spear Web", "Readable blocks. Sharp output.", "#vision", "Vision", "#signals", "Signals", "#launch", "Launch"),
             column_box(gap_space("22px")) {
                 spotlight(
-                    "Visual Example",
-                    "Build a page that looks expensive with beginner-friendly code.",
-                    "Spear Web is moving toward semantic blocks, reusable page presets, and built-in visuals instead of raw CSS strings everywhere.",
+                    "Spear Scene",
+                    "Design strong product pages without falling back to raw CSS all day.",
+                    "Spear Web should make high-end layout, hierarchy, and conversion flow feel like normal language features.",
                     "#launch",
-                    "Open Launch Notes",
-                    "#components",
-                    "Inspect Components"
+                    "Start with the launch block",
+                    "#signals",
+                    "See the signal charts"
                 );
-                prestige_stats("Build Time", "< 1 min", "Code Feel", "plain words", "Output", "HTML");
+                prestige_stats("Shipping speed", "fast", "Design floor", "high", "Boilerplate", "low");
             },
             column_box(gap_space("20px")) {
-                code_window("examples/web.sp", "run {\n    string html = spectacle_page(\"Spear Web\", dashboard);\n    write(\"build/spear-ui.html\", html);\n}");
-                aura_triptych(
-                    "Readable", "Functions that read like intent", "Use semantic blocks like `spotlight`, `aura_triptych`, and `launch_banner`.",
-                    "Safe", "Escaped output by default", "The runtime still protects the common output path while you compose bold layouts.",
-                    "Fast", "Reusable premium presets", "High-level building blocks make strong pages easier to ship."
+                code_window("examples/web.sp", "run {\n    string html = landing_page(\"Spear\", theme_product_bg(), body);\n    write(\"build/spear-ui.html\", html);\n}");
+                feature_triptych(
+                    "Scene", "Think in sections", "Use `hero_scene`, `insights_band`, and `conversion_band` as the main shape of a page.",
+                    "Signal", "Think in visuals", "Charts and stat bars should feel as native as text blocks.",
+                    "Taste", "Think in presets", "Themes and premium blocks should make weak-looking pages harder to produce."
                 );
             }
         ),
-        feature_stage(
-            "Design with a Spear voice",
-            "The goal is not to expose CSS more cleverly. The goal is to let Spear express layout, tone, and visual hierarchy in its own words.",
+        insights_band(
+            "Spear should have its own design grammar.",
+            "Instead of exposing CSS more directly, Spear should expose layout scenes, signal blocks, premium cards, and conversion flows.",
             column_box(gap_space("18px")) {
-                aura_triptych(
-                    "Scenes", "Page-level storytelling", "Start from big blocks like `hero_showcase`, `feature_stage`, and `launch_banner`.",
-                    "Signals", "Data that still feels designed", "Use charts and stats as first-class presentation pieces instead of ad-hoc div piles.",
-                    "Presets", "A consistent premium tone", "Cards, spacing, glow, rhythm, and CTA patterns stay aligned across sections."
+                feature_triptych(
+                    "Layouts", "Reusable page structure", "Landing pages, dashboards, launches, and showcases should start from named blocks.",
+                    "Charts", "Real data visuals", "The language should accept labels and numbers directly for the most common visual patterns.",
+                    "Themes", "Opinionated quality", "Built-in themes should push pages toward a premium baseline even before custom styling."
                 );
-                comparison_chart(
-                    "Signal snapshot",
-                    "Data visuals should be just as easy to stage as content.",
-                    "Ease of writing", "high", "88%", "#4f8cff",
-                    "Design quality", "rising", "74%", "#ff8a3d",
-                    "Boilerplate", "low", "22%", "#111827"
+                metric_bars(
+                    "Signal board",
+                    "Numbers should turn into usable visuals with almost no ceremony.",
+                    pack("Ease of writing", "Visual quality", "Flexibility"),
+                    pack("86%", "78%", "64%"),
+                    pack("86%", "78%", "64%"),
+                    pack("#4f8cff", "#ff8a3d", "#111827")
                 );
             }
         ),
-        launch_banner(
-            "Ship premium pages with fewer decisions.",
-            "Use Spear presets to get strong hierarchy, safer output, and sharper visuals without dropping into raw CSS every few lines.",
+        conversion_band(
+            "Build pages that already look like someone cared.",
+            "That should be the default outcome of Spear Web, not the result of hand-writing a pile of CSS strings.",
             "/start",
-            "Build something now"
+            "Build with Spear"
         )
-    )));
+    ));
     guard(size(html) > 0, "body must not be empty");
     write("build/spear-ui.html", html);
     print(html);

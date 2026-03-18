@@ -1,6 +1,7 @@
 run {
     const title = "Spear Web";
     const review_ready = 1;
+    strings queue_names = pack("Spear Commerce", "Atlas Docs", "Northstar CRM");
     string html = landing_page(title, theme_product_bg()) {
         centered(box(glass_panel_mod()) {
             column_box(gap_space(space_5())) {
@@ -305,13 +306,13 @@ run {
                 selection_list(
                     "Release queue",
                     "Selection flows should be easy to stage for content review and approvals.",
-                    join(
-                        join(
-                            selection_item("Spear Commerce", "Ready for final review", "yes"),
-                            selection_item("Atlas Docs", "Waiting on editorial pass", "no")
-                        ),
-                        selection_item("Northstar CRM", "Needs chart tuning", "no")
-                    )
+                    each item in queue_names {
+                        if (same(item, "Spear Commerce")) {
+                            selection_item(item, "Ready for final review", "yes");
+                        } else {
+                            selection_item(item, "Queued for the next product pass", "no");
+                        };
+                    }
                 ),
                 detail_panel(
                     "Spear Commerce",

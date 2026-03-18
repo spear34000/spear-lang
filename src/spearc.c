@@ -1700,6 +1700,62 @@ static char *parse_text_children(Parser *parser, int scope_id) {
 static Expr parse_text_expr(Parser *parser, int scope_id) {
     Token token = parser->lexer.current;
 
+    if (parser->lexer.current.kind == TOK_EACH) {
+        Token each_tok = parser->lexer.current;
+        advance(parser);
+        Token item_tok = parser->lexer.current;
+        expect(parser, TOK_IDENT, "expected loop variable name");
+        char *item_name = token_text(item_tok);
+        expect(parser, TOK_IN, "expected 'in' after loop variable");
+        Token list_tok = parser->lexer.current;
+        expect(parser, TOK_IDENT, "expected list name");
+        char *list_name = token_text(list_tok);
+        ValueType list_type = lookup_symbol(parser, list_name);
+        if (list_type != TYPE_NUMLIST && list_type != TYPE_TEXTLIST) {
+            fatal_at(list_tok.line, list_tok.col, "each expects a list");
+        }
+
+        char *idx_name = new_temp(parser);
+        char *acc_name = new_temp(parser);
+        char *scope_name = make_scope_name(scope_id);
+        parser->depth++;
+        int symbol_depth = parser->depth;
+        add_symbol(parser, item_name, list_type == TYPE_NUMLIST ? TYPE_NUM : TYPE_TEXT, false, item_tok.line, item_tok.col, false, false);
+        char *body = parse_text_children(parser, scope_id);
+        pop_symbols(parser, symbol_depth);
+        parser->depth--;
+
+        Buffer code;
+        buf_init(&code);
+        buf_appendf(
+            &code,
+            "({ char *%s = spear_text_clone(&%s, \"\"); for (long long %s = 0; %s < %s(%s); %s++) { %s %s = %s(%s, %s, %d, %d); %s = spear_text_join(&%s, %s, %s); } %s; })",
+            acc_name,
+            scope_name,
+            idx_name,
+            idx_name,
+            list_type == TYPE_NUMLIST ? "spear_numlist_count" : "spear_textlist_count",
+            list_name,
+            idx_name,
+            list_type == TYPE_NUMLIST ? "long long" : "char *",
+            item_name,
+            list_type == TYPE_NUMLIST ? "spear_numlist_at" : "spear_textlist_at",
+            list_name,
+            idx_name,
+            each_tok.line,
+            each_tok.col,
+            acc_name,
+            scope_name,
+            acc_name,
+            body,
+            acc_name
+        );
+        free(scope_name);
+        free(idx_name);
+        free(acc_name);
+        return make_expr(TYPE_TEXT, buf_take(&code));
+    }
+
     if (match(parser, TOK_IF)) {
         expect(parser, TOK_LPAREN, "expected '(' after if");
         warn_constant_condition(parser->lexer.current, "if");
@@ -2237,7 +2293,8 @@ static Expr parse_list_expr(Parser *parser, int scope_id, ValueType expected_typ
 }
 
 static bool starts_text_expr(Parser *parser) {
-    if (parser->lexer.current.kind == TOK_IF ||
+    if (parser->lexer.current.kind == TOK_EACH ||
+        parser->lexer.current.kind == TOK_IF ||
         (parser->lexer.current.kind == TOK_TEXT && peek_token(parser).kind == TOK_LPAREN) ||
         parser->lexer.current.kind == TOK_STRING ||
         parser->lexer.current.kind == TOK_JOIN ||

@@ -459,7 +459,7 @@ static void set_uninstall_info(const char *install_root, const char *bin_dir) {
     RegSetValueExA(key, "DisplayName", 0, REG_SZ, (const BYTE *) "Spear", 6);
     RegSetValueExA(key, "Publisher", 0, REG_SZ, (const BYTE *) "Spear Project", 14);
     RegSetValueExA(key, "InstallLocation", 0, REG_SZ, (const BYTE *) install_root, (DWORD) strlen(install_root) + 1);
-    RegSetValueExA(key, "DisplayVersion", 0, REG_SZ, (const BYTE *) "0.2.0", 6);
+    RegSetValueExA(key, "DisplayVersion", 0, REG_SZ, (const BYTE *) "0.1.0", 6);
     RegSetValueExA(key, "UninstallString", 0, REG_SZ, (const BYTE *) uninstall_cmd, (DWORD) strlen(uninstall_cmd) + 1);
     RegSetValueExA(key, "DisplayIcon", 0, REG_SZ, (const BYTE *) icon_path, (DWORD) strlen(icon_path) + 1);
     RegCloseKey(key);

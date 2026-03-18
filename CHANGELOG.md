@@ -3,7 +3,7 @@
 All notable changes to Spear are documented here.  
 Spear의 주요 변경 사항은 이 문서에 기록됩니다.
 
-## v0.2.0 - 2026-03-18
+## v0.1.0 - 2026-03-18
 
 ### Language / 언어
 
@@ -53,5 +53,5 @@ Spear의 주요 변경 사항은 이 문서에 기록됩니다.
 
 - Published Windows installer artifacts: `SpearSetup.exe` and `SpearSetup.msi`.  
   Windows 설치 파일 `SpearSetup.exe`, `SpearSetup.msi`를 배포했습니다.
-- Published VS Code extension package: `spear-language-0.2.0.vsix`.  
-  VS Code 확장 패키지 `spear-language-0.2.0.vsix`를 배포했습니다.
+- Published VS Code extension package: `spear-language-0.1.0.vsix`.  
+  VS Code 확장 패키지 `spear-language-0.1.0.vsix`를 배포했습니다.

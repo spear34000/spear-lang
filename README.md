@@ -215,7 +215,7 @@ Artifacts / 산출물:
 
 - `dist/installers/SpearSetup.exe`
 - `dist/installers/SpearSetup.msi`
-- `vscode-spear/spear-language-0.2.0.vsix`
+- `vscode-spear/spear-language-0.1.0.vsix`
 
 ## VS Code Extension / VS Code 확장
 

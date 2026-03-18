@@ -2,7 +2,7 @@
   <Package
     Name="Spear"
     Manufacturer="Spear Project"
-    Version="0.2.0"
+    Version="0.1.0"
     UpgradeCode="D7F0C0E2-3B31-4B08-949D-365D49D9F0B2"
     Language="1033"
     Scope="perUser"

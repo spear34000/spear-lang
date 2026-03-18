@@ -246,6 +246,49 @@ run {
                     );
                 }
             );
+            filter_row(
+                filter_chip("All", "yes"),
+                filter_chip("Shipped", "no"),
+                filter_chip("In review", "no"),
+                filter_chip("Needs design", "no")
+            );
+            master_detail(
+                activity_feed(
+                    "Inbox",
+                    "Master-detail layouts should be first-class for admin and product screens.",
+                    join(
+                        join(
+                            activity_item("15:10", "Review queued", "Spear Commerce launch needs final approval."),
+                            activity_item("15:42", "Theme updated", "Cinema theme card shadows were adjusted.")
+                        ),
+                        activity_item("16:08", "Spec synced", "Dashboard blocks were synced with the design grammar.")
+                    )
+                ),
+                column_box(gap_space(space_3())) {
+                    empty_state_panel(
+                        "Nothing selected yet",
+                        "Empty states should still feel part of the same system, not like an afterthought.",
+                        "#pick",
+                        "Choose an item"
+                    );
+                    toast_stack(
+                        toast_chip("Saved", "Token updates were applied to the workspace.", tone_brand()),
+                        toast_chip("Review", "Two launch drafts are waiting for approval.", tone_warm()),
+                        toast_chip("Ready", "The dashboard kit is synced to the latest branch.", "#16a34a")
+                    );
+                }
+            );
+            command_palette(
+                "Search everything",
+                "Command surfaces should be easy to stage for power users and still match the product aesthetic.",
+                join(
+                    join(
+                        command_item("G P", "Go to Projects", "Jump into the current workspace project list."),
+                        command_item("N L", "New Launch", "Create a new launch page from the shared design system.")
+                    ),
+                    command_item("S T", "Sync Tokens", "Refresh spacing, tones, and chart styles in the current app.")
+                )
+            );
         });
     };
     guard(size(html) > 0, "body must not be empty");

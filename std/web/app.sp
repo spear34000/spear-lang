@@ -166,3 +166,140 @@ function view drawer_panel(text title, text body, text content) {
         };
     };
 }
+
+function view toast_chip(text title, text body, text tone) {
+    return box(modifier(
+        padding_xy("12px", "14px"),
+        modifier(
+            corner_radius(radius_2()),
+            modifier(
+                background("#ffffff"),
+                modifier(border(line_soft()), modifier(shadow(elevation_1()), style_rule("border-left", join("4px solid ", tone))))
+            )
+        )
+    )) {
+        column_box(gap_space("6px")) {
+            markup("h4", style_attr(card_title_mod())) {
+                escape(title);
+            };
+            markup("p", style_attr(body_copy_mod())) {
+                escape(body);
+            };
+        };
+    };
+}
+
+function view toast_stack(text first, text second, text third) {
+    return column_box(gap_space(space_2())) {
+        first;
+        second;
+        third;
+    };
+}
+
+function view filter_chip(text label, text active) {
+    variable mods = modifier(
+        padding_xy("10px", "14px"),
+        modifier(
+            corner_radius(radius_pill()),
+            modifier(background("#ffffff"), modifier(border(line_soft()), modifier(foreground(tone_muted()), shadow(elevation_1()))))
+        )
+    );
+    if (same(active, "yes")) {
+        mods = modifier(
+            padding_xy("10px", "14px"),
+            modifier(
+                corner_radius(radius_pill()),
+                modifier(background("rgba(79,140,255,0.14)"), modifier(border("1px solid rgba(79,140,255,0.36)"), foreground(tone_brand())))
+            )
+        );
+    }
+    return markup("span", style_attr(mods)) {
+        escape(label);
+    };
+}
+
+function view filter_row(text first, text second, text third, text fourth) {
+    return row_box(modifier(gap_space(space_2()), wrap())) {
+        first;
+        second;
+        third;
+        fourth;
+    };
+}
+
+function view command_palette(text title, text body, text items) {
+    return box(modifier(max_width("640px"), modifier(center_x(), dark_panel_mod()))) {
+        column_box(gap_space(space_3())) {
+            column_box(gap_space(space_1())) {
+                markup("p", style_attr(eyebrow_mod())) {
+                    "Command palette";
+                };
+                markup("h3", style_attr("margin:0;font-size:28px;line-height:1.1;color:#f8fafc")) {
+                    escape(title);
+                };
+                markup("p", style_attr(body_copy_inverse_mod())) {
+                    escape(body);
+                };
+            };
+            markup("div", style_attr(input_dark_shell_mod())) {
+                "Search commands, pages, and actions";
+            };
+            column_box(gap_space(space_2())) {
+                items;
+            };
+        };
+    };
+}
+
+function view command_item(text keycap, text label, text note) {
+    return box(modifier(
+        padding_xy("12px", "14px"),
+        modifier(
+            corner_radius(radius_2()),
+            modifier(background("rgba(255,255,255,0.04)"), border(line_inverse_soft()))
+        )
+    )) {
+        row_box(modifier(justify_between(), modifier(align_center(), wrap()))) {
+            column_box(gap_space("4px")) {
+                markup("h4", style_attr("margin:0;font-size:18px;line-height:1.15;color:#f8fafc")) {
+                    escape(label);
+                };
+                markup("p", style_attr(body_copy_inverse_mod())) {
+                    escape(note);
+                };
+            };
+            markup("span", style_attr("display:inline-block;padding:6px 10px;border-radius:12px;background:rgba(255,255,255,0.08);color:#f8fafc;font-weight:700")) {
+                escape(keycap);
+            };
+        };
+    };
+}
+
+function view empty_state_panel(text title, text body, text href, text label) {
+    return box(paper_panel_mod()) {
+        column_box(modifier(gap_space(space_3()), align_center())) {
+            markup("div", style_attr("width:72px;height:72px;border-radius:24px;background:linear-gradient(135deg,rgba(79,140,255,0.18),rgba(255,138,61,0.18))"), "");
+            column_box(modifier(gap_space(space_1()), align_center())) {
+                markup("h3", style_attr(card_title_mod())) {
+                    escape(title);
+                };
+                markup("p", style_attr(body_copy_mod())) {
+                    escape(body);
+                };
+            };
+            button_link(action_warm_mod(), href, label);
+        };
+    };
+}
+
+function view master_detail(text master, text detail) {
+    return row_box(modifier(gap_space(space_3()), modifier(align_start(), wrap()))) {
+        markup("section", style_attr("flex:0 0 280px;min-width:260px")) {
+            master;
+        };
+        markup("section", style_attr("flex:1;min-width:380px")) {
+            detail;
+        };
+    };
+}

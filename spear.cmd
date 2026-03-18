@@ -18,6 +18,12 @@ if /I "%~1"=="serve" (
     set "input=%~2"
 )
 
+if /I "%~1"=="service" (
+    if "%~2"=="" goto :usage
+    set "mode=serve"
+    set "input=%~2"
+)
+
 if /I "%~1"=="check" (
     if "%~2"=="" goto :usage
     set "mode=check"
@@ -85,5 +91,6 @@ echo usage:
 echo   spear file.sp
 echo   spear build file.sp
 echo   spear serve file.sp
+echo   spear service file.sp
 echo   spear check file.sp
 exit /b 1

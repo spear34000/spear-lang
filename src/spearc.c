@@ -574,7 +574,10 @@ static bool is_ident_char(char c) {
 static void lexer_init(Lexer *lexer, const char *src) {
     lexer->src = src;
     lexer->len = strlen(src);
-    lexer->pos = 0;
+    lexer->pos = (lexer->len >= 3 &&
+                  (unsigned char) src[0] == 0xEF &&
+                  (unsigned char) src[1] == 0xBB &&
+                  (unsigned char) src[2] == 0xBF) ? 3 : 0;
     lexer->line = 1;
     lexer->col = 1;
 }

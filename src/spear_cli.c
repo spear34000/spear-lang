@@ -346,6 +346,44 @@ static int run_process_console(const char *command_line) {
     return (int) exit_code;
 }
 
+static int run_process_quiet(const char *command_line) {
+    STARTUPINFOA si;
+    PROCESS_INFORMATION pi;
+    ZeroMemory(&si, sizeof(si));
+    ZeroMemory(&pi, sizeof(pi));
+    si.cb = sizeof(si);
+
+    HANDLE null_in = CreateFileA("NUL", GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE null_out = CreateFileA("NUL", GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (null_in == INVALID_HANDLE_VALUE || null_out == INVALID_HANDLE_VALUE) {
+        if (null_in != INVALID_HANDLE_VALUE) CloseHandle(null_in);
+        if (null_out != INVALID_HANDLE_VALUE) CloseHandle(null_out);
+        return run_process_console(command_line);
+    }
+
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput = null_in;
+    si.hStdOutput = null_out;
+    si.hStdError = null_out;
+
+    char mutable_cmd[4096];
+    format_text(mutable_cmd, sizeof(mutable_cmd), "%s", command_line);
+
+    BOOL ok = CreateProcessA(NULL, mutable_cmd, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi);
+    CloseHandle(null_in);
+    CloseHandle(null_out);
+    if (!ok) {
+        return -1;
+    }
+
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    DWORD exit_code = 1;
+    GetExitCodeProcess(pi.hProcess, &exit_code);
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    return (int) exit_code;
+}
+
 int main(int argc, char **argv) {
     const char *mode = "run";
     const char *input = NULL;
@@ -359,17 +397,23 @@ int main(int argc, char **argv) {
     char back_log[4096];
     char command[4096];
 
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+
     if (argc < 2) {
         fprintf(stderr, "%s", cli_text("usage"));
         return 1;
     }
 
-    if (_stricmp(argv[1], "build") == 0 || _stricmp(argv[1], "serve") == 0 || _stricmp(argv[1], "check") == 0) {
+    if (_stricmp(argv[1], "build") == 0 ||
+        _stricmp(argv[1], "serve") == 0 ||
+        _stricmp(argv[1], "service") == 0 ||
+        _stricmp(argv[1], "check") == 0) {
         if (argc < 3) {
             fprintf(stderr, "%s", cli_text("usage"));
             return 1;
         }
-        mode = argv[1];
+        mode = _stricmp(argv[1], "service") == 0 ? "serve" : argv[1];
         input = argv[2];
     } else {
         input = argv[1];
@@ -450,7 +494,7 @@ int main(int argc, char **argv) {
     }
 
     format_text(command, sizeof(command), "\"%s\"", exe_out);
-    int run_exit = run_process_console(command);
+    int run_exit = _stricmp(mode, "serve") == 0 ? run_process_quiet(command) : run_process_console(command);
     cleanup_temp_dir(temp_dir, c_out, exe_out, front_log, back_log);
     if (run_exit != 0) {
         return 1;
@@ -461,7 +505,7 @@ int main(int argc, char **argv) {
             ? "http://127.0.0.1:4173/spear-ui.html"
             : "http://127.0.0.1:4173/";
         printf("%s: %s\n", cli_text("serve_prefix"), html);
-        format_text(command, sizeof(command), "cmd /c start \"\" \"%s\"", html);
+        format_text(command, sizeof(command), "cmd /c start \"\" cmd /c \"ping -n 3 127.0.0.1 >nul && start \"\" \"%s\"\"", html);
         run_process_console(command);
         return run_process_console("python -m http.server 4173 --directory build");
     }

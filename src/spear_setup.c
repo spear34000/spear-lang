@@ -32,15 +32,16 @@
 #define IDC_MODE_REPAIR 1017
 #define IDC_MODE_REMOVE 1018
 
-#define UI_BG RGB(10, 16, 28)
-#define UI_PANEL RGB(15, 23, 38)
-#define UI_PANEL_ALT RGB(22, 32, 52)
-#define UI_PANEL_EDGE RGB(38, 52, 80)
-#define UI_ACCENT RGB(47, 111, 237)
-#define UI_ACCENT_SOFT RGB(28, 49, 88)
-#define UI_SIDEBAR RGB(8, 13, 24)
-#define UI_TEXT RGB(232, 240, 255)
-#define UI_MUTED RGB(160, 176, 204)
+#define UI_BG RGB(7, 12, 22)
+#define UI_PANEL RGB(17, 24, 38)
+#define UI_PANEL_ALT RGB(24, 34, 52)
+#define UI_PANEL_EDGE RGB(48, 63, 92)
+#define UI_ACCENT RGB(77, 138, 255)
+#define UI_ACCENT_SOFT RGB(35, 57, 98)
+#define UI_ACCENT_GLOW RGB(119, 169, 255)
+#define UI_SIDEBAR RGB(5, 9, 18)
+#define UI_TEXT RGB(238, 244, 255)
+#define UI_MUTED RGB(146, 162, 190)
 
 enum {
     LANG_EN = 0,
@@ -132,6 +133,7 @@ static HBRUSH g_brush_accent = NULL;
 static HFONT g_font_title = NULL;
 static HFONT g_font_body = NULL;
 static HFONT g_font_ui = NULL;
+static HFONT g_font_brand = NULL;
 
 static void fail(const char *fmt, ...) {
     char message[4096];
@@ -181,7 +183,7 @@ static void ensure_theme_resources(void) {
     if (!g_brush_panel_alt) g_brush_panel_alt = CreateSolidBrush(UI_PANEL_ALT);
     if (!g_brush_accent) g_brush_accent = CreateSolidBrush(UI_ACCENT);
     if (!g_font_title) {
-        g_font_title = CreateFontW(-28, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+        g_font_title = CreateFontW(-30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
             OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI");
     }
     if (!g_font_body) {
@@ -190,6 +192,10 @@ static void ensure_theme_resources(void) {
     }
     if (!g_font_ui) {
         g_font_ui = CreateFontW(-15, 0, 0, 0, FW_MEDIUM, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI");
+    }
+    if (!g_font_brand) {
+        g_font_brand = CreateFontW(-26, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
             OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI");
     }
 }
@@ -233,6 +239,33 @@ static void draw_button_face(DRAWITEMSTRUCT *dis, bool primary) {
     GetWindowTextA(dis->hwndItem, label, (int) sizeof(label));
     draw_text_utf8(hdc, rc.left, rc.top + 1, rc.right - rc.left, rc.bottom - rc.top,
         DT_CENTER | DT_VCENTER | DT_SINGLELINE, text, g_font_ui, label);
+}
+
+static void draw_round_panel(HDC hdc, const RECT *rc, COLORREF fill, COLORREF border, int radius) {
+    HBRUSH brush = CreateSolidBrush(fill);
+    HPEN pen = CreatePen(PS_SOLID, 1, border);
+    HPEN old_pen = (HPEN) SelectObject(hdc, pen);
+    HBRUSH old_brush = (HBRUSH) SelectObject(hdc, brush);
+    RoundRect(hdc, rc->left, rc->top, rc->right, rc->bottom, radius, radius);
+    SelectObject(hdc, old_brush);
+    SelectObject(hdc, old_pen);
+    DeleteObject(brush);
+    DeleteObject(pen);
+}
+
+static void draw_step_item(HDC hdc, int y, int step, bool active, const char *label) {
+    RECT chip;
+    char number[8];
+    chip.left = 22;
+    chip.top = y;
+    chip.right = 162;
+    chip.bottom = y + 34;
+    if (active) draw_round_panel(hdc, &chip, UI_PANEL_ALT, UI_PANEL_EDGE, 12);
+    wsprintfA(number, "%d", step);
+    draw_text_utf8(hdc, 36, y + 8, 18, 18, DT_CENTER | DT_VCENTER | DT_SINGLELINE,
+        active ? UI_ACCENT_GLOW : UI_MUTED, g_font_ui, number);
+    draw_text_utf8(hdc, 62, y + 7, 88, 20, DT_LEFT | DT_VCENTER | DT_SINGLELINE,
+        active ? UI_TEXT : UI_MUTED, g_font_ui, label);
 }
 
 static const char *lang_code(int index) {
@@ -1283,6 +1316,8 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                 RECT content;
                 RECT card;
                 RECT accent_bar;
+                RECT glow;
+                RECT top_line;
                 HDC hdc = BeginPaint(hwnd, &ps);
                 GetClientRect(hwnd, &rc);
                 FillRect(hdc, &rc, g_brush_bg);
@@ -1294,6 +1329,17 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                 accent_bar.top = 0;
                 accent_bar.right = 6;
                 FillRect(hdc, &accent_bar, g_brush_accent);
+                glow.left = 184;
+                glow.top = 0;
+                glow.right = rc.right;
+                glow.bottom = 108;
+                FillRect(hdc, &glow, g_brush_bg);
+                top_line = glow;
+                top_line.top = 22;
+                top_line.bottom = 24;
+                top_line.left = 220;
+                top_line.right = rc.right - 28;
+                FillRect(hdc, &top_line, g_brush_accent);
                 content = rc;
                 content.left = 184;
                 FillRect(hdc, &content, g_brush_bg);
@@ -1301,15 +1347,15 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                 card.top = 150;
                 card.right = rc.right - 24;
                 card.bottom = rc.bottom - 64;
-                FillRect(hdc, &card, g_brush_panel);
-                FrameRect(hdc, &card, g_brush_panel_alt);
-                draw_text_utf8(hdc, 28, 28, 120, 34, DT_LEFT | DT_VCENTER | DT_SINGLELINE, UI_TEXT, g_font_title, "Spear");
-                draw_text_utf8(hdc, 28, 66, 120, 20, DT_LEFT | DT_VCENTER | DT_SINGLELINE, UI_MUTED, g_font_ui, "Installer");
-                draw_text_utf8(hdc, 28, 130, 120, 24, DT_LEFT | DT_VCENTER | DT_SINGLELINE, state && state->page == 0 ? UI_TEXT : UI_MUTED, g_font_ui, "1  Welcome");
-                draw_text_utf8(hdc, 28, 160, 120, 24, DT_LEFT | DT_VCENTER | DT_SINGLELINE, state && state->page == 1 ? UI_TEXT : UI_MUTED, g_font_ui, "2  Options");
-                draw_text_utf8(hdc, 28, 190, 120, 24, DT_LEFT | DT_VCENTER | DT_SINGLELINE, state && state->page == 2 ? UI_TEXT : UI_MUTED, g_font_ui, "3  Review");
-                draw_text_utf8(hdc, 28, 220, 120, 24, DT_LEFT | DT_VCENTER | DT_SINGLELINE, state && state->page == 3 ? UI_TEXT : UI_MUTED, g_font_ui, "4  Install");
-                draw_text_utf8(hdc, 28, 250, 120, 24, DT_LEFT | DT_VCENTER | DT_SINGLELINE, state && state->page >= 4 ? UI_TEXT : UI_MUTED, g_font_ui, "5  Finish");
+                draw_round_panel(hdc, &card, UI_PANEL, UI_PANEL_EDGE, 16);
+                draw_text_utf8(hdc, 28, 28, 120, 34, DT_LEFT | DT_VCENTER | DT_SINGLELINE, UI_TEXT, g_font_brand, "Spear");
+                draw_text_utf8(hdc, 28, 61, 120, 18, DT_LEFT | DT_VCENTER | DT_SINGLELINE, UI_MUTED, g_font_ui, "Premium installer");
+                draw_text_utf8(hdc, 28, rc.bottom - 78, 120, 18, DT_LEFT | DT_VCENTER | DT_SINGLELINE, UI_MUTED, g_font_ui, "v0.1.0");
+                draw_step_item(hdc, 124, 1, state && state->page == 0, "Welcome");
+                draw_step_item(hdc, 164, 2, state && state->page == 1, "Options");
+                draw_step_item(hdc, 204, 3, state && state->page == 2, "Review");
+                draw_step_item(hdc, 244, 4, state && state->page == 3, "Install");
+                draw_step_item(hdc, 284, 5, state && state->page >= 4, "Finish");
                 EndPaint(hwnd, &ps);
             }
             return 0;

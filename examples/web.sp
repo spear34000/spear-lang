@@ -188,6 +188,65 @@ run {
                 };
             };
         });
+        centered(column_box(gap_space(space_3())) {
+            calendar_strip(
+                "Release calendar",
+                "Scheduling UI should match the rest of the system instead of starting from scratch.",
+                join(
+                    join(
+                        calendar_chip("Mon", "Design audit", "no"),
+                        calendar_chip("Tue", "Ship tokens", "yes")
+                    ),
+                    join(
+                        calendar_chip("Wed", "Review forms", "no"),
+                        calendar_chip("Thu", "Launch page", "no")
+                    )
+                )
+            );
+            kanban_board(
+                kanban_lane("Backlog", "2 items", join(
+                    kanban_card("Research", "Chart patterns", "Compare timelines, trends, and scoreboards."),
+                    kanban_card("UI", "Drawer system", "Keep side panels inside the same tone rules.")
+                )),
+                kanban_lane("In progress", "2 items", join(
+                    kanban_card("Tokens", "Refine elevation", "Tune how panels stack in dense dashboards."),
+                    kanban_card("Apps", "Modal actions", "Make high-emphasis decisions feel premium.")
+                )),
+                kanban_lane("Done", "1 item", kanban_card("Foundation", "Design grammar", "Spacing, surfaces, charts, and data tables now share one system."))
+            );
+            split(
+                activity_feed(
+                    "Activity feed",
+                    "Operational updates should read cleanly without losing visual polish.",
+                    join(
+                        join(
+                            activity_item("10:32", "Published token update", "Form primitives now inherit the same spacing and panel language."),
+                            activity_item("12:18", "Reviewed launch draft", "Trend cards and timeline feeds were added to the product dashboard.")
+                        ),
+                        activity_item("14:05", "Prepared release candidate", "Calendar and kanban blocks now exist for app-style screens.")
+                    )
+                ),
+                column_box(gap_space(space_3())) {
+                    modal_card(
+                        "Promote this release?",
+                        "High-emphasis decisions should already feel designed before you fine-tune the product.",
+                        join(
+                            button_link(button_secondary_mod(), "#later", "Review later"),
+                            button_link(action_warm_mod(), "#ship", "Ship now")
+                        )
+                    );
+                    drawer_panel(
+                        "Right-side tools",
+                        "Drawers should be easy to stage for settings, comments, or quick actions.",
+                        column_box(gap_space(space_2())) {
+                            text_field_dark("Owner", "Spear UI team");
+                            text_field_dark("Status", "Ready for review");
+                            form_hint("This panel uses the same form tokens as the rest of the page.");
+                        }
+                    );
+                }
+            );
+        });
     };
     guard(size(html) > 0, "body must not be empty");
     write("build/spear-ui.html", html);

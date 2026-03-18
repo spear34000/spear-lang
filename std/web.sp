@@ -5,6 +5,7 @@ import "web/modifiers.sp";
 import "web/design.sp";
 import "web/forms.sp";
 import "web/dashboard.sp";
+import "web/app.sp";
 import "web/presets.sp";
 import "web/charts.sp";
 import "web/themes.sp";

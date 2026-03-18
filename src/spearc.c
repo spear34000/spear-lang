@@ -1741,17 +1741,43 @@ static Expr parse_text_expr(Parser *parser, int scope_id) {
             char *scope_name = make_scope_name(scope_id);
             buf_appendf(&args, "&%s", scope_name);
             free(scope_name);
-            for (size_t i = 0; i < fn->param_count; i++) {
-                if (i > 0) {
+            size_t arg_index = 0;
+            bool consumed_trailing_block = false;
+            while (arg_index < fn->param_count) {
+                bool can_use_trailing_block = (
+                    fn->params[arg_index].type == TYPE_TEXT &&
+                    parser->lexer.current.kind == TOK_RPAREN &&
+                    peek_token(parser).kind == TOK_LBRACE
+                );
+                if (can_use_trailing_block) {
+                    break;
+                }
+                if (arg_index > 0) {
                     expect(parser, TOK_COMMA, "expected ','");
                 }
                 Expr arg;
-                if (fn->params[i].type == TYPE_NUM) arg = parse_num_expr(parser, scope_id);
-                else if (fn->params[i].type == TYPE_TEXT) arg = parse_text_expr(parser, scope_id);
-                else arg = parse_list_expr(parser, scope_id, fn->params[i].type);
+                if (fn->params[arg_index].type == TYPE_NUM) arg = parse_num_expr(parser, scope_id);
+                else if (fn->params[arg_index].type == TYPE_TEXT) arg = parse_text_expr(parser, scope_id);
+                else arg = parse_list_expr(parser, scope_id, fn->params[arg_index].type);
                 buf_appendf(&args, ", %s", arg.code);
+                arg_index++;
             }
             expect(parser, TOK_RPAREN, "expected ')'");
+            if (arg_index < fn->param_count) {
+                if (arg_index + 1 == fn->param_count &&
+                    fn->params[arg_index].type == TYPE_TEXT &&
+                    parser->lexer.current.kind == TOK_LBRACE) {
+                    char *children = parse_text_children(parser, scope_id);
+                    buf_appendf(&args, ", %s", children);
+                    arg_index++;
+                    consumed_trailing_block = true;
+                } else {
+                    fatal_at(token.line, token.col, "function '%s' is missing required arguments", fname);
+                }
+            }
+            if (!consumed_trailing_block && parser->lexer.current.kind == TOK_LBRACE) {
+                fatal_at(parser->lexer.current.line, parser->lexer.current.col, "unexpected block after function call");
+            }
             Buffer code;
             buf_init(&code);
             buf_appendf(&code, "%s(%s)", fn->c_name, args.data ? args.data : "");

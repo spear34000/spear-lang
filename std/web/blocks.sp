@@ -4,7 +4,7 @@ module webblocks;
 function view landing_page(text title, text theme_fill, text sections) {
     return page(title) {
         markup("main", style_attr(theme_page(theme_fill))) {
-            showcase_shell(sections);
+            showcase_shell(showcase_flow(sections));
         };
     };
 }

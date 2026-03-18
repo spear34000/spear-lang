@@ -15,6 +15,12 @@ function view showcase_shell(text body) {
     };
 }
 
+function view showcase_flow(text sections) {
+    return column_box(gap_space("26px")) {
+        sections;
+    };
+}
+
 function view showcase_stack(text top, text middle, text bottom) {
     return column_box(gap_space("26px")) {
         top;

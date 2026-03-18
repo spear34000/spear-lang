@@ -181,6 +181,20 @@ make check
 make dist
 ```
 
+Project workflow:
+
+```bash
+spear new my-app
+cd my-app
+spear check
+spear build
+spear serve
+```
+
+- `spear new <name>` creates a starter web project with `spear.toml` and `main.sp`
+- `spear`, `spear build`, `spear serve`, and `spear check` work on the current project folder
+- `import "std/web.sp";` resolves through the installed standard library, so projects can live anywhere
+
 Run commands / 실행 명령:
 
 ```bash

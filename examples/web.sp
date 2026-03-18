@@ -84,11 +84,12 @@ run {
                             };
                             form_card(
                                 "Prototype faster",
-                                "Use form primitives that already sit inside the same tone and spacing system.",
+                                "Use real form controls that already sit inside the same tone and spacing system.",
                                 column_box(gap_space(space_2())) {
-                                    text_field_dark("Project name", "Spear Commerce");
-                                    text_field_dark("Goal", "Premium launch page with charts");
-                                    form_hint("These are design-first input shells. Real form submission can layer on later.");
+                                    text_input("Project name", "project_name", "Spear Commerce", "Project name");
+                                    email_input("Owner", "owner_email", "", "team@spear.dev");
+                                    text_area("Goal", "goal", "Premium launch page with charts", "What should this release feel like?", "4");
+                                    form_hint("The same primitives now render real HTML form controls and submit actions.");
                                 },
                                 "/start",
                                 "Start prototype"
@@ -241,9 +242,15 @@ run {
                         "Right-side tools",
                         "Drawers should be easy to stage for settings, comments, or quick actions.",
                         column_box(gap_space(space_2())) {
-                            text_field_dark("Owner", "Spear UI team");
-                            text_field_dark("Status", "Ready for review");
-                            form_hint("This panel uses the same form tokens as the rest of the page.");
+                            search_input("Owner", "owner_search", "Spear UI team", "Search owner");
+                            select_field("Status", "release_status", join(
+                                join(
+                                    select_option("review", "Ready for review", "yes"),
+                                    select_option("draft", "Draft", "no")
+                                ),
+                                select_option("ship", "Ready to ship", "no")
+                            ));
+                            form_hint("This panel uses the same form controls and state helpers as the rest of the page.");
                         }
                     );
                 }
@@ -253,6 +260,12 @@ run {
                 filter_chip("Shipped", "no"),
                 filter_chip("In review", "no"),
                 filter_chip("Needs design", "no")
+            );
+            state_row(
+                state_link("#overview", "Overview", "yes"),
+                state_link("#pipeline", "Pipeline", "no"),
+                state_link("#forms", "Forms", "no"),
+                state_link("#launch", "Launch", "no")
             );
             master_detail(
                 activity_feed(
@@ -301,6 +314,15 @@ run {
                 "Review in progress",
                 "The product flow should communicate where the user is without leaving the design system.",
                 tone_brand()
+            );
+            inspector_panel(
+                "Launch action flow",
+                "State links, action bars, and notices should make app behavior easy to stage without leaving the design system.",
+                action_bar("#preview", "Preview release", "#history", "View history"),
+                column_box(gap_space(space_2())) {
+                    route_notice("Ready to ship", "All required fields are filled and the release copy is approved.", "#ship", "Open ship checklist", tone_brand());
+                    route_notice("Review requested", "Marketing asked for one more pass on the hero message.", "#review", "Open review queue", tone_warm());
+                }
             );
             master_detail(
                 selection_list(

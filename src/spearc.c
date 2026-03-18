@@ -202,6 +202,7 @@ typedef struct {
 } StringList;
 
 static char g_compiler_lang[8] = "en";
+static char g_tool_dir[2048] = "";
 static bool g_collect_errors = false;
 static int g_error_count = 0;
 static jmp_buf *g_recover_env = NULL;
@@ -3581,6 +3582,55 @@ static void join_fs_path(char *out, size_t cap, const char *base, const char *le
     }
 }
 
+static bool file_exists(const char *path) {
+    FILE *fp = fopen(path, "rb");
+    if (!fp) {
+        return false;
+    }
+    fclose(fp);
+    return true;
+}
+
+static void normalize_import_leaf(char *out, size_t cap, const char *leaf) {
+    const char *start = leaf;
+    size_t len = strlen(leaf);
+    while (len > 0 && *start == '"') {
+        start++;
+        len--;
+    }
+    while (len > 0 && start[len - 1] == '"') {
+        len--;
+    }
+    if (len + 1 > cap) {
+        fprintf(stderr, "%s: %s\n", compiler_message("error_prefix"), compiler_message("path_too_long"));
+        exit(1);
+    }
+    memcpy(out, start, len);
+    out[len] = '\0';
+}
+
+static void resolve_import_path(char *out, size_t cap, const char *base, const char *leaf) {
+    char clean_leaf[2048];
+    char candidate[2048];
+    normalize_import_leaf(clean_leaf, sizeof(clean_leaf), leaf);
+    join_fs_path(candidate, sizeof(candidate), base, clean_leaf);
+    if (file_exists(candidate)) {
+        checked_snprintf(out, cap, "%s", candidate);
+        return;
+    }
+
+    if (g_tool_dir[0] &&
+        (strncmp(clean_leaf, "std/", 4) == 0 || strncmp(clean_leaf, "std\\", 4) == 0)) {
+        checked_snprintf(candidate, sizeof(candidate), "%s\\%s", g_tool_dir, clean_leaf);
+        if (file_exists(candidate)) {
+            checked_snprintf(out, cap, "%s", candidate);
+            return;
+        }
+    }
+
+    checked_snprintf(out, cap, "%s", candidate);
+}
+
 static void executable_dir(const char *argv0, char *out, size_t cap) {
     char candidate[2048];
     if (!_fullpath(out, argv0, cap)) {
@@ -3671,8 +3721,10 @@ static char *read_stream(FILE *fp, const char *label) {
 
 static void collect_exported_functions_recursive(const char *path, StringList *seen_files, StringList *exports) {
     char full_path[2048];
+    char clean_path[2048];
     char base_dir[2048];
-    if (!_fullpath(full_path, path, sizeof(full_path))) {
+    normalize_import_leaf(clean_path, sizeof(clean_path), path);
+    if (!_fullpath(full_path, clean_path, sizeof(full_path))) {
         return;
     }
     if (string_list_has(seen_files, full_path)) {
@@ -3700,7 +3752,7 @@ static void collect_exported_functions_recursive(const char *path, StringList *s
             }
             char *rel = token_text(path_tok);
             char next_path[2048];
-            join_fs_path(next_path, sizeof(next_path), base_dir, rel);
+            resolve_import_path(next_path, sizeof(next_path), base_dir, rel);
             collect_exported_functions_recursive(next_path, seen_files, exports);
             free(rel);
             continue;
@@ -3736,6 +3788,7 @@ static void collect_exported_functions_recursive(const char *path, StringList *s
 
 static ImportInfo *collect_direct_imports(const char *path, const char *root_source, size_t *out_count) {
     char full_path[2048];
+    char clean_path[2048];
     char base_dir[2048];
     char *source;
     ImportInfo *items = NULL;
@@ -3743,7 +3796,8 @@ static ImportInfo *collect_direct_imports(const char *path, const char *root_sou
     size_t cap = 0;
 
     *out_count = 0;
-    if (!_fullpath(full_path, path, sizeof(full_path))) {
+    normalize_import_leaf(clean_path, sizeof(clean_path), path);
+    if (!_fullpath(full_path, clean_path, sizeof(full_path))) {
         return NULL;
     }
     source = root_source ? xstrdup(root_source) : read_file(full_path);
@@ -3757,15 +3811,16 @@ static ImportInfo *collect_direct_imports(const char *path, const char *root_sou
         const char *trim = cursor;
         while (*trim == ' ' || *trim == '\t') trim++;
         if (strncmp(trim, "import \"", 8) == 0) {
-            const char *start = trim + 8;
-            const char *end = strchr(start, '"');
-            if (end && end[1] == ';') {
+            const char *start = strchr(trim, '"');
+            if (start) start++;
+            const char *end = start ? strchr(start, '"') : NULL;
+            if (start && end && end[1] == ';') {
                 char rel[1024];
                 char next_path[2048];
                 size_t rel_len = (size_t) (end - start);
                 memcpy(rel, start, rel_len);
                 rel[rel_len] = '\0';
-                join_fs_path(next_path, sizeof(next_path), base_dir, rel);
+                resolve_import_path(next_path, sizeof(next_path), base_dir, rel);
                 import_list_add(&items, &count, &cap, next_path, rel, current_line);
                 StringList seen_files = {0};
                 StringList exports = {0};
@@ -3789,9 +3844,11 @@ static ImportInfo *collect_direct_imports(const char *path, const char *root_sou
 
 static char *load_source_tree(const char *path, const char *root_source, PathList *seen, PathList *active) {
     char full_path[2048];
+    char clean_path[2048];
     char base_dir[2048];
-    if (!_fullpath(full_path, path, sizeof(full_path))) {
-        fprintf(stderr, "%s: %s %s\n", compiler_message("error_prefix"), compiler_message("cannot_resolve"), path);
+    normalize_import_leaf(clean_path, sizeof(clean_path), path);
+    if (!_fullpath(full_path, clean_path, sizeof(full_path))) {
+        fprintf(stderr, "%s: %s %s\n", compiler_message("error_prefix"), compiler_message("cannot_resolve"), clean_path);
         exit(1);
     }
     if (path_list_has(active, full_path)) {
@@ -3818,9 +3875,10 @@ static char *load_source_tree(const char *path, const char *root_source, PathLis
         while (*trim == ' ' || *trim == '\t') trim++;
 
         if (strncmp(trim, "import \"", 8) == 0) {
-            const char *start = trim + 8;
-            const char *end = strchr(start, '"');
-            if (!end || end[1] != ';') {
+            const char *start = strchr(trim, '"');
+            if (start) start++;
+            const char *end = start ? strchr(start, '"') : NULL;
+            if (!start || !end || end[1] != ';') {
                 fprintf(stderr, "spearc error: malformed import in %s\n", full_path);
                 exit(1);
             }
@@ -3830,7 +3888,7 @@ static char *load_source_tree(const char *path, const char *root_source, PathLis
             size_t rel_len = (size_t) (end - start);
             memcpy(rel, start, rel_len);
             rel[rel_len] = '\0';
-            join_fs_path(next_path, sizeof(next_path), base_dir, rel);
+            resolve_import_path(next_path, sizeof(next_path), base_dir, rel);
             if (_fullpath(full_child, next_path, sizeof(full_child)) && path_list_has(seen, full_child)) {
                 fprintf(stderr, "%s [line %d:%d] ", compiler_message("warning_prefix"), current_line, 1);
                 fprintf(stderr, compiler_message("duplicate_import"), rel);
@@ -4136,6 +4194,7 @@ int main(int argc, char **argv) {
         if (argc > 0) {
             executable_dir(argv[0], tool_dir, sizeof(tool_dir));
             compiler_load_lang(tool_dir);
+            checked_snprintf(g_tool_dir, sizeof(g_tool_dir), "%s", tool_dir);
         }
         fprintf(stderr, "%s", compiler_message("usage"));
         return 1;
@@ -4148,6 +4207,7 @@ int main(int argc, char **argv) {
     char *stdin_source = NULL;
     executable_dir(argv[0], tool_dir, sizeof(tool_dir));
     compiler_load_lang(tool_dir);
+    checked_snprintf(g_tool_dir, sizeof(g_tool_dir), "%s", tool_dir);
 
     if (argc == 3 && strcmp(argv[1], "--check") == 0) {
         check_only = true;

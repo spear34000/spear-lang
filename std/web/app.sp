@@ -426,3 +426,76 @@ function view detail_panel(text title, text body, text content) {
         };
     };
 }
+
+function view state_link(text href, text label, text active) {
+    variable mods = state_chip_mod();
+    if (same(active, "yes")) {
+        mods = state_chip_active_mod();
+    }
+    return markup("a", attrs(href_attr(href), style_attr(mods))) {
+        escape(label);
+    };
+}
+
+function view state_row(text first, text second, text third, text fourth) {
+    return row_box(modifier(gap_space(space_2()), wrap())) {
+        first;
+        second;
+        third;
+        fourth;
+    };
+}
+
+function view action_bar(text primary_href, text primary_label, text secondary_href, text secondary_label) {
+    return row_box(form_actions_mod()) {
+        button_link(action_warm_mod(), primary_href, primary_label);
+        button_link(button_secondary_mod(), secondary_href, secondary_label);
+    };
+}
+
+function view route_notice(text title, text body, text href, text label, text tone) {
+    return box(modifier(
+        padding(space_3()),
+        modifier(
+            corner_radius(radius_2()),
+            modifier(
+                background("#ffffff"),
+                modifier(
+                    border(line_soft()),
+                    modifier(shadow(elevation_1()), style_rule("border-left", join("4px solid ", tone)))
+                )
+            )
+        )
+    )) {
+        row_box(modifier(justify_between(), modifier(align_center(), wrap()))) {
+            column_box(gap_space("6px")) {
+                markup("h4", style_attr(card_title_mod())) {
+                    escape(title);
+                };
+                markup("p", style_attr(body_copy_mod())) {
+                    escape(body);
+                };
+            };
+            button_link(button_secondary_mod(), href, label);
+        };
+    };
+}
+
+function view inspector_panel(text title, text body, text actions, text content) {
+    return box(paper_panel_mod()) {
+        column_box(gap_space(space_3())) {
+            row_box(modifier(justify_between(), modifier(align_center(), wrap()))) {
+                column_box(gap_space(space_1())) {
+                    markup("h3", style_attr(card_title_mod())) {
+                        escape(title);
+                    };
+                    markup("p", style_attr(body_copy_mod())) {
+                        escape(body);
+                    };
+                };
+                actions;
+            };
+            content;
+        };
+    };
+}

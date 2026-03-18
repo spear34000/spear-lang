@@ -295,6 +295,88 @@ function text input_dark_shell_mod() {
     );
 }
 
+function text input_control_mod() {
+    return modifier(
+        width_fill(),
+        modifier(
+            box_size("100%", "auto"),
+            modifier(
+                padding_xy("14px", "16px"),
+                modifier(
+                    corner_radius(radius_2()),
+                    modifier(
+                        background("#ffffff"),
+                        modifier(
+                            border(line_soft()),
+                            modifier(
+                                foreground(tone_soft_ink()),
+                                modifier(style_rule("outline", "none"), style_rule("font-size", "15px"))
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    );
+}
+
+function text input_control_dark_mod() {
+    return modifier(
+        width_fill(),
+        modifier(
+            box_size("100%", "auto"),
+            modifier(
+                padding_xy("14px", "16px"),
+                modifier(
+                    corner_radius(radius_2()),
+                    modifier(
+                        background("rgba(12,19,34,0.92)"),
+                        modifier(
+                            border(line_inverse_soft()),
+                            modifier(
+                                foreground(tone_inverse()),
+                                modifier(style_rule("outline", "none"), style_rule("font-size", "15px"))
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    );
+}
+
+function text textarea_control_mod() {
+    return modifier(input_control_mod(), style_rule("resize", "vertical"));
+}
+
+function text select_control_mod() {
+    return modifier(input_control_mod(), style_rule("appearance", "none"));
+}
+
+function text form_actions_mod() {
+    return modifier(gap_space(space_2()), modifier(wrap(), align_center()));
+}
+
+function text state_chip_mod() {
+    return modifier(
+        padding_xy("10px", "14px"),
+        modifier(
+            corner_radius(radius_pill()),
+            modifier(background("#ffffff"), modifier(border(line_soft()), foreground(tone_muted())))
+        )
+    );
+}
+
+function text state_chip_active_mod() {
+    return modifier(
+        padding_xy("10px", "14px"),
+        modifier(
+            corner_radius(radius_pill()),
+            modifier(background("rgba(79,140,255,0.14)"), modifier(border("1px solid rgba(79,140,255,0.36)"), foreground(tone_brand())))
+        )
+    );
+}
+
 function text field_stack_mod() {
     return modifier(gap_space(space_1()), width_fill());
 }

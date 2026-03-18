@@ -1,7 +1,13 @@
 build/
+dist/
 *.exe
 *.obj
 *.o
 *.ilk
 *.pdb
 *.vsix
+*.tmp
+*.log
+.spear-check-*.sp
+__pycache__/
+*.pyc

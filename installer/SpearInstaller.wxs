@@ -1,0 +1,149 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="Spear"
+    Manufacturer="Spear Project"
+    Version="0.1.0"
+    UpgradeCode="D7F0C0E2-3B31-4B08-949D-365D49D9F0B2"
+    Language="1033"
+    Scope="perUser"
+    InstallerVersion="500"
+    Compressed="yes">
+    <SummaryInformation Description="Spear Installer" Manufacturer="Spear Project" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Spear is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="SpearIcon" SourceFile="installer\spear.ico" />
+    <Property Id="ARPPRODUCTICON" Value="SpearIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/example/spear" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/example/spear" />
+    <Property Id="ARPCONTACT" Value="Spear Project" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="Spear">
+          <Directory Id="RuntimeFolder" Name="runtime" />
+          <Directory Id="ExamplesFolder" Name="examples" />
+          <Directory Id="VSCodeFolder" Name="vscode-spear">
+            <Directory Id="VSCodeAssetsFolder" Name="assets" />
+            <Directory Id="VSCodeSnippetsFolder" Name="snippets" />
+            <Directory Id="VSCodeSyntaxesFolder" Name="syntaxes" />
+          </Directory>
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Spear" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="Spear" Level="1">
+      <ComponentRef Id="CmpSpearExe" />
+      <ComponentRef Id="CmpSpearcExe" />
+      <ComponentRef Id="CmpSetupExe" />
+      <ComponentRef Id="CmpRuntimeBridgeNode" />
+      <ComponentRef Id="CmpRuntimeBridgePython" />
+      <ComponentRef Id="CmpRuntimeDemoNode" />
+      <ComponentRef Id="CmpRuntimeDemoPython" />
+      <ComponentRef Id="CmpExampleBridge" />
+      <ComponentRef Id="CmpExampleHello" />
+      <ComponentRef Id="CmpExampleMath" />
+      <ComponentRef Id="CmpExampleWeb" />
+      <ComponentRef Id="CmpVsExtension" />
+      <ComponentRef Id="CmpVsLanguageConfig" />
+      <ComponentRef Id="CmpVsPackage" />
+      <ComponentRef Id="CmpVsReadme" />
+      <ComponentRef Id="CmpVsLogoPng" />
+      <ComponentRef Id="CmpVsLogoSvg" />
+      <ComponentRef Id="CmpVsSnippets" />
+      <ComponentRef Id="CmpVsSyntax" />
+      <ComponentRef Id="CmpStartMenuShortcut" />
+    </Feature>
+
+    <Component Id="CmpSpearExe" Directory="INSTALLFOLDER" Guid="*">
+      <File Id="FileSpearExe" Source="$(var.SourceDir)\spear.exe" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpSpearcExe" Directory="INSTALLFOLDER" Guid="*">
+      <File Id="FileSpearcExe" Source="$(var.SourceDir)\spearc.exe" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpSetupExe" Directory="INSTALLFOLDER" Guid="*">
+      <File Id="FileSetupExe" Source="$(var.SourceDir)\spear-setup.exe" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpRuntimeBridgeNode" Directory="RuntimeFolder" Guid="*">
+      <File Id="FileRuntimeBridgeNode" Source="$(var.SourceDir)\runtime\bridge_node.mjs" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpRuntimeBridgePython" Directory="RuntimeFolder" Guid="*">
+      <File Id="FileRuntimeBridgePython" Source="$(var.SourceDir)\runtime\bridge_python.py" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpRuntimeDemoNode" Directory="RuntimeFolder" Guid="*">
+      <File Id="FileRuntimeDemoNode" Source="$(var.SourceDir)\runtime\demo_node.cjs" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpRuntimeDemoPython" Directory="RuntimeFolder" Guid="*">
+      <File Id="FileRuntimeDemoPython" Source="$(var.SourceDir)\runtime\demo_python.py" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpExampleBridge" Directory="ExamplesFolder" Guid="*">
+      <File Id="FileExampleBridge" Source="$(var.SourceDir)\examples\bridge.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpExampleHello" Directory="ExamplesFolder" Guid="*">
+      <File Id="FileExampleHello" Source="$(var.SourceDir)\examples\hello.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpExampleMath" Directory="ExamplesFolder" Guid="*">
+      <File Id="FileExampleMath" Source="$(var.SourceDir)\examples\math.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpExampleWeb" Directory="ExamplesFolder" Guid="*">
+      <File Id="FileExampleWeb" Source="$(var.SourceDir)\examples\web.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpVsExtension" Directory="VSCodeFolder" Guid="*">
+      <File Id="FileVsExtension" Source="$(var.SourceDir)\vscode-spear\extension.js" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpVsLanguageConfig" Directory="VSCodeFolder" Guid="*">
+      <File Id="FileVsLanguageConfig" Source="$(var.SourceDir)\vscode-spear\language-configuration.json" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpVsPackage" Directory="VSCodeFolder" Guid="*">
+      <File Id="FileVsPackage" Source="$(var.SourceDir)\vscode-spear\package.json" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpVsReadme" Directory="VSCodeFolder" Guid="*">
+      <File Id="FileVsReadme" Source="$(var.SourceDir)\vscode-spear\README.md" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpVsLogoPng" Directory="VSCodeAssetsFolder" Guid="*">
+      <File Id="FileVsLogoPng" Source="$(var.SourceDir)\vscode-spear\assets\spear-logo.png" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpVsLogoSvg" Directory="VSCodeAssetsFolder" Guid="*">
+      <File Id="FileVsLogoSvg" Source="$(var.SourceDir)\vscode-spear\assets\spear-logo.svg" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpVsSnippets" Directory="VSCodeSnippetsFolder" Guid="*">
+      <File Id="FileVsSnippets" Source="$(var.SourceDir)\vscode-spear\snippets\spear.json" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpVsSyntax" Directory="VSCodeSyntaxesFolder" Guid="*">
+      <File Id="FileVsSyntax" Source="$(var.SourceDir)\vscode-spear\syntaxes\spear.tmLanguage.json" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStartMenuShortcut" Directory="ApplicationProgramsFolder" Guid="*">
+      <Shortcut
+        Id="SpearShortcut"
+        Name="Spear"
+        Description="Launch the Spear setup wizard"
+        Target="[INSTALLFOLDER]spear-setup.exe"
+        WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="RemoveApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\Spear" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+  </Package>
+</Wix>

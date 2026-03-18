@@ -1,3 +1,4 @@
+#include <direct.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -48,16 +49,30 @@ typedef enum {
     TOK_NUMLIST,
     TOK_TEXTLIST,
     TOK_LET,
+    TOK_VAR,
     TOK_CONST,
     TOK_VIEW,
+    TOK_FUNCTION,
     TOK_SAY,
     TOK_WRITE,
     TOK_IF,
     TOK_ELSE,
+    TOK_FOR,
     TOK_WHILE,
+    TOK_BREAK,
+    TOK_CONTINUE,
     TOK_EACH,
     TOK_IN,
     TOK_RETURN,
+    TOK_IMPORT,
+    TOK_MODULE,
+    TOK_PACKAGE,
+    TOK_TRY,
+    TOK_CATCH,
+    TOK_THROW,
+    TOK_CLASS,
+    TOK_NODECALL,
+    TOK_PYCALL,
     TOK_JOIN,
     TOK_READ,
     TOK_SIZE,
@@ -72,6 +87,8 @@ typedef enum {
     TOK_PAGE,
     TOK_STACK,
     TOK_INLINE,
+    TOK_COLUMN,
+    TOK_ROW,
     TOK_ACTION
 } TokenKind;
 
@@ -134,13 +151,15 @@ typedef struct {
     int temp_counter;
     ValueType current_return_type;
     bool current_is_entry;
+    int loop_depth;
     int active_scope_ids[128];
+    int active_scope_loop_depths[128];
     int active_scope_count;
 } Parser;
 
 static void fatal_at(int line, int col, const char *fmt, ...) {
     va_list args;
-    fprintf(stderr, "[line %d:%d] ", line, col);
+    fprintf(stderr, "spearc error [line %d:%d] ", line, col);
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
     va_end(args);
@@ -151,7 +170,7 @@ static void fatal_at(int line, int col, const char *fmt, ...) {
 static void *xmalloc(size_t size) {
     void *ptr = malloc(size);
     if (!ptr) {
-        fprintf(stderr, "out of memory\n");
+        fprintf(stderr, "spearc error: out of memory\n");
         exit(1);
     }
     return ptr;
@@ -162,6 +181,17 @@ static char *xstrdup(const char *src) {
     char *copy = xmalloc(len + 1);
     memcpy(copy, src, len + 1);
     return copy;
+}
+
+static void checked_snprintf(char *out, size_t cap, const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    int written = vsnprintf(out, cap, fmt, args);
+    va_end(args);
+    if (written < 0 || (size_t) written >= cap) {
+        fprintf(stderr, "spearc error: path or command too long\n");
+        exit(1);
+    }
 }
 
 static char *slice_dup(const char *start, size_t len) {
@@ -188,7 +218,7 @@ static void buf_reserve(Buffer *buf, size_t extra) {
     }
     buf->data = realloc(buf->data, next);
     if (!buf->data) {
-        fprintf(stderr, "out of memory\n");
+        fprintf(stderr, "spearc error: out of memory\n");
         exit(1);
     }
     buf->cap = next;
@@ -211,7 +241,7 @@ static void buf_appendf(Buffer *buf, const char *fmt, ...) {
     va_end(copy);
     if (needed < 0) {
         va_end(args);
-        fprintf(stderr, "formatting error\n");
+        fprintf(stderr, "spearc error: formatting error\n");
         exit(1);
     }
     buf_reserve(buf, (size_t) needed);
@@ -279,6 +309,22 @@ static char lexer_advance(Lexer *lexer) {
 static void lexer_skip_ws(Lexer *lexer) {
     for (;;) {
         char c = lexer_peek(lexer);
+        if ((unsigned char) c == 0x1F) {
+            lexer_advance(lexer);
+            int next_line = 0;
+            while (isdigit((unsigned char) lexer_peek(lexer))) {
+                next_line = next_line * 10 + (lexer_advance(lexer) - '0');
+            }
+            if (lexer_peek(lexer) == '\r') {
+                lexer_advance(lexer);
+            }
+            if (lexer_peek(lexer) == '\n') {
+                lexer_advance(lexer);
+            }
+            lexer->line = next_line > 0 ? next_line : 1;
+            lexer->col = 1;
+            continue;
+        }
         if (isspace((unsigned char) c)) {
             lexer_advance(lexer);
             continue;
@@ -301,16 +347,30 @@ static TokenKind keyword_kind(const char *text, size_t len) {
     if (len == 7 && strncmp(text, "numlist", len) == 0) return TOK_NUMLIST;
     if (len == 8 && strncmp(text, "textlist", len) == 0) return TOK_TEXTLIST;
     if (len == 3 && strncmp(text, "let", len) == 0) return TOK_LET;
+    if (len == 3 && strncmp(text, "var", len) == 0) return TOK_VAR;
     if (len == 5 && strncmp(text, "const", len) == 0) return TOK_CONST;
     if (len == 4 && strncmp(text, "view", len) == 0) return TOK_VIEW;
+    if (len == 8 && strncmp(text, "function", len) == 0) return TOK_FUNCTION;
     if (len == 3 && strncmp(text, "say", len) == 0) return TOK_SAY;
     if (len == 5 && strncmp(text, "write", len) == 0) return TOK_WRITE;
     if (len == 2 && strncmp(text, "if", len) == 0) return TOK_IF;
     if (len == 4 && strncmp(text, "else", len) == 0) return TOK_ELSE;
+    if (len == 3 && strncmp(text, "for", len) == 0) return TOK_FOR;
     if (len == 5 && strncmp(text, "while", len) == 0) return TOK_WHILE;
+    if (len == 5 && strncmp(text, "break", len) == 0) return TOK_BREAK;
+    if (len == 8 && strncmp(text, "continue", len) == 0) return TOK_CONTINUE;
     if (len == 4 && strncmp(text, "each", len) == 0) return TOK_EACH;
     if (len == 2 && strncmp(text, "in", len) == 0) return TOK_IN;
     if (len == 6 && strncmp(text, "return", len) == 0) return TOK_RETURN;
+    if (len == 6 && strncmp(text, "import", len) == 0) return TOK_IMPORT;
+    if (len == 6 && strncmp(text, "module", len) == 0) return TOK_MODULE;
+    if (len == 7 && strncmp(text, "package", len) == 0) return TOK_PACKAGE;
+    if (len == 3 && strncmp(text, "try", len) == 0) return TOK_TRY;
+    if (len == 5 && strncmp(text, "catch", len) == 0) return TOK_CATCH;
+    if (len == 5 && strncmp(text, "throw", len) == 0) return TOK_THROW;
+    if (len == 5 && strncmp(text, "class", len) == 0) return TOK_CLASS;
+    if (len == 8 && strncmp(text, "nodecall", len) == 0) return TOK_NODECALL;
+    if (len == 6 && strncmp(text, "pycall", len) == 0) return TOK_PYCALL;
     if (len == 4 && strncmp(text, "join", len) == 0) return TOK_JOIN;
     if (len == 4 && strncmp(text, "read", len) == 0) return TOK_READ;
     if (len == 4 && strncmp(text, "size", len) == 0) return TOK_SIZE;
@@ -325,6 +385,8 @@ static TokenKind keyword_kind(const char *text, size_t len) {
     if (len == 4 && strncmp(text, "page", len) == 0) return TOK_PAGE;
     if (len == 5 && strncmp(text, "stack", len) == 0) return TOK_STACK;
     if (len == 6 && strncmp(text, "inline", len) == 0) return TOK_INLINE;
+    if (len == 6 && strncmp(text, "column", len) == 0) return TOK_COLUMN;
+    if (len == 3 && strncmp(text, "row", len) == 0) return TOK_ROW;
     if (len == 6 && strncmp(text, "action", len) == 0) return TOK_ACTION;
     return TOK_IDENT;
 }
@@ -462,6 +524,7 @@ static void parser_init(Parser *parser, const char *src) {
     parser->temp_counter = 0;
     parser->current_return_type = TYPE_NUM;
     parser->current_is_entry = false;
+    parser->loop_depth = 0;
     parser->active_scope_count = 0;
     parser->lexer.current = lexer_next(&parser->lexer);
 }
@@ -496,7 +559,7 @@ static ValueType token_to_type(TokenKind kind) {
         case TOK_NUMLIST: return TYPE_NUMLIST;
         case TOK_TEXTLIST: return TYPE_TEXTLIST;
         default:
-            fprintf(stderr, "internal error: invalid type token\n");
+            fprintf(stderr, "spearc error: internal error: invalid type token\n");
             exit(1);
     }
 }
@@ -536,7 +599,7 @@ static void emit_line(Parser *parser, const char *fmt, ...) {
     va_end(copy);
     if (needed < 0) {
         va_end(args);
-        fprintf(stderr, "formatting error\n");
+        fprintf(stderr, "spearc error: formatting error\n");
         exit(1);
     }
     buf_reserve(&parser->out, (size_t) needed + 1);
@@ -559,7 +622,7 @@ static void add_symbol(Parser *parser, const char *name, ValueType type, bool is
         size_t next = parser->symbol_cap ? parser->symbol_cap * 2 : 32;
         parser->symbols = realloc(parser->symbols, next * sizeof(Symbol));
         if (!parser->symbols) {
-            fprintf(stderr, "out of memory\n");
+            fprintf(stderr, "spearc error: out of memory\n");
             exit(1);
         }
         parser->symbol_cap = next;
@@ -612,7 +675,7 @@ static void add_function_info(Parser *parser, FunctionInfo info) {
         size_t next = parser->function_cap ? parser->function_cap * 2 : 16;
         parser->functions = realloc(parser->functions, next * sizeof(FunctionInfo));
         if (!parser->functions) {
-            fprintf(stderr, "out of memory\n");
+            fprintf(stderr, "spearc error: out of memory\n");
             exit(1);
         }
         parser->function_cap = next;
@@ -658,6 +721,17 @@ static void scan_skip_block(Lexer *lexer) {
     }
 }
 
+static void scan_skip_meta(Lexer *lexer, Token first) {
+    Token next = lexer_next(lexer);
+    if (next.kind != TOK_IDENT) {
+        fatal_at(next.line, next.col, "expected name after %s", token_text(first));
+    }
+    Token semi = lexer_next(lexer);
+    if (semi.kind != TOK_SEMI) {
+        fatal_at(semi.line, semi.col, "expected ';' after metadata");
+    }
+}
+
 static void collect_functions(Parser *parser, const char *source) {
     Lexer lexer;
     lexer_init(&lexer, source);
@@ -668,14 +742,25 @@ static void collect_functions(Parser *parser, const char *source) {
             return;
         }
 
+        if (token.kind == TOK_MODULE || token.kind == TOK_PACKAGE) {
+            scan_skip_meta(&lexer, token);
+            continue;
+        }
+        if (token.kind == TOK_CLASS) {
+            fatal_at(token.line, token.col, "class is reserved but not implemented yet");
+        }
+
         bool is_entry = false;
         ValueType return_type = TYPE_NUM;
+        if (token.kind == TOK_FUNCTION) {
+            token = lexer_next(&lexer);
+        }
         if (token.kind == TOK_SPEAR) {
             is_entry = true;
         } else if (token.kind == TOK_NUM || token.kind == TOK_TEXT || token.kind == TOK_VIEW) {
             return_type = token.kind == TOK_VIEW ? TYPE_TEXT : token_to_type(token.kind);
         } else {
-            fatal_at(token.line, token.col, "top-level definition must start with spear, num, text, or view");
+            fatal_at(token.line, token.col, "top-level definition must start with function, spear, num, text, or view");
         }
 
         Token name_tok = lexer_next(&lexer);
@@ -706,7 +791,7 @@ static void collect_functions(Parser *parser, const char *source) {
                     size_t grow = param_cap ? param_cap * 2 : 4;
                     params = realloc(params, grow * sizeof(Param));
                     if (!params) {
-                        fprintf(stderr, "out of memory\n");
+                        fprintf(stderr, "spearc error: out of memory\n");
                         exit(1);
                     }
                     param_cap = grow;
@@ -751,6 +836,7 @@ static Expr parse_list_expr(Parser *parser, int scope_id, ValueType expected_typ
 static void parse_block(Parser *parser, int parent_scope_id, bool creates_scope);
 static bool starts_text_expr(Parser *parser);
 static bool at_returns_text(Parser *parser);
+static char *parse_text_children(Parser *parser, int scope_id);
 
 static ValueType infer_expr_type(Parser *parser) {
     Token token = parser->lexer.current;
@@ -762,6 +848,10 @@ static ValueType infer_expr_type(Parser *parser) {
         token.kind == TOK_PAGE ||
         token.kind == TOK_STACK ||
         token.kind == TOK_INLINE ||
+        token.kind == TOK_COLUMN ||
+        token.kind == TOK_ROW ||
+        token.kind == TOK_NODECALL ||
+        token.kind == TOK_PYCALL ||
         token.kind == TOK_ACTION) {
         return TYPE_TEXT;
     }
@@ -893,6 +983,7 @@ static Expr parse_primary_num(Parser *parser, int scope_id) {
     }
 
     if (match(parser, TOK_AT)) {
+        Token at_tok = token;
         Token list_tok;
         expect(parser, TOK_LPAREN, "expected '(' after at");
         list_tok = parser->lexer.current;
@@ -910,7 +1001,7 @@ static Expr parse_primary_num(Parser *parser, int scope_id) {
         }
         Buffer code;
         buf_init(&code);
-        buf_appendf(&code, "spear_numlist_at(%s, %s)", name, index.code);
+        buf_appendf(&code, "spear_numlist_at(%s, %s, %d, %d)", name, index.code, at_tok.line, at_tok.col);
         return make_expr(TYPE_NUM, buf_take(&code));
     }
 
@@ -919,11 +1010,12 @@ static Expr parse_primary_num(Parser *parser, int scope_id) {
 }
 
 static Expr parse_unary_num(Parser *parser, int scope_id) {
+    Token token = parser->lexer.current;
     if (match(parser, TOK_MINUS)) {
         Expr inner = parse_unary_num(parser, scope_id);
         Buffer code;
         buf_init(&code);
-        buf_appendf(&code, "(-%s)", inner.code);
+        buf_appendf(&code, "spear_checked_neg(%s, %d, %d)", inner.code, token.line, token.col);
         return make_expr(TYPE_NUM, buf_take(&code));
     }
     return parse_primary_num(parser, scope_id);
@@ -934,13 +1026,19 @@ static Expr parse_mul_num(Parser *parser, int scope_id) {
     while (parser->lexer.current.kind == TOK_STAR ||
            parser->lexer.current.kind == TOK_SLASH ||
            parser->lexer.current.kind == TOK_PERCENT) {
-        TokenKind op = parser->lexer.current.kind;
+        Token op_tok = parser->lexer.current;
+        TokenKind op = op_tok.kind;
         advance(parser);
         Expr right = parse_unary_num(parser, scope_id);
         Buffer code;
         buf_init(&code);
-        const char *sym = op == TOK_STAR ? "*" : op == TOK_SLASH ? "/" : "%";
-        buf_appendf(&code, "(%s %s %s)", left.code, sym, right.code);
+        if (op == TOK_STAR) {
+            buf_appendf(&code, "spear_checked_mul(%s, %s, %d, %d)", left.code, right.code, op_tok.line, op_tok.col);
+        } else if (op == TOK_SLASH) {
+            buf_appendf(&code, "spear_checked_div(%s, %s, %d, %d)", left.code, right.code, op_tok.line, op_tok.col);
+        } else {
+            buf_appendf(&code, "spear_checked_mod(%s, %s, %d, %d)", left.code, right.code, op_tok.line, op_tok.col);
+        }
         left = make_expr(TYPE_NUM, buf_take(&code));
     }
     return left;
@@ -950,12 +1048,17 @@ static Expr parse_add_num(Parser *parser, int scope_id) {
     Expr left = parse_mul_num(parser, scope_id);
     while (parser->lexer.current.kind == TOK_PLUS ||
            parser->lexer.current.kind == TOK_MINUS) {
-        TokenKind op = parser->lexer.current.kind;
+        Token op_tok = parser->lexer.current;
+        TokenKind op = op_tok.kind;
         advance(parser);
         Expr right = parse_mul_num(parser, scope_id);
         Buffer code;
         buf_init(&code);
-        buf_appendf(&code, "(%s %c %s)", left.code, op == TOK_PLUS ? '+' : '-', right.code);
+        if (op == TOK_PLUS) {
+            buf_appendf(&code, "spear_checked_add(%s, %s, %d, %d)", left.code, right.code, op_tok.line, op_tok.col);
+        } else {
+            buf_appendf(&code, "spear_checked_sub(%s, %s, %d, %d)", left.code, right.code, op_tok.line, op_tok.col);
+        }
         left = make_expr(TYPE_NUM, buf_take(&code));
     }
     return left;
@@ -999,6 +1102,47 @@ static Expr parse_eq_num(Parser *parser, int scope_id) {
 
 static Expr parse_num_expr(Parser *parser, int scope_id) {
     return parse_eq_num(parser, scope_id);
+}
+
+static char *combine_text_parts(int scope_id, Expr *parts, size_t count) {
+    if (count == 0) {
+        return xstrdup("\"\"");
+    }
+    char *scope_name = make_scope_name(scope_id);
+    char *combined = xstrdup(parts[0].code);
+    for (size_t i = 1; i < count; i++) {
+        Buffer code;
+        buf_init(&code);
+        buf_appendf(&code, "spear_text_join(&%s, %s, %s)", scope_name, combined, parts[i].code);
+        combined = buf_take(&code);
+    }
+    free(scope_name);
+    return combined;
+}
+
+static char *parse_text_children(Parser *parser, int scope_id) {
+    expect(parser, TOK_LBRACE, "expected '{' for UI content");
+    Expr *parts = NULL;
+    size_t count = 0;
+    size_t cap = 0;
+    while (parser->lexer.current.kind != TOK_RBRACE && parser->lexer.current.kind != TOK_EOF) {
+        if (!starts_text_expr(parser)) {
+            fatal_at(parser->lexer.current.line, parser->lexer.current.col, "UI blocks only accept text/view expressions");
+        }
+        if (count == cap) {
+            size_t next = cap ? cap * 2 : 4;
+            parts = realloc(parts, next * sizeof(Expr));
+            if (!parts) {
+                fprintf(stderr, "spearc error: out of memory\n");
+                exit(1);
+            }
+            cap = next;
+        }
+        parts[count++] = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_SEMI, "expected ';' after UI child");
+    }
+    expect(parser, TOK_RBRACE, "expected '}' after UI content");
+    return combine_text_parts(scope_id, parts, count);
 }
 
 static Expr parse_text_expr(Parser *parser, int scope_id) {
@@ -1097,9 +1241,14 @@ static Expr parse_text_expr(Parser *parser, int scope_id) {
     if (match(parser, TOK_MARKUP)) {
         expect(parser, TOK_LPAREN, "expected '(' after markup");
         Expr tag = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_COMMA, "expected ',' in markup");
-        Expr content = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_RPAREN, "expected ')'");
+        Expr content;
+        if (match(parser, TOK_COMMA)) {
+            content = parse_text_expr(parser, scope_id);
+            expect(parser, TOK_RPAREN, "expected ')'");
+        } else {
+            expect(parser, TOK_RPAREN, "expected ')' after markup tag");
+            content = make_expr(TYPE_TEXT, parse_text_children(parser, scope_id));
+        }
         Buffer code;
         char *scope_name = make_scope_name(scope_id);
         buf_init(&code);
@@ -1111,9 +1260,14 @@ static Expr parse_text_expr(Parser *parser, int scope_id) {
     if (match(parser, TOK_PAGE)) {
         expect(parser, TOK_LPAREN, "expected '(' after page");
         Expr title = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_COMMA, "expected ',' in page");
-        Expr body = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_RPAREN, "expected ')'");
+        Expr body;
+        if (match(parser, TOK_COMMA)) {
+            body = parse_text_expr(parser, scope_id);
+            expect(parser, TOK_RPAREN, "expected ')'");
+        } else {
+            expect(parser, TOK_RPAREN, "expected ')' after page title");
+            body = make_expr(TYPE_TEXT, parse_text_children(parser, scope_id));
+        }
         Buffer code;
         char *scope_name = make_scope_name(scope_id);
         buf_init(&code);
@@ -1123,29 +1277,61 @@ static Expr parse_text_expr(Parser *parser, int scope_id) {
     }
 
     if (match(parser, TOK_STACK)) {
-        expect(parser, TOK_LPAREN, "expected '(' after stack");
-        Expr first = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_COMMA, "expected ',' in stack");
-        Expr second = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_RPAREN, "expected ')'");
         Buffer code;
         char *scope_name = make_scope_name(scope_id);
-        buf_init(&code);
-        buf_appendf(&code, "spear_stack(&%s, %s, %s)", scope_name, first.code, second.code);
+        if (parser->lexer.current.kind == TOK_LBRACE) {
+            char *children = parse_text_children(parser, scope_id);
+            buf_init(&code);
+            buf_appendf(&code, "spear_column(&%s, %s)", scope_name, children);
+        } else {
+            expect(parser, TOK_LPAREN, "expected '(' or '{' after stack");
+            Expr first = parse_text_expr(parser, scope_id);
+            expect(parser, TOK_COMMA, "expected ',' in stack");
+            Expr second = parse_text_expr(parser, scope_id);
+            expect(parser, TOK_RPAREN, "expected ')'");
+            buf_init(&code);
+            buf_appendf(&code, "spear_stack(&%s, %s, %s)", scope_name, first.code, second.code);
+        }
         free(scope_name);
         return make_expr(TYPE_TEXT, buf_take(&code));
     }
 
     if (match(parser, TOK_INLINE)) {
-        expect(parser, TOK_LPAREN, "expected '(' after inline");
-        Expr first = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_COMMA, "expected ',' in inline");
-        Expr second = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_RPAREN, "expected ')'");
         Buffer code;
         char *scope_name = make_scope_name(scope_id);
+        if (parser->lexer.current.kind == TOK_LBRACE) {
+            char *children = parse_text_children(parser, scope_id);
+            buf_init(&code);
+            buf_appendf(&code, "spear_markup(&%s, \"span\", %s)", scope_name, children);
+        } else {
+            expect(parser, TOK_LPAREN, "expected '(' or '{' after inline");
+            Expr first = parse_text_expr(parser, scope_id);
+            expect(parser, TOK_COMMA, "expected ',' in inline");
+            Expr second = parse_text_expr(parser, scope_id);
+            expect(parser, TOK_RPAREN, "expected ')'");
+            buf_init(&code);
+            buf_appendf(&code, "spear_inline(&%s, %s, %s)", scope_name, first.code, second.code);
+        }
+        free(scope_name);
+        return make_expr(TYPE_TEXT, buf_take(&code));
+    }
+
+    if (match(parser, TOK_COLUMN)) {
+        Buffer code;
+        char *scope_name = make_scope_name(scope_id);
+        char *children = parse_text_children(parser, scope_id);
         buf_init(&code);
-        buf_appendf(&code, "spear_inline(&%s, %s, %s)", scope_name, first.code, second.code);
+        buf_appendf(&code, "spear_column(&%s, %s)", scope_name, children);
+        free(scope_name);
+        return make_expr(TYPE_TEXT, buf_take(&code));
+    }
+
+    if (match(parser, TOK_ROW)) {
+        Buffer code;
+        char *scope_name = make_scope_name(scope_id);
+        char *children = parse_text_children(parser, scope_id);
+        buf_init(&code);
+        buf_appendf(&code, "spear_row(&%s, %s)", scope_name, children);
         free(scope_name);
         return make_expr(TYPE_TEXT, buf_take(&code));
     }
@@ -1164,7 +1350,40 @@ static Expr parse_text_expr(Parser *parser, int scope_id) {
         return make_expr(TYPE_TEXT, buf_take(&code));
     }
 
+    if (match(parser, TOK_NODECALL)) {
+        expect(parser, TOK_LPAREN, "expected '(' after nodecall");
+        Expr pkg = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_COMMA, "expected ',' in nodecall");
+        Expr fn = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_COMMA, "expected ',' in nodecall");
+        Expr payload = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        Buffer code;
+        char *scope_name = make_scope_name(scope_id);
+        buf_init(&code);
+        buf_appendf(&code, "spear_node_call(&%s, %s, %s, %s)", scope_name, pkg.code, fn.code, payload.code);
+        free(scope_name);
+        return make_expr(TYPE_TEXT, buf_take(&code));
+    }
+
+    if (match(parser, TOK_PYCALL)) {
+        expect(parser, TOK_LPAREN, "expected '(' after pycall");
+        Expr module = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_COMMA, "expected ',' in pycall");
+        Expr fn = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_COMMA, "expected ',' in pycall");
+        Expr payload = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        Buffer code;
+        char *scope_name = make_scope_name(scope_id);
+        buf_init(&code);
+        buf_appendf(&code, "spear_py_call(&%s, %s, %s, %s)", scope_name, module.code, fn.code, payload.code);
+        free(scope_name);
+        return make_expr(TYPE_TEXT, buf_take(&code));
+    }
+
     if (match(parser, TOK_AT)) {
+        Token at_tok = token;
         Token list_tok;
         expect(parser, TOK_LPAREN, "expected '(' after at");
         list_tok = parser->lexer.current;
@@ -1182,7 +1401,7 @@ static Expr parse_text_expr(Parser *parser, int scope_id) {
         }
         Buffer code;
         buf_init(&code);
-        buf_appendf(&code, "spear_textlist_at(%s, %s)", name, index.code);
+        buf_appendf(&code, "spear_textlist_at(%s, %s, %d, %d)", name, index.code, at_tok.line, at_tok.col);
         return make_expr(TYPE_TEXT, buf_take(&code));
     }
 
@@ -1258,6 +1477,10 @@ static bool starts_text_expr(Parser *parser) {
         parser->lexer.current.kind == TOK_PAGE ||
         parser->lexer.current.kind == TOK_STACK ||
         parser->lexer.current.kind == TOK_INLINE ||
+        parser->lexer.current.kind == TOK_COLUMN ||
+        parser->lexer.current.kind == TOK_ROW ||
+        parser->lexer.current.kind == TOK_NODECALL ||
+        parser->lexer.current.kind == TOK_PYCALL ||
         parser->lexer.current.kind == TOK_ACTION) {
         return true;
     }
@@ -1294,6 +1517,16 @@ static bool at_returns_text(Parser *parser) {
 }
 
 static void parse_statement(Parser *parser, int scope_id) {
+    if (match(parser, TOK_MODULE) || match(parser, TOK_PACKAGE)) {
+        expect(parser, TOK_IDENT, "expected name after metadata");
+        expect(parser, TOK_SEMI, "expected ';' after metadata");
+        return;
+    }
+
+    if (match(parser, TOK_CLASS)) {
+        fatal_at(parser->lexer.current.line, parser->lexer.current.col, "class is reserved but not implemented yet");
+    }
+
     if (match(parser, TOK_CONST)) {
         bool infer = match(parser, TOK_LET);
         ValueType type;
@@ -1332,7 +1565,7 @@ static void parse_statement(Parser *parser, int scope_id) {
         return;
     }
 
-    if (match(parser, TOK_LET)) {
+    if (match(parser, TOK_LET) || match(parser, TOK_VAR)) {
         Token name_tok = parser->lexer.current;
         expect(parser, TOK_IDENT, "expected variable name");
         char *name = token_text(name_tok);
@@ -1391,14 +1624,16 @@ static void parse_statement(Parser *parser, int scope_id) {
         return;
     }
 
-    if (match(parser, TOK_GUARD)) {
+    if (parser->lexer.current.kind == TOK_GUARD) {
+        Token guard_tok = parser->lexer.current;
+        advance(parser);
         expect(parser, TOK_LPAREN, "expected '(' after guard");
         Expr cond = parse_num_expr(parser, scope_id);
         expect(parser, TOK_COMMA, "expected ',' in guard");
         Expr message = parse_text_expr(parser, scope_id);
         expect(parser, TOK_RPAREN, "expected ')'");
         expect(parser, TOK_SEMI, "expected ';'");
-        emit_line(parser, "if (!(%s)) { fprintf(stderr, \"%%s\\n\", %s); exit(1); }", cond.code, message.code);
+        emit_line(parser, "if (!(%s)) { spear_runtime_fail_at(%d, %d, %s); }", cond.code, guard_tok.line, guard_tok.col, message.code);
         return;
     }
 
@@ -1424,12 +1659,114 @@ static void parse_statement(Parser *parser, int scope_id) {
         expect(parser, TOK_LPAREN, "expected '(' after while");
         Expr cond = parse_num_expr(parser, scope_id);
         expect(parser, TOK_RPAREN, "expected ')'");
+        parser->loop_depth++;
         emit_line(parser, "while (%s)", cond.code);
         parse_block(parser, scope_id, false);
+        parser->loop_depth--;
         return;
     }
 
-    if (match(parser, TOK_EACH)) {
+    if (match(parser, TOK_FOR)) {
+        expect(parser, TOK_LPAREN, "expected '(' after for");
+        emit_line(parser, "{");
+        parser->depth++;
+        int symbol_depth = parser->depth;
+
+        Buffer init;
+        Buffer cond;
+        Buffer step;
+        buf_init(&init);
+        buf_init(&cond);
+        buf_init(&step);
+
+        if (!match(parser, TOK_SEMI)) {
+            if (match(parser, TOK_LET) || match(parser, TOK_VAR)) {
+                Token name_tok = parser->lexer.current;
+                expect(parser, TOK_IDENT, "expected variable name");
+                char *name = token_text(name_tok);
+                expect(parser, TOK_ASSIGN, "expected '='");
+                ValueType type = infer_expr_type(parser);
+                Expr value;
+                if (type == TYPE_NUM) value = parse_num_expr(parser, scope_id);
+                else if (type == TYPE_TEXT) value = parse_text_expr(parser, scope_id);
+                else value = parse_list_expr(parser, scope_id, type);
+                add_symbol(parser, name, type, false);
+                buf_appendf(&init, "%s %s = %s", ctype_name(type), name, value.code);
+            } else if (is_type_token(parser->lexer.current.kind)) {
+                ValueType type = token_to_type(parser->lexer.current.kind);
+                advance(parser);
+                Token name_tok = parser->lexer.current;
+                expect(parser, TOK_IDENT, "expected variable name");
+                char *name = token_text(name_tok);
+                expect(parser, TOK_ASSIGN, "expected '='");
+                Expr value;
+                if (type == TYPE_NUM) value = parse_num_expr(parser, scope_id);
+                else if (type == TYPE_TEXT) value = parse_text_expr(parser, scope_id);
+                else value = parse_list_expr(parser, scope_id, type);
+                add_symbol(parser, name, type, false);
+                buf_appendf(&init, "%s %s = %s", ctype_name(type), name, value.code);
+            } else if (parser->lexer.current.kind == TOK_IDENT) {
+                Token name_tok = parser->lexer.current;
+                advance(parser);
+                char *name = token_text(name_tok);
+                ValueType type = lookup_symbol(parser, name);
+                if (symbol_is_const(parser, name)) {
+                    fatal_at(name_tok.line, name_tok.col, "cannot assign to const '%s'", name);
+                }
+                expect(parser, TOK_ASSIGN, "expected '='");
+                Expr value;
+                if (type == TYPE_NUM) value = parse_num_expr(parser, scope_id);
+                else if (type == TYPE_TEXT) value = parse_text_expr(parser, scope_id);
+                else value = parse_list_expr(parser, scope_id, type);
+                buf_appendf(&init, "%s = %s", name, value.code);
+            } else {
+                fatal_at(parser->lexer.current.line, parser->lexer.current.col, "unsupported for initializer");
+            }
+            expect(parser, TOK_SEMI, "expected ';' after for initializer");
+        }
+
+        if (!match(parser, TOK_SEMI)) {
+            Expr for_cond = parse_num_expr(parser, scope_id);
+            buf_appendf(&cond, "%s", for_cond.code);
+            expect(parser, TOK_SEMI, "expected ';' after for condition");
+        } else {
+            buf_append(&cond, "1");
+        }
+
+        if (!match(parser, TOK_RPAREN)) {
+            if (parser->lexer.current.kind == TOK_IDENT) {
+                Token name_tok = parser->lexer.current;
+                advance(parser);
+                char *name = token_text(name_tok);
+                ValueType type = lookup_symbol(parser, name);
+                if (symbol_is_const(parser, name)) {
+                    fatal_at(name_tok.line, name_tok.col, "cannot assign to const '%s'", name);
+                }
+                expect(parser, TOK_ASSIGN, "expected '='");
+                Expr value;
+                if (type == TYPE_NUM) value = parse_num_expr(parser, scope_id);
+                else if (type == TYPE_TEXT) value = parse_text_expr(parser, scope_id);
+                else value = parse_list_expr(parser, scope_id, type);
+                buf_appendf(&step, "%s = %s", name, value.code);
+            } else {
+                fatal_at(parser->lexer.current.line, parser->lexer.current.col, "unsupported for step");
+            }
+            expect(parser, TOK_RPAREN, "expected ')' after for step");
+        }
+
+        parser->loop_depth++;
+        emit_line(parser, "for (%s; %s; %s)", init.data ? init.data : "", cond.data ? cond.data : "1", step.data ? step.data : "");
+        parse_block(parser, scope_id, false);
+        parser->loop_depth--;
+        pop_symbols(parser, symbol_depth);
+        parser->depth--;
+        emit_line(parser, "}");
+        return;
+    }
+
+    if (parser->lexer.current.kind == TOK_EACH) {
+        Token each_tok = parser->lexer.current;
+        advance(parser);
         Token item_tok = parser->lexer.current;
         expect(parser, TOK_IDENT, "expected loop variable name");
         char *item_name = token_text(item_tok);
@@ -1443,6 +1780,7 @@ static void parse_statement(Parser *parser, int scope_id) {
         }
 
         char *idx_name = new_temp(parser);
+        parser->loop_depth++;
         emit_line(parser, "{");
         parser->depth++;
         emit_line(parser, "for (long long %s = 0; %s < %s(%s); %s++)", idx_name, idx_name,
@@ -1450,12 +1788,14 @@ static void parse_statement(Parser *parser, int scope_id) {
             list_name, idx_name);
         emit_line(parser, "{");
         parser->depth++;
-        emit_line(parser, "%s %s = %s(%s, %s);",
+        emit_line(parser, "%s %s = %s(%s, %s, %d, %d);",
             list_type == TYPE_NUMLIST ? "long long" : "char *",
             item_name,
             list_type == TYPE_NUMLIST ? "spear_numlist_at" : "spear_textlist_at",
             list_name,
-            idx_name);
+            idx_name,
+            each_tok.line,
+            each_tok.col);
         free(idx_name);
         expect(parser, TOK_LBRACE, "expected '{' after each header");
         int symbol_depth = parser->depth;
@@ -1469,6 +1809,7 @@ static void parse_statement(Parser *parser, int scope_id) {
         emit_line(parser, "}");
         parser->depth--;
         emit_line(parser, "}");
+        parser->loop_depth--;
         return;
     }
 
@@ -1518,6 +1859,55 @@ static void parse_statement(Parser *parser, int scope_id) {
         return;
     }
 
+    if (match(parser, TOK_BREAK)) {
+        if (parser->loop_depth <= 0) {
+            fatal_at(parser->lexer.current.line, parser->lexer.current.col, "break is only valid inside loops");
+        }
+        expect(parser, TOK_SEMI, "expected ';' after break");
+        for (int i = parser->active_scope_count - 1; i >= 0; i--) {
+            if (parser->active_scope_loop_depths[i] < parser->loop_depth) {
+                break;
+            }
+            char *scope_name = make_scope_name(parser->active_scope_ids[i]);
+            emit_line(parser, "spear_scope_leave(&%s);", scope_name);
+            free(scope_name);
+        }
+        emit_line(parser, "break;");
+        return;
+    }
+
+    if (match(parser, TOK_CONTINUE)) {
+        if (parser->loop_depth <= 0) {
+            fatal_at(parser->lexer.current.line, parser->lexer.current.col, "continue is only valid inside loops");
+        }
+        expect(parser, TOK_SEMI, "expected ';' after continue");
+        for (int i = parser->active_scope_count - 1; i >= 0; i--) {
+            if (parser->active_scope_loop_depths[i] < parser->loop_depth) {
+                break;
+            }
+            char *scope_name = make_scope_name(parser->active_scope_ids[i]);
+            emit_line(parser, "spear_scope_leave(&%s);", scope_name);
+            free(scope_name);
+        }
+        emit_line(parser, "continue;");
+        return;
+    }
+
+    if (parser->lexer.current.kind == TOK_THROW) {
+        Token throw_tok = parser->lexer.current;
+        advance(parser);
+        expect(parser, TOK_LPAREN, "expected '(' after throw");
+        Expr message = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        expect(parser, TOK_SEMI, "expected ';' after throw");
+        emit_line(parser, "spear_runtime_fail_at(%d, %d, %s);", throw_tok.line, throw_tok.col, message.code);
+        return;
+    }
+
+    if (match(parser, TOK_TRY)) {
+        fatal_at(parser->lexer.current.line, parser->lexer.current.col, "try/catch is reserved but not implemented yet");
+    }
+
     if (parser->lexer.current.kind == TOK_IDENT) {
         Token name_tok = parser->lexer.current;
         advance(parser);
@@ -1548,6 +1938,7 @@ static void parse_block(Parser *parser, int parent_scope_id, bool creates_scope)
     if (creates_scope) {
         scope_id = ++parser->scope_counter;
         parser->active_scope_ids[parser->active_scope_count++] = scope_id;
+        parser->active_scope_loop_depths[parser->active_scope_count - 1] = parser->loop_depth;
         char *scope_name = make_scope_name(scope_id);
         char *parent_name = make_scope_name(parent_scope_id);
         emit_line(parser, "SpearScope %s = spear_scope_enter(&%s);", scope_name, parent_name);
@@ -1574,9 +1965,155 @@ static void parse_block(Parser *parser, int parent_scope_id, bool creates_scope)
 
 static const char *runtime_prelude =
 "#include <ctype.h>\n"
+"#include <limits.h>\n"
 "#include <stdio.h>\n"
 "#include <stdlib.h>\n"
 "#include <string.h>\n"
+"#include <direct.h>\n"
+"#include <windows.h>\n"
+"\n"
+"static const char *SPEAR_TOOL_DIR;\n"
+"\n"
+"static void spear_runtime_fail(const char *message) {\n"
+"    fprintf(stderr, \"spear runtime error: %s\\n\", message);\n"
+"    exit(1);\n"
+"}\n"
+"\n"
+"static void spear_runtime_fail_at(int line, int col, const char *message) {\n"
+"    fprintf(stderr, \"spear runtime error [%d:%d]: %s\\n\", line, col, message);\n"
+"    exit(1);\n"
+"}\n"
+"\n"
+"static void spear_runtime_fail_path(const char *prefix, const char *path) {\n"
+"    fprintf(stderr, \"spear runtime error: %s %s\\n\", prefix, path);\n"
+"    exit(1);\n"
+"}\n"
+"\n"
+"typedef struct SpearScope SpearScope;\n"
+"static void *spear_alloc(SpearScope *scope, size_t size);\n"
+"static void spear_write_text(const char *path, const char *content);\n"
+"\n"
+"static int spear_bridge_name_ok(const char *value) {\n"
+"    if (!value || !value[0]) return 0;\n"
+"    for (size_t i = 0; value[i]; i++) {\n"
+"        char c = value[i];\n"
+"        if (!(isalnum((unsigned char) c) || c == '_' || c == '-' || c == '/' || c == '.' || c == '@')) return 0;\n"
+"    }\n"
+"    return 1;\n"
+"}\n"
+"\n"
+"static char *spear_read_text_file(SpearScope *scope, const char *path) {\n"
+"    FILE *fp = fopen(path, \"rb\");\n"
+"    if (!fp) {\n"
+"        spear_runtime_fail_path(\"cannot read\", path);\n"
+"    }\n"
+"    fseek(fp, 0, SEEK_END);\n"
+"    long size = ftell(fp);\n"
+"    rewind(fp);\n"
+"    char *dst = (char *) spear_alloc(scope, (size_t) size + 1);\n"
+"    if (fread(dst, 1, (size_t) size, fp) != (size_t) size) {\n"
+"        fclose(fp);\n"
+"        spear_runtime_fail_path(\"failed to read\", path);\n"
+"    }\n"
+"    fclose(fp);\n"
+"    dst[size] = '\\0';\n"
+"    return dst;\n"
+"}\n"
+"\n"
+"static void spear_temp_file(char *path, size_t cap, const char *prefix) {\n"
+"    char temp_root[MAX_PATH];\n"
+"    char name[MAX_PATH];\n"
+"    if (!GetTempPathA(sizeof(temp_root), temp_root)) {\n"
+"        spear_runtime_fail(\"cannot resolve temp directory\");\n"
+"    }\n"
+"    if (!GetTempFileNameA(temp_root, prefix, 0, name)) {\n"
+"        spear_runtime_fail(\"cannot create temp file\");\n"
+"    }\n"
+"    snprintf(path, cap, \"%s\", name);\n"
+"}\n"
+"\n"
+"static char *spear_bridge_call(SpearScope *scope, const char *runner, const char *script_leaf, const char *target, const char *fn, const char *payload) {\n"
+"    char req_path[MAX_PATH];\n"
+"    char res_path[MAX_PATH];\n"
+"    char script_path[2048];\n"
+"    char command[8192];\n"
+"    int exit_code;\n"
+"    if (!spear_bridge_name_ok(target)) {\n"
+"        spear_runtime_fail(\"unsafe bridge target name\");\n"
+"    }\n"
+"    if (!spear_bridge_name_ok(fn)) {\n"
+"        spear_runtime_fail(\"unsafe bridge function name\");\n"
+"    }\n"
+"    spear_temp_file(req_path, sizeof(req_path), \"spr\");\n"
+"    spear_temp_file(res_path, sizeof(res_path), \"spr\");\n"
+"    spear_write_text(req_path, payload);\n"
+"    snprintf(script_path, sizeof(script_path), \"%s\\\\runtime\\\\%s\", SPEAR_TOOL_DIR, script_leaf);\n"
+"    snprintf(command, sizeof(command), \"%s \\\"%s\\\" \\\"%s\\\" \\\"%s\\\" \\\"%s\\\" \\\"%s\\\"\", runner, script_path, target, fn, req_path, res_path);\n"
+"    exit_code = system(command);\n"
+"    char *response = spear_read_text_file(scope, res_path);\n"
+"    DeleteFileA(req_path);\n"
+"    DeleteFileA(res_path);\n"
+"    if (exit_code != 0) {\n"
+"        spear_runtime_fail_at(1, 1, response);\n"
+"    }\n"
+"    return response;\n"
+"}\n"
+"\n"
+"static char *spear_node_call(SpearScope *scope, const char *target, const char *fn, const char *payload) {\n"
+"    return spear_bridge_call(scope, \"node\", \"bridge_node.mjs\", target, fn, payload);\n"
+"}\n"
+"\n"
+"static char *spear_py_call(SpearScope *scope, const char *target, const char *fn, const char *payload) {\n"
+"    return spear_bridge_call(scope, \"python\", \"bridge_python.py\", target, fn, payload);\n"
+"}\n"
+"\n"
+"static long long spear_checked_neg(long long value, int line, int col) {\n"
+"    if (value == LLONG_MIN) {\n"
+"        spear_runtime_fail_at(line, col, \"numeric overflow in unary '-'\");\n"
+"    }\n"
+"    return -value;\n"
+"}\n"
+"\n"
+"static long long spear_checked_add(long long left, long long right, int line, int col) {\n"
+"    __int128 result = (__int128) left + (__int128) right;\n"
+"    if (result > LLONG_MAX || result < LLONG_MIN) {\n"
+"        spear_runtime_fail_at(line, col, \"numeric overflow in '+'\");\n"
+"    }\n"
+"    return (long long) result;\n"
+"}\n"
+"\n"
+"static long long spear_checked_sub(long long left, long long right, int line, int col) {\n"
+"    __int128 result = (__int128) left - (__int128) right;\n"
+"    if (result > LLONG_MAX || result < LLONG_MIN) {\n"
+"        spear_runtime_fail_at(line, col, \"numeric overflow in '-'\");\n"
+"    }\n"
+"    return (long long) result;\n"
+"}\n"
+"\n"
+"static long long spear_checked_mul(long long left, long long right, int line, int col) {\n"
+"    __int128 result = (__int128) left * (__int128) right;\n"
+"    if (result > LLONG_MAX || result < LLONG_MIN) {\n"
+"        spear_runtime_fail_at(line, col, \"numeric overflow in '*'\");\n"
+"    }\n"
+"    return (long long) result;\n"
+"}\n"
+"\n"
+"static long long spear_checked_div(long long left, long long right, int line, int col) {\n"
+"    if (right == 0) {\n"
+"        spear_runtime_fail_at(line, col, \"division by zero\");\n"
+"    }\n"
+"    if (left == LLONG_MIN && right == -1) {\n"
+"        spear_runtime_fail_at(line, col, \"numeric overflow in '/'\");\n"
+"    }\n"
+"    return left / right;\n"
+"}\n"
+"\n"
+"static long long spear_checked_mod(long long left, long long right, int line, int col) {\n"
+"    if (right == 0) {\n"
+"        spear_runtime_fail_at(line, col, \"modulo by zero\");\n"
+"    }\n"
+"    return left % right;\n"
+"}\n"
 "\n"
 "typedef struct SpearChunk {\n"
 "    struct SpearChunk *next;\n"
@@ -1585,11 +2122,11 @@ static const char *runtime_prelude =
 "    char data[];\n"
 "} SpearChunk;\n"
 "\n"
-"typedef struct SpearScope {\n"
+"struct SpearScope {\n"
 "    struct SpearScope *parent;\n"
 "    SpearChunk *chunks;\n"
 "    struct SpearCleanup *cleanups;\n"
-"} SpearScope;\n"
+"};\n"
 "\n"
 "typedef void (*SpearCleanupFn)(void *);\n"
 "\n"
@@ -1631,8 +2168,7 @@ static const char *runtime_prelude =
 "        size_t cap = size > 4096 ? size : 4096;\n"
 "        SpearChunk *chunk = (SpearChunk *) malloc(sizeof(SpearChunk) + cap);\n"
 "        if (!chunk) {\n"
-"            fprintf(stderr, \"out of memory\\n\");\n"
-"            exit(1);\n"
+"            spear_runtime_fail(\"out of memory\");\n"
 "        }\n"
 "        chunk->next = scope->chunks;\n"
 "        chunk->used = 0;\n"
@@ -1710,16 +2246,32 @@ static const char *runtime_prelude =
 "    return dst;\n"
 "}\n"
 "\n"
-"static char *spear_markup(SpearScope *scope, const char *tag, const char *content) {\n"
+"static char *spear_markup_attrs(SpearScope *scope, const char *tag, const char *attrs, const char *content) {\n"
 "    if (!spear_tag_is_safe(tag)) {\n"
-"        fprintf(stderr, \"unsafe tag name\\n\");\n"
-"        exit(1);\n"
+"        spear_runtime_fail(\"unsafe tag name\");\n"
 "    }\n"
 "    size_t tag_len = strlen(tag);\n"
+"    size_t attrs_len = (attrs && attrs[0]) ? strlen(attrs) + 1 : 0;\n"
 "    size_t body_len = strlen(content);\n"
-"    char *dst = (char *) spear_alloc(scope, tag_len * 2 + body_len + 6);\n"
-"    sprintf(dst, \"<%s>%s</%s>\", tag, content, tag);\n"
+"    char *dst = (char *) spear_alloc(scope, tag_len * 2 + attrs_len + body_len + 8);\n"
+"    if (attrs_len) {\n"
+"        sprintf(dst, \"<%s %s>%s</%s>\", tag, attrs, content, tag);\n"
+"    } else {\n"
+"        sprintf(dst, \"<%s>%s</%s>\", tag, content, tag);\n"
+"    }\n"
 "    return dst;\n"
+"}\n"
+"\n"
+"static char *spear_markup(SpearScope *scope, const char *tag, const char *content) {\n"
+"    return spear_markup_attrs(scope, tag, \"\", content);\n"
+"}\n"
+"\n"
+"static char *spear_column(SpearScope *scope, const char *content) {\n"
+"    return spear_markup_attrs(scope, \"div\", \"style=\\\"display:flex;flex-direction:column;gap:12px\\\"\", content);\n"
+"}\n"
+"\n"
+"static char *spear_row(SpearScope *scope, const char *content) {\n"
+"    return spear_markup_attrs(scope, \"div\", \"style=\\\"display:flex;align-items:center;gap:12px;flex-wrap:wrap\\\"\", content);\n"
 "}\n"
 "\n"
 "static char *spear_page(SpearScope *scope, const char *title, const char *body) {\n"
@@ -1749,8 +2301,7 @@ static const char *runtime_prelude =
 "\n"
 "static char *spear_action(SpearScope *scope, const char *href, const char *label) {\n"
 "    if (!spear_href_is_safe(href)) {\n"
-"        fprintf(stderr, \"unsafe action href\\n\");\n"
-"        exit(1);\n"
+"        spear_runtime_fail(\"unsafe action href\");\n"
 "    }\n"
 "    char *safe_href = spear_html_escape(scope, href);\n"
 "    char *safe_label = spear_html_escape(scope, label);\n"
@@ -1763,14 +2314,12 @@ static const char *runtime_prelude =
 "static void spear_write_text(const char *path, const char *content) {\n"
 "    FILE *fp = fopen(path, \"wb\");\n"
 "    if (!fp) {\n"
-"        fprintf(stderr, \"cannot write %s\\n\", path);\n"
-"        exit(1);\n"
+"        spear_runtime_fail_path(\"cannot write\", path);\n"
 "    }\n"
 "    size_t len = strlen(content);\n"
 "    if (fwrite(content, 1, len, fp) != len) {\n"
-"        fprintf(stderr, \"failed to write %s\\n\", path);\n"
+"        spear_runtime_fail_path(\"failed to write\", path);\n"
 "        fclose(fp);\n"
-"        exit(1);\n"
 "    }\n"
 "    fclose(fp);\n"
 "}\n"
@@ -1789,16 +2338,14 @@ static const char *runtime_prelude =
 "    char *temp = (char *) malloc(cap);\n"
 "    int ch;\n"
 "    if (!temp) {\n"
-"        fprintf(stderr, \"out of memory\\n\");\n"
-"        exit(1);\n"
+"        spear_runtime_fail(\"out of memory\");\n"
 "    }\n"
 "    while ((ch = getchar()) != EOF && ch != '\\n') {\n"
 "        if (len + 1 >= cap) {\n"
 "            cap *= 2;\n"
 "            temp = (char *) realloc(temp, cap);\n"
 "            if (!temp) {\n"
-"                fprintf(stderr, \"out of memory\\n\");\n"
-"                exit(1);\n"
+"                spear_runtime_fail(\"out of memory\");\n"
 "            }\n"
 "        }\n"
 "        temp[len++] = (char) ch;\n"
@@ -1823,7 +2370,7 @@ static const char *runtime_prelude =
 "\n"
 "static SpearNumList *spear_numlist_new(SpearScope *scope) {\n"
 "    SpearNumList *list = (SpearNumList *) calloc(1, sizeof(SpearNumList));\n"
-"    if (!list) { fprintf(stderr, \"out of memory\\n\"); exit(1); }\n"
+"    if (!list) { spear_runtime_fail(\"out of memory\"); }\n"
 "    list->owner = scope;\n"
 "    spear_scope_add_cleanup(scope, spear_numlist_drop, list);\n"
 "    return list;\n"
@@ -1837,7 +2384,7 @@ static const char *runtime_prelude =
 "\n"
 "static SpearTextList *spear_textlist_new(SpearScope *scope) {\n"
 "    SpearTextList *list = (SpearTextList *) calloc(1, sizeof(SpearTextList));\n"
-"    if (!list) { fprintf(stderr, \"out of memory\\n\"); exit(1); }\n"
+"    if (!list) { spear_runtime_fail(\"out of memory\"); }\n"
 "    list->owner = scope;\n"
 "    spear_scope_add_cleanup(scope, spear_textlist_drop, list);\n"
 "    return list;\n"
@@ -1853,7 +2400,7 @@ static const char *runtime_prelude =
 "    if (list->len == list->cap) {\n"
 "        size_t next = list->cap ? list->cap * 2 : 8;\n"
 "        long long *items = (long long *) realloc(list->items, next * sizeof(long long));\n"
-"        if (!items) { fprintf(stderr, \"out of memory\\n\"); exit(1); }\n"
+"        if (!items) { spear_runtime_fail(\"out of memory\"); }\n"
 "        list->items = items;\n"
 "        list->cap = next;\n"
 "    }\n"
@@ -1864,7 +2411,7 @@ static const char *runtime_prelude =
 "    if (list->len == list->cap) {\n"
 "        size_t next = list->cap ? list->cap * 2 : 8;\n"
 "        char **items = (char **) realloc(list->items, next * sizeof(char *));\n"
-"        if (!items) { fprintf(stderr, \"out of memory\\n\"); exit(1); }\n"
+"        if (!items) { spear_runtime_fail(\"out of memory\"); }\n"
 "        list->items = items;\n"
 "        list->cap = next;\n"
 "    }\n"
@@ -1874,13 +2421,13 @@ static const char *runtime_prelude =
 "static long long spear_numlist_count(SpearNumList *list) { return (long long) list->len; }\n"
 "static long long spear_textlist_count(SpearTextList *list) { return (long long) list->len; }\n"
 "\n"
-"static long long spear_numlist_at(SpearNumList *list, long long index) {\n"
-"    if (index < 0 || (size_t) index >= list->len) { fprintf(stderr, \"numlist index out of bounds\\n\"); exit(1); }\n"
+"static long long spear_numlist_at(SpearNumList *list, long long index, int line, int col) {\n"
+"    if (index < 0 || (size_t) index >= list->len) { spear_runtime_fail_at(line, col, \"numlist index out of bounds\"); }\n"
 "    return list->items[index];\n"
 "}\n"
 "\n"
-"static char *spear_textlist_at(SpearTextList *list, long long index) {\n"
-"    if (index < 0 || (size_t) index >= list->len) { fprintf(stderr, \"textlist index out of bounds\\n\"); exit(1); }\n"
+"static char *spear_textlist_at(SpearTextList *list, long long index, int line, int col) {\n"
+"    if (index < 0 || (size_t) index >= list->len) { spear_runtime_fail_at(line, col, \"textlist index out of bounds\"); }\n"
 "    return list->items[index];\n"
 "}\n"
 "\n"
@@ -1900,10 +2447,121 @@ static const char *runtime_prelude =
 "}\n"
 "\n";
 
+typedef struct {
+    char **items;
+    size_t count;
+    size_t cap;
+} PathList;
+
+static bool path_list_has(PathList *list, const char *path) {
+    for (size_t i = 0; i < list->count; i++) {
+        if (strcmp(list->items[i], path) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void path_list_add(PathList *list, const char *path) {
+    if (path_list_has(list, path)) {
+        return;
+    }
+    if (list->count == list->cap) {
+        size_t next = list->cap ? list->cap * 2 : 8;
+        list->items = realloc(list->items, next * sizeof(char *));
+        if (!list->items) {
+            fprintf(stderr, "spearc error: out of memory\n");
+            exit(1);
+        }
+        list->cap = next;
+    }
+    list->items[list->count++] = xstrdup(path);
+}
+
+static void path_list_remove(PathList *list, const char *path) {
+    for (size_t i = list->count; i > 0; i--) {
+        if (strcmp(list->items[i - 1], path) == 0) {
+            free(list->items[i - 1]);
+            if (i < list->count) {
+                memmove(&list->items[i - 1], &list->items[i], (list->count - i) * sizeof(char *));
+            }
+            list->count--;
+            return;
+        }
+    }
+}
+
+static void append_line_directive(Buffer *out, int line) {
+    char marker[32];
+    checked_snprintf(marker, sizeof(marker), "\x1F%d\n", line > 0 ? line : 1);
+    buf_append(out, marker);
+}
+
+static void parent_dir_of(const char *path, char *out, size_t cap) {
+    checked_snprintf(out, cap, "%s", path);
+    char *slash = strrchr(out, '/');
+    char *backslash = strrchr(out, '\\');
+    char *cut = slash > backslash ? slash : backslash;
+    if (cut) {
+        *cut = '\0';
+    } else {
+        checked_snprintf(out, cap, ".");
+    }
+}
+
+static void join_fs_path(char *out, size_t cap, const char *base, const char *leaf) {
+    if (leaf[0] == '\\' || leaf[0] == '/' || (strlen(leaf) > 1 && leaf[1] == ':')) {
+        checked_snprintf(out, cap, "%s", leaf);
+    } else {
+        checked_snprintf(out, cap, "%s/%s", base, leaf);
+    }
+}
+
+static void executable_dir(const char *argv0, char *out, size_t cap) {
+    char candidate[2048];
+    if (!_fullpath(out, argv0, cap)) {
+        fprintf(stderr, "spearc error: cannot resolve compiler path\n");
+        exit(1);
+    }
+    char *slash = strrchr(out, '\\');
+    if (!slash) slash = strrchr(out, '/');
+    if (!slash) {
+        fprintf(stderr, "spearc error: cannot resolve compiler directory\n");
+        exit(1);
+    }
+    *slash = '\0';
+
+    checked_snprintf(candidate, sizeof(candidate), "%s\\..\\runtime\\bridge_node.mjs", out);
+    FILE *fp = fopen(candidate, "rb");
+    if (fp) {
+        fclose(fp);
+        char *parent = strrchr(out, '\\');
+        if (!parent) parent = strrchr(out, '/');
+        if (parent) {
+            *parent = '\0';
+        }
+    }
+}
+
+static char *escape_c_string(const char *src) {
+    Buffer out;
+    buf_init(&out);
+    for (size_t i = 0; src[i]; i++) {
+        char c = src[i];
+        if (c == '\\') buf_append(&out, "\\\\");
+        else if (c == '"') buf_append(&out, "\\\"");
+        else {
+            char tmp[2] = { c, '\0' };
+            buf_append(&out, tmp);
+        }
+    }
+    return buf_take(&out);
+}
+
 static char *read_file(const char *path) {
     FILE *fp = fopen(path, "rb");
     if (!fp) {
-        fprintf(stderr, "cannot open %s\n", path);
+        fprintf(stderr, "spearc error: cannot open %s\n", path);
         exit(1);
     }
     fseek(fp, 0, SEEK_END);
@@ -1911,7 +2569,7 @@ static char *read_file(const char *path) {
     rewind(fp);
     char *data = xmalloc((size_t) size + 1);
     if (fread(data, 1, (size_t) size, fp) != (size_t) size) {
-        fprintf(stderr, "failed to read %s\n", path);
+        fprintf(stderr, "spearc error: failed to read %s\n", path);
         fclose(fp);
         exit(1);
     }
@@ -1920,15 +2578,113 @@ static char *read_file(const char *path) {
     return data;
 }
 
+static char *read_stream(FILE *fp, const char *label) {
+    size_t cap = 4096;
+    size_t len = 0;
+    char *data = xmalloc(cap);
+    for (;;) {
+        size_t remaining = cap - len;
+        size_t read = fread(data + len, 1, remaining - 1, fp);
+        len += read;
+        if (feof(fp)) {
+            break;
+        }
+        if (ferror(fp)) {
+            fprintf(stderr, "spearc error: failed to read %s\n", label);
+            free(data);
+            exit(1);
+        }
+        cap *= 2;
+        data = realloc(data, cap);
+        if (!data) {
+            fprintf(stderr, "spearc error: out of memory\n");
+            exit(1);
+        }
+    }
+    data[len] = '\0';
+    return data;
+}
+
+static char *load_source_tree(const char *path, const char *root_source, PathList *seen, PathList *active) {
+    char full_path[2048];
+    char base_dir[2048];
+    if (!_fullpath(full_path, path, sizeof(full_path))) {
+        fprintf(stderr, "spearc error: cannot resolve %s\n", path);
+        exit(1);
+    }
+    if (path_list_has(active, full_path)) {
+        fprintf(stderr, "spearc error: circular import detected at %s\n", full_path);
+        exit(1);
+    }
+    if (path_list_has(seen, full_path)) {
+        return xstrdup("");
+    }
+    path_list_add(seen, full_path);
+    path_list_add(active, full_path);
+    char *source = root_source ? xstrdup(root_source) : read_file(full_path);
+    parent_dir_of(full_path, base_dir, sizeof(base_dir));
+
+    Buffer out;
+    buf_init(&out);
+
+    const char *cursor = source;
+    int current_line = 1;
+    while (*cursor) {
+        const char *line_end = strchr(cursor, '\n');
+        size_t line_len = line_end ? (size_t) (line_end - cursor) : strlen(cursor);
+        const char *trim = cursor;
+        while (*trim == ' ' || *trim == '\t') trim++;
+
+        if (strncmp(trim, "import \"", 8) == 0) {
+            const char *start = trim + 8;
+            const char *end = strchr(start, '"');
+            if (!end || end[1] != ';') {
+                fprintf(stderr, "spearc error: malformed import in %s\n", full_path);
+                exit(1);
+            }
+            char rel[1024];
+            char next_path[2048];
+            size_t rel_len = (size_t) (end - start);
+            memcpy(rel, start, rel_len);
+            rel[rel_len] = '\0';
+            join_fs_path(next_path, sizeof(next_path), base_dir, rel);
+            char *child = load_source_tree(next_path, NULL, seen, active);
+            append_line_directive(&out, 1);
+            buf_append(&out, child);
+            if (out.len && out.data[out.len - 1] != '\n') {
+                buf_append(&out, "\n");
+            }
+            append_line_directive(&out, current_line + 1);
+            free(child);
+        } else {
+            buf_reserve(&out, line_len + 1);
+            memcpy(out.data + out.len, cursor, line_len);
+            out.len += line_len;
+            out.data[out.len] = '\0';
+            if (line_end) {
+                buf_append(&out, "\n");
+            }
+        }
+
+        if (!line_end) break;
+        cursor = line_end + 1;
+        current_line++;
+    }
+
+    free(source);
+    path_list_remove(active, full_path);
+    return buf_take(&out);
+}
+
 static void write_file(const char *path, const char *content) {
     FILE *fp = fopen(path, "wb");
     if (!fp) {
-        fprintf(stderr, "cannot write %s\n", path);
+        fprintf(stderr, "spearc error: cannot write %s\n", path);
         exit(1);
     }
     size_t len = strlen(content);
     if (fwrite(content, 1, len, fp) != len) {
-        fprintf(stderr, "failed to write %s\n", path);
+        fprintf(stderr, "spearc error: failed to write %s\n", path);
         fclose(fp);
         exit(1);
     }
@@ -1964,6 +2720,15 @@ static void emit_function_prototype(Buffer *out, FunctionInfo *fn) {
 static void parse_function_definition(Parser *parser) {
     bool is_entry = false;
     ValueType return_type = TYPE_NUM;
+    if (match(parser, TOK_MODULE) || match(parser, TOK_PACKAGE)) {
+        expect(parser, TOK_IDENT, "expected name after metadata");
+        expect(parser, TOK_SEMI, "expected ';' after metadata");
+        return;
+    }
+    if (match(parser, TOK_CLASS)) {
+        fatal_at(parser->lexer.current.line, parser->lexer.current.col, "class is reserved but not implemented yet");
+    }
+    match(parser, TOK_FUNCTION);
     if (match(parser, TOK_SPEAR)) {
         is_entry = true;
     } else if (is_type_token(parser->lexer.current.kind) || parser->lexer.current.kind == TOK_VIEW) {
@@ -2051,13 +2816,16 @@ static void parse_function_definition(Parser *parser) {
     emit_line(parser, "}");
 }
 
-static char *compile_source(const char *source) {
+static char *compile_source(const char *source, const char *tool_dir) {
     Parser parser;
     parser_init(&parser, source);
     collect_functions(&parser, source);
     lexer_init(&parser.lexer, source);
     parser.lexer.current = lexer_next(&parser.lexer);
     buf_append(&parser.out, runtime_prelude);
+    char *escaped_tool_dir = escape_c_string(tool_dir);
+    buf_appendf(&parser.out, "static const char *SPEAR_TOOL_DIR = \"%s\";\n", escaped_tool_dir);
+    free(escaped_tool_dir);
 
     char *entry = NULL;
     for (size_t i = 0; i < parser.function_count; i++) {
@@ -2081,30 +2849,54 @@ static char *compile_source(const char *source) {
 
 int main(int argc, char **argv) {
     if (argc < 2 || argc > 4) {
-        fprintf(stderr, "usage: spearc <input.sp> [-o output.c]\n");
+        fprintf(stderr, "spearc error: usage: spearc <input.sp> [-o output.c] | spearc --check <input.sp> | spearc --check-stdin <input.sp>\n");
         return 1;
     }
 
+    bool check_only = false;
+    bool check_stdin = false;
     const char *input = argv[1];
     char *output = NULL;
+    char *stdin_source = NULL;
+    char tool_dir[2048];
 
-    if (argc == 4) {
+    executable_dir(argv[0], tool_dir, sizeof(tool_dir));
+
+    if (argc == 3 && strcmp(argv[1], "--check") == 0) {
+        check_only = true;
+        input = argv[2];
+    } else if (argc == 3 && strcmp(argv[1], "--check-stdin") == 0) {
+        check_only = true;
+        check_stdin = true;
+        input = argv[2];
+    } else if (argc == 4) {
         if (strcmp(argv[2], "-o") != 0) {
-            fprintf(stderr, "expected -o before output path\n");
+            fprintf(stderr, "spearc error: expected -o before output path\n");
             return 1;
         }
         output = xstrdup(argv[3]);
-    } else {
+    } else if (argc == 2) {
         output = default_output_path(input);
+    } else {
+        fprintf(stderr, "spearc error: usage: spearc <input.sp> [-o output.c] | spearc --check <input.sp> | spearc --check-stdin <input.sp>\n");
+        return 1;
     }
 
-    char *source = read_file(input);
-    char *generated = compile_source(source);
-    write_file(output, generated);
+    PathList seen = {0};
+    PathList active = {0};
+    if (check_stdin) {
+        stdin_source = read_stream(stdin, "stdin");
+    }
+    char *source = load_source_tree(input, stdin_source, &seen, &active);
+    char *generated = compile_source(source, tool_dir);
+    if (!check_only) {
+        write_file(output, generated);
+        printf("generated %s\n", output);
+    }
 
-    printf("generated %s\n", output);
+    free(stdin_source);
     free(source);
     free(generated);
-    free(output);
+    if (output) free(output);
     return 0;
 }

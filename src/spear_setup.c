@@ -1,0 +1,698 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <windows.h>
+#include <commctrl.h>
+
+#define APP_CLASS "SpearSetupWizardWindow"
+#define WM_APP_INSTALL_DONE (WM_APP + 1)
+
+#define IDC_TITLE 1001
+#define IDC_BODY 1002
+#define IDC_CHECK_PATH 1003
+#define IDC_CHECK_EXAMPLES 1004
+#define IDC_CHECK_EDITOR 1005
+#define IDC_CHECK_TESTS 1006
+#define IDC_SUMMARY 1007
+#define IDC_PROGRESS 1008
+#define IDC_STATUS 1009
+#define IDC_BACK 1010
+#define IDC_NEXT 1011
+#define IDC_CANCEL 1012
+
+typedef struct {
+    char exe_path[4096];
+    char source_root[4096];
+    char install_root[4096];
+    char bin_dir[4096];
+    char runtime_dir[4096];
+    char examples_dir[4096];
+    char editor_dir[4096];
+    char src_spear[4096];
+    char src_spearc[4096];
+    char src_setup[4096];
+    char src_runtime[4096];
+    char src_examples[4096];
+    char src_editor[4096];
+    bool has_examples;
+    bool has_editor;
+    bool has_gcc;
+    bool has_code;
+    bool repair_mode;
+    bool uninstall_mode;
+} SetupContext;
+
+typedef struct {
+    bool install_path;
+    bool install_examples;
+    bool install_editor;
+    bool run_checks;
+} SetupOptions;
+
+typedef struct {
+    SetupContext ctx;
+    SetupOptions options;
+    HWND hwnd;
+    HWND title;
+    HWND body;
+    HWND check_path;
+    HWND check_examples;
+    HWND check_editor;
+    HWND check_tests;
+    HWND summary;
+    HWND progress;
+    HWND status;
+    HWND back;
+    HWND next;
+    HWND cancel;
+    HANDLE worker;
+    int page;
+    bool running;
+    bool ok;
+    char result[8192];
+} WizardState;
+
+static void fail(const char *fmt, ...) {
+    char message[4096];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(message, sizeof(message), fmt, args);
+    va_end(args);
+    fprintf(stderr, "spear setup error: %s\n", message);
+    exit(1);
+}
+
+static void fmt(char *out, size_t cap, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    int written = vsnprintf(out, cap, format, args);
+    va_end(args);
+    if (written < 0 || (size_t) written >= cap) fail("failed to format text");
+}
+
+static void join_path(char *out, size_t cap, const char *a, const char *b) {
+    fmt(out, cap, "%s\\%s", a, b);
+}
+
+static bool file_exists(const char *path) {
+    DWORD attrs = GetFileAttributesA(path);
+    return attrs != INVALID_FILE_ATTRIBUTES && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
+}
+
+static bool dir_exists(const char *path) {
+    DWORD attrs = GetFileAttributesA(path);
+    return attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY);
+}
+
+static void parent_dir(char *path) {
+    char *slash = strrchr(path, '\\');
+    if (!slash) slash = strrchr(path, '/');
+    if (!slash) fail("cannot resolve parent directory");
+    *slash = '\0';
+}
+
+static void ensure_dir_recursive(const char *path) {
+    char temp[4096];
+    size_t len = strlen(path);
+    if (len >= sizeof(temp)) fail("path too long");
+    memcpy(temp, path, len + 1);
+    for (size_t i = 3; temp[i]; i++) {
+        if (temp[i] == '\\' || temp[i] == '/') {
+            char saved = temp[i];
+            temp[i] = '\0';
+            if (temp[0]) CreateDirectoryA(temp, NULL);
+            temp[i] = saved;
+        }
+    }
+    CreateDirectoryA(temp, NULL);
+}
+
+static bool resolve_source_file(const char *root, const char *leaf, char *out, size_t cap) {
+    char candidate[4096];
+    join_path(candidate, sizeof(candidate), root, leaf);
+    if (file_exists(candidate)) {
+        fmt(out, cap, "%s", candidate);
+        return true;
+    }
+    fmt(candidate, sizeof(candidate), "%s\\..\\%s", root, leaf);
+    if (file_exists(candidate)) {
+        fmt(out, cap, "%s", candidate);
+        return true;
+    }
+    return false;
+}
+
+static bool resolve_source_dir(const char *root, const char *leaf, char *out, size_t cap) {
+    char candidate[4096];
+    join_path(candidate, sizeof(candidate), root, leaf);
+    if (dir_exists(candidate)) {
+        fmt(out, cap, "%s", candidate);
+        return true;
+    }
+    fmt(candidate, sizeof(candidate), "%s\\..\\%s", root, leaf);
+    if (dir_exists(candidate)) {
+        fmt(out, cap, "%s", candidate);
+        return true;
+    }
+    return false;
+}
+
+static bool resolve_tool(const char *name) {
+    char buffer[4096];
+    DWORD result = SearchPathA(NULL, name, NULL, (DWORD) sizeof(buffer), buffer, NULL);
+    return result > 0 && result < sizeof(buffer);
+}
+
+static void broadcast_env_change(void) {
+    SendMessageTimeoutA(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM) "Environment", SMTO_ABORTIFHUNG, 5000, NULL);
+}
+
+static void update_user_path(const char *bin_dir, bool add_entry) {
+    HKEY key;
+    char current[8192] = {0};
+    char next[8192] = {0};
+    DWORD size = sizeof(current);
+    DWORD type = REG_SZ;
+    if (RegOpenKeyExA(HKEY_CURRENT_USER, "Environment", 0, KEY_READ | KEY_WRITE, &key) != ERROR_SUCCESS) {
+        fail("failed to open user environment");
+    }
+    if (RegQueryValueExA(key, "Path", NULL, &type, (LPBYTE) current, &size) != ERROR_SUCCESS) {
+        current[0] = '\0';
+    }
+    {
+        const char *cursor = current;
+        int first = 1;
+        bool present = false;
+        while (*cursor) {
+            const char *sep = strchr(cursor, ';');
+            size_t len = sep ? (size_t) (sep - cursor) : strlen(cursor);
+            if (len == strlen(bin_dir) && _strnicmp(cursor, bin_dir, len) == 0) {
+                present = true;
+            } else if (len > 0) {
+                if (!first) strncat(next, ";", sizeof(next) - strlen(next) - 1);
+                strncat(next, cursor, len);
+                first = 0;
+            }
+            if (!sep) break;
+            cursor = sep + 1;
+        }
+        if (add_entry && !present) {
+            if (next[0]) strncat(next, ";", sizeof(next) - strlen(next) - 1);
+            strncat(next, bin_dir, sizeof(next) - strlen(next) - 1);
+        }
+    }
+    if (RegSetValueExA(key, "Path", 0, REG_EXPAND_SZ, (const BYTE *) next, (DWORD) strlen(next) + 1) != ERROR_SUCCESS) {
+        RegCloseKey(key);
+        fail("failed to update user PATH");
+    }
+    RegCloseKey(key);
+    broadcast_env_change();
+}
+
+static void remove_uninstall_info(void) {
+    RegDeleteTreeA(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Spear");
+}
+
+static void set_uninstall_info(const char *install_root, const char *bin_dir) {
+    HKEY key;
+    char uninstall_cmd[2048];
+    char icon_path[2048];
+    if (RegCreateKeyExA(HKEY_CURRENT_USER,
+            "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Spear",
+            0, NULL, 0, KEY_WRITE, NULL, &key, NULL) != ERROR_SUCCESS) {
+        fail("failed to register uninstall metadata");
+    }
+    fmt(uninstall_cmd, sizeof(uninstall_cmd), "\"%s\\spear-setup.exe\" --uninstall", bin_dir);
+    fmt(icon_path, sizeof(icon_path), "%s\\spear.exe", bin_dir);
+    RegSetValueExA(key, "DisplayName", 0, REG_SZ, (const BYTE *) "Spear", 6);
+    RegSetValueExA(key, "Publisher", 0, REG_SZ, (const BYTE *) "Spear Project", 14);
+    RegSetValueExA(key, "InstallLocation", 0, REG_SZ, (const BYTE *) install_root, (DWORD) strlen(install_root) + 1);
+    RegSetValueExA(key, "DisplayVersion", 0, REG_SZ, (const BYTE *) "0.1.0", 6);
+    RegSetValueExA(key, "UninstallString", 0, REG_SZ, (const BYTE *) uninstall_cmd, (DWORD) strlen(uninstall_cmd) + 1);
+    RegSetValueExA(key, "DisplayIcon", 0, REG_SZ, (const BYTE *) icon_path, (DWORD) strlen(icon_path) + 1);
+    RegCloseKey(key);
+}
+
+static void remove_tree_recursive(const char *path) {
+    char pattern[4096];
+    WIN32_FIND_DATAA entry;
+    HANDLE handle;
+    if (!dir_exists(path)) {
+        if (file_exists(path)) DeleteFileA(path);
+        return;
+    }
+    fmt(pattern, sizeof(pattern), "%s\\*", path);
+    handle = FindFirstFileA(pattern, &entry);
+    if (handle != INVALID_HANDLE_VALUE) {
+        do {
+            char child[4096];
+            if (strcmp(entry.cFileName, ".") == 0 || strcmp(entry.cFileName, "..") == 0) continue;
+            join_path(child, sizeof(child), path, entry.cFileName);
+            if (entry.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) remove_tree_recursive(child);
+            else DeleteFileA(child);
+        } while (FindNextFileA(handle, &entry));
+        FindClose(handle);
+    }
+    RemoveDirectoryA(path);
+}
+
+static void copy_file_to(const char *src, const char *dst) {
+    char parent[4096];
+    fmt(parent, sizeof(parent), "%s", dst);
+    parent_dir(parent);
+    ensure_dir_recursive(parent);
+    if (!CopyFileA(src, dst, FALSE)) fail("failed to copy %s", src);
+}
+
+static bool should_skip_name(const char *name) {
+    if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) return true;
+    if (_stricmp(name, "__pycache__") == 0) return true;
+    if (_stricmp(name, ".gitkeep") == 0) return true;
+    return false;
+}
+
+static bool should_skip_file(const char *name) {
+    const char *dot = strrchr(name, '.');
+    if (dot && _stricmp(dot, ".vsix") == 0) return true;
+    if (dot && _stricmp(dot, ".pyc") == 0) return true;
+    return false;
+}
+
+static void copy_tree(const char *src_dir, const char *dst_dir) {
+    char pattern[4096];
+    WIN32_FIND_DATAA entry;
+    HANDLE handle;
+    ensure_dir_recursive(dst_dir);
+    fmt(pattern, sizeof(pattern), "%s\\*", src_dir);
+    handle = FindFirstFileA(pattern, &entry);
+    if (handle == INVALID_HANDLE_VALUE) fail("failed to enumerate %s", src_dir);
+    do {
+        char src_path[4096];
+        char dst_path[4096];
+        if (entry.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            if (should_skip_name(entry.cFileName)) continue;
+            join_path(src_path, sizeof(src_path), src_dir, entry.cFileName);
+            join_path(dst_path, sizeof(dst_path), dst_dir, entry.cFileName);
+            copy_tree(src_path, dst_path);
+        } else {
+            if (should_skip_file(entry.cFileName)) continue;
+            join_path(src_path, sizeof(src_path), src_dir, entry.cFileName);
+            join_path(dst_path, sizeof(dst_path), dst_dir, entry.cFileName);
+            copy_file_to(src_path, dst_path);
+        }
+    } while (FindNextFileA(handle, &entry));
+    FindClose(handle);
+}
+
+static int run_process_capture(const char *command_line, const char *working_dir, char *output, size_t output_cap) {
+    SECURITY_ATTRIBUTES sa;
+    HANDLE read_pipe = NULL;
+    HANDLE write_pipe = NULL;
+    STARTUPINFOA si;
+    PROCESS_INFORMATION pi;
+    DWORD total = 0;
+    char cmd[4096];
+    ZeroMemory(&sa, sizeof(sa));
+    sa.nLength = sizeof(sa);
+    sa.bInheritHandle = TRUE;
+    if (!CreatePipe(&read_pipe, &write_pipe, &sa, 0)) return -1;
+    SetHandleInformation(read_pipe, HANDLE_FLAG_INHERIT, 0);
+    ZeroMemory(&si, sizeof(si));
+    ZeroMemory(&pi, sizeof(pi));
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    si.hStdOutput = write_pipe;
+    si.hStdError = write_pipe;
+    fmt(cmd, sizeof(cmd), "%s", command_line);
+    if (!CreateProcessA(NULL, cmd, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, working_dir, &si, &pi)) {
+        CloseHandle(read_pipe);
+        CloseHandle(write_pipe);
+        return -1;
+    }
+    CloseHandle(write_pipe);
+    if (output && output_cap) output[0] = '\0';
+    for (;;) {
+        char chunk[512];
+        DWORD read = 0;
+        if (!ReadFile(read_pipe, chunk, sizeof(chunk) - 1, &read, NULL) || read == 0) break;
+        if (output && total + 1 < output_cap) {
+            DWORD copy = read;
+            if (copy > output_cap - total - 1) copy = output_cap - total - 1;
+            memcpy(output + total, chunk, copy);
+            total += copy;
+            output[total] = '\0';
+        }
+    }
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    {
+        DWORD exit_code = 1;
+        GetExitCodeProcess(pi.hProcess, &exit_code);
+        CloseHandle(read_pipe);
+        CloseHandle(pi.hThread);
+        CloseHandle(pi.hProcess);
+        return (int) exit_code;
+    }
+}
+
+static void run_self_check(const SetupContext *ctx, const SetupOptions *options, char *out, size_t cap) {
+    char spearc[4096];
+    char spear[4096];
+    char check_file[4096];
+    char temp_source[4096];
+    char command[8192];
+    char output[4096];
+    join_path(spearc, sizeof(spearc), ctx->bin_dir, "spearc.exe");
+    join_path(spear, sizeof(spear), ctx->bin_dir, "spear.exe");
+    if (options->install_examples && dir_exists(ctx->examples_dir)) {
+        join_path(check_file, sizeof(check_file), ctx->examples_dir, "hello.sp");
+    } else {
+        join_path(temp_source, sizeof(temp_source), ctx->install_root, "self-check.sp");
+        {
+            FILE *fp = fopen(temp_source, "wb");
+            if (!fp) fail("failed to create self-check source");
+            fputs("spear launch() {\n    say(1);\n}\n", fp);
+            fclose(fp);
+        }
+        fmt(check_file, sizeof(check_file), "%s", temp_source);
+    }
+    fmt(command, sizeof(command), "\"%s\" --check \"%s\"", spearc, check_file);
+    if (run_process_capture(command, ctx->install_root, output, sizeof(output)) != 0) {
+        fmt(out, cap, "Installed, but compiler self-check failed.\r\n\r\n%s", output[0] ? output : "No details.");
+        if (!(options->install_examples && dir_exists(ctx->examples_dir))) DeleteFileA(check_file);
+        return;
+    }
+    if (ctx->has_gcc) {
+        fmt(command, sizeof(command), "\"%s\" check \"%s\"", spear, check_file);
+        if (run_process_capture(command, ctx->install_root, output, sizeof(output)) != 0) {
+            fmt(out, cap, "Installed, but launcher self-check failed.\r\n\r\n%s", output[0] ? output : "No details.");
+            if (!(options->install_examples && dir_exists(ctx->examples_dir))) DeleteFileA(check_file);
+            return;
+        }
+    }
+    if (!(options->install_examples && dir_exists(ctx->examples_dir))) DeleteFileA(check_file);
+    fmt(out, cap, ctx->has_gcc ? "Installation finished and self-check passed." : "Installation finished. GCC was not found, so launcher validation was skipped.");
+}
+
+static void discover_context(SetupContext *ctx) {
+    char local_app[4096];
+    char user_profile[4096];
+    DWORD len = GetModuleFileNameA(NULL, ctx->exe_path, (DWORD) sizeof(ctx->exe_path));
+    if (len == 0 || len >= sizeof(ctx->exe_path)) fail("cannot resolve installer path");
+    fmt(ctx->source_root, sizeof(ctx->source_root), "%s", ctx->exe_path);
+    parent_dir(ctx->source_root);
+    if (GetEnvironmentVariableA("LOCALAPPDATA", local_app, sizeof(local_app)) == 0) fail("LOCALAPPDATA is not available");
+    if (GetEnvironmentVariableA("USERPROFILE", user_profile, sizeof(user_profile)) == 0) fail("USERPROFILE is not available");
+    join_path(ctx->install_root, sizeof(ctx->install_root), local_app, "Programs\\Spear");
+    join_path(ctx->bin_dir, sizeof(ctx->bin_dir), ctx->install_root, "bin");
+    join_path(ctx->runtime_dir, sizeof(ctx->runtime_dir), ctx->install_root, "runtime");
+    join_path(ctx->examples_dir, sizeof(ctx->examples_dir), ctx->install_root, "examples");
+    fmt(ctx->editor_dir, sizeof(ctx->editor_dir), "%s\\.vscode\\extensions\\spear-language-local", user_profile);
+    ctx->repair_mode = strstr(GetCommandLineA(), "--repair") != NULL;
+    ctx->uninstall_mode = strstr(GetCommandLineA(), "--uninstall") != NULL;
+    if (!resolve_source_file(ctx->source_root, "spear.exe", ctx->src_spear, sizeof(ctx->src_spear)) ||
+        !resolve_source_file(ctx->source_root, "spearc.exe", ctx->src_spearc, sizeof(ctx->src_spearc)) ||
+        !resolve_source_file(ctx->source_root, "spear-setup.exe", ctx->src_setup, sizeof(ctx->src_setup)) ||
+        !resolve_source_dir(ctx->source_root, "runtime", ctx->src_runtime, sizeof(ctx->src_runtime))) {
+        fail("installer must run with spear.exe, spearc.exe, spear-setup.exe, and runtime available");
+    }
+    ctx->has_examples = resolve_source_dir(ctx->source_root, "examples", ctx->src_examples, sizeof(ctx->src_examples));
+    ctx->has_editor = resolve_source_dir(ctx->source_root, "vscode-spear", ctx->src_editor, sizeof(ctx->src_editor));
+    ctx->has_gcc = resolve_tool("gcc.exe");
+    ctx->has_code = resolve_tool("code.cmd") || resolve_tool("code.exe");
+}
+
+static void perform_uninstall(const SetupContext *ctx) {
+    int answer;
+    char message[4096];
+    fmt(message, sizeof(message),
+        "Remove Spear from this user profile?\n\nInstall root:\n%s\n\nThis removes the launcher, compiler, runtime, examples, and the local VS Code extension folder.",
+        ctx->install_root);
+    answer = MessageBoxA(NULL, message, "Spear Uninstall", MB_ICONQUESTION | MB_OKCANCEL | MB_SETFOREGROUND);
+    if (answer != IDOK) {
+        printf("Spear uninstall cancelled.\n");
+        return;
+    }
+    update_user_path(ctx->bin_dir, false);
+    remove_uninstall_info();
+    remove_tree_recursive(ctx->install_root);
+    remove_tree_recursive(ctx->editor_dir);
+    printf("Spear uninstalled from %s\n", ctx->install_root);
+}
+
+static void set_text(HWND hwnd, const char *text) {
+    SetWindowTextA(hwnd, text);
+}
+
+static void read_options(WizardState *state) {
+    state->options.install_path = SendMessageA(state->check_path, BM_GETCHECK, 0, 0) == BST_CHECKED;
+    state->options.install_examples = SendMessageA(state->check_examples, BM_GETCHECK, 0, 0) == BST_CHECKED;
+    state->options.install_editor = SendMessageA(state->check_editor, BM_GETCHECK, 0, 0) == BST_CHECKED;
+    state->options.run_checks = SendMessageA(state->check_tests, BM_GETCHECK, 0, 0) == BST_CHECKED;
+}
+
+static void write_options(WizardState *state) {
+    SendMessageA(state->check_path, BM_SETCHECK, state->options.install_path ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageA(state->check_examples, BM_SETCHECK, state->options.install_examples ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageA(state->check_editor, BM_SETCHECK, state->options.install_editor ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageA(state->check_tests, BM_SETCHECK, state->options.run_checks ? BST_CHECKED : BST_UNCHECKED, 0);
+    EnableWindow(state->check_examples, state->ctx.has_examples ? TRUE : FALSE);
+    EnableWindow(state->check_editor, state->ctx.has_editor ? TRUE : FALSE);
+}
+
+static void build_summary(WizardState *state, char *out, size_t cap) {
+    read_options(state);
+    fmt(out, cap,
+        "Install location:\r\n%s\r\n\r\n"
+        "Core:\r\n- spear.exe\r\n- spearc.exe\r\n- spear-setup.exe\r\n- runtime bridge files\r\n\r\n"
+        "Options:\r\n- PATH registration: %s\r\n- Example workspace: %s\r\n- VS Code extension: %s\r\n- Post-install self-check: %s\r\n\r\n"
+        "Detected:\r\n- gcc: %s\r\n- VS Code CLI: %s",
+        state->ctx.install_root,
+        state->options.install_path ? "yes" : "no",
+        state->options.install_examples ? "yes" : "no",
+        state->options.install_editor ? "yes" : "no",
+        state->options.run_checks ? "yes" : "no",
+        state->ctx.has_gcc ? "found" : "not found",
+        state->ctx.has_code ? "found" : "not found");
+}
+
+static void show_page(WizardState *state) {
+    char text[8192];
+    ShowWindow(state->check_path, SW_HIDE);
+    ShowWindow(state->check_examples, SW_HIDE);
+    ShowWindow(state->check_editor, SW_HIDE);
+    ShowWindow(state->check_tests, SW_HIDE);
+    ShowWindow(state->summary, SW_HIDE);
+    ShowWindow(state->progress, SW_HIDE);
+    ShowWindow(state->status, SW_HIDE);
+
+    if (state->page == 0) {
+        set_text(state->title, state->ctx.repair_mode ? "Repair Spear" : "Setup Spear");
+        set_text(state->body, "This wizard installs Spear in a standard Windows setup flow with Back, Next, Install, and Finish steps.");
+        EnableWindow(state->back, FALSE);
+        EnableWindow(state->next, TRUE);
+        set_text(state->next, "Next >");
+    } else if (state->page == 1) {
+        set_text(state->title, "Choose Components");
+        set_text(state->body, "Select what to install. You can run the wizard again later to change these choices.");
+        write_options(state);
+        ShowWindow(state->check_path, SW_SHOW);
+        ShowWindow(state->check_examples, SW_SHOW);
+        ShowWindow(state->check_editor, SW_SHOW);
+        ShowWindow(state->check_tests, SW_SHOW);
+        EnableWindow(state->back, TRUE);
+        EnableWindow(state->next, TRUE);
+        set_text(state->next, "Next >");
+    } else if (state->page == 2) {
+        set_text(state->title, "Ready To Install");
+        set_text(state->body, "Review the selected options and click Install.");
+        build_summary(state, text, sizeof(text));
+        set_text(state->summary, text);
+        ShowWindow(state->summary, SW_SHOW);
+        EnableWindow(state->back, TRUE);
+        EnableWindow(state->next, TRUE);
+        set_text(state->next, "Install");
+    } else if (state->page == 3) {
+        set_text(state->title, "Installing");
+        set_text(state->body, "Spear is being installed. The window will update when setup finishes.");
+        set_text(state->status, "Copying files and configuring the installation...");
+        ShowWindow(state->progress, SW_SHOW);
+        ShowWindow(state->status, SW_SHOW);
+        EnableWindow(state->back, FALSE);
+        EnableWindow(state->next, FALSE);
+    } else {
+        set_text(state->title, state->ok ? "Completed" : "Installation Failed");
+        set_text(state->body, state->ok ? "Spear is ready to use." : "The installer could not finish.");
+        set_text(state->status, state->result);
+        ShowWindow(state->status, SW_SHOW);
+        EnableWindow(state->back, FALSE);
+        EnableWindow(state->next, TRUE);
+        set_text(state->next, "Close");
+    }
+}
+
+static DWORD WINAPI install_worker(LPVOID param) {
+    WizardState *state = (WizardState *) param;
+    char dst[4096];
+    char summary[4096];
+    state->ok = false;
+    state->result[0] = '\0';
+    remove_tree_recursive(state->ctx.runtime_dir);
+    remove_tree_recursive(state->ctx.examples_dir);
+    remove_tree_recursive(state->ctx.editor_dir);
+    ensure_dir_recursive(state->ctx.bin_dir);
+    ensure_dir_recursive(state->ctx.runtime_dir);
+    join_path(dst, sizeof(dst), state->ctx.bin_dir, "spear.exe");
+    copy_file_to(state->ctx.src_spear, dst);
+    join_path(dst, sizeof(dst), state->ctx.bin_dir, "spearc.exe");
+    copy_file_to(state->ctx.src_spearc, dst);
+    join_path(dst, sizeof(dst), state->ctx.bin_dir, "spear-setup.exe");
+    copy_file_to(state->ctx.src_setup, dst);
+    copy_tree(state->ctx.src_runtime, state->ctx.runtime_dir);
+    if (state->options.install_examples && state->ctx.has_examples) copy_tree(state->ctx.src_examples, state->ctx.examples_dir);
+    if (state->options.install_editor && state->ctx.has_editor) copy_tree(state->ctx.src_editor, state->ctx.editor_dir);
+    if (state->options.install_path) update_user_path(state->ctx.bin_dir, true);
+    set_uninstall_info(state->ctx.install_root, state->ctx.bin_dir);
+    if (state->options.run_checks) run_self_check(&state->ctx, &state->options, summary, sizeof(summary));
+    else fmt(summary, sizeof(summary), "Installation finished.");
+    fmt(state->result, sizeof(state->result),
+        "%s\r\n\r\nInstall root:\r\n%s\r\n\r\nExamples:\r\n%s\r\n\r\nVS Code extension:\r\n%s",
+        summary,
+        state->ctx.install_root,
+        (state->options.install_examples && dir_exists(state->ctx.examples_dir)) ? state->ctx.examples_dir : "not installed",
+        (state->options.install_editor && dir_exists(state->ctx.editor_dir)) ? state->ctx.editor_dir : "not installed");
+    state->ok = true;
+    PostMessageA(state->hwnd, WM_APP_INSTALL_DONE, 0, 0);
+    return 0;
+}
+
+static void start_install(WizardState *state) {
+    read_options(state);
+    state->page = 3;
+    state->running = true;
+    show_page(state);
+    SendMessageA(state->progress, PBM_SETMARQUEE, TRUE, 0);
+    state->worker = CreateThread(NULL, 0, install_worker, state, 0, NULL);
+    if (!state->worker) {
+        state->running = false;
+        state->ok = false;
+        fmt(state->result, sizeof(state->result), "Failed to start installer worker thread.");
+        state->page = 4;
+        show_page(state);
+    }
+}
+
+static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    WizardState *state = (WizardState *) GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+    switch (msg) {
+        case WM_NCCREATE:
+            SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG_PTR) ((CREATESTRUCTA *) lParam)->lpCreateParams);
+            return TRUE;
+        case WM_CREATE:
+            state = (WizardState *) ((CREATESTRUCTA *) lParam)->lpCreateParams;
+            state->hwnd = hwnd;
+            state->title = CreateWindowA("STATIC", "", WS_CHILD | WS_VISIBLE, 24, 20, 560, 28, hwnd, (HMENU) IDC_TITLE, NULL, NULL);
+            state->body = CreateWindowA("STATIC", "", WS_CHILD | WS_VISIBLE, 24, 56, 560, 60, hwnd, (HMENU) IDC_BODY, NULL, NULL);
+            state->check_path = CreateWindowA("BUTTON", "Add Spear to the user PATH", WS_CHILD | BS_AUTOCHECKBOX, 32, 132, 420, 22, hwnd, (HMENU) IDC_CHECK_PATH, NULL, NULL);
+            state->check_examples = CreateWindowA("BUTTON", "Install the bundled example workspace", WS_CHILD | BS_AUTOCHECKBOX, 32, 162, 420, 22, hwnd, (HMENU) IDC_CHECK_EXAMPLES, NULL, NULL);
+            state->check_editor = CreateWindowA("BUTTON", "Install the bundled VS Code extension", WS_CHILD | BS_AUTOCHECKBOX, 32, 192, 420, 22, hwnd, (HMENU) IDC_CHECK_EDITOR, NULL, NULL);
+            state->check_tests = CreateWindowA("BUTTON", "Run post-install self-checks", WS_CHILD | BS_AUTOCHECKBOX, 32, 222, 420, 22, hwnd, (HMENU) IDC_CHECK_TESTS, NULL, NULL);
+            state->summary = CreateWindowA("EDIT", "", WS_CHILD | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL, 24, 132, 560, 190, hwnd, (HMENU) IDC_SUMMARY, NULL, NULL);
+            state->progress = CreateWindowExA(0, PROGRESS_CLASSA, "", WS_CHILD | PBS_MARQUEE, 24, 144, 560, 18, hwnd, (HMENU) IDC_PROGRESS, NULL, NULL);
+            state->status = CreateWindowA("EDIT", "", WS_CHILD | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL, 24, 176, 560, 146, hwnd, (HMENU) IDC_STATUS, NULL, NULL);
+            state->back = CreateWindowA("BUTTON", "< Back", WS_CHILD | WS_VISIBLE, 286, 346, 90, 28, hwnd, (HMENU) IDC_BACK, NULL, NULL);
+            state->next = CreateWindowA("BUTTON", "Next >", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 384, 346, 90, 28, hwnd, (HMENU) IDC_NEXT, NULL, NULL);
+            state->cancel = CreateWindowA("BUTTON", "Cancel", WS_CHILD | WS_VISIBLE, 482, 346, 90, 28, hwnd, (HMENU) IDC_CANCEL, NULL, NULL);
+            show_page(state);
+            return 0;
+        case WM_COMMAND:
+            switch (LOWORD(wParam)) {
+                case IDC_BACK:
+                    if (state->page > 0 && state->page < 3) {
+                        state->page--;
+                        show_page(state);
+                    }
+                    return 0;
+                case IDC_NEXT:
+                    if (state->page == 0) {
+                        state->page = 1;
+                        show_page(state);
+                    } else if (state->page == 1) {
+                        state->page = 2;
+                        show_page(state);
+                    } else if (state->page == 2) {
+                        start_install(state);
+                    } else if (state->page >= 4) {
+                        DestroyWindow(hwnd);
+                    }
+                    return 0;
+                case IDC_CANCEL:
+                    if (!state->running) DestroyWindow(hwnd);
+                    return 0;
+            }
+            return 0;
+        case WM_APP_INSTALL_DONE:
+            state->running = false;
+            if (state->worker) {
+                CloseHandle(state->worker);
+                state->worker = NULL;
+            }
+            SendMessageA(state->progress, PBM_SETMARQUEE, FALSE, 0);
+            state->page = 4;
+            show_page(state);
+            return 0;
+        case WM_CLOSE:
+            if (!state || !state->running) DestroyWindow(hwnd);
+            return 0;
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            return 0;
+    }
+    return DefWindowProcA(hwnd, msg, wParam, lParam);
+}
+
+static void run_wizard(SetupContext *ctx) {
+    WNDCLASSA wc;
+    MSG msg;
+    INITCOMMONCONTROLSEX icc;
+    WizardState state;
+    ZeroMemory(&state, sizeof(state));
+    state.ctx = *ctx;
+    state.options.install_path = true;
+    state.options.install_examples = ctx->has_examples;
+    state.options.install_editor = ctx->has_editor;
+    state.options.run_checks = true;
+    ZeroMemory(&icc, sizeof(icc));
+    icc.dwSize = sizeof(icc);
+    icc.dwICC = ICC_PROGRESS_CLASS;
+    InitCommonControlsEx(&icc);
+    ZeroMemory(&wc, sizeof(wc));
+    wc.lpfnWndProc = wizard_proc;
+    wc.hInstance = GetModuleHandleA(NULL);
+    wc.lpszClassName = APP_CLASS;
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hbrBackground = (HBRUSH) (COLOR_WINDOW + 1);
+    RegisterClassA(&wc);
+    CreateWindowExA(WS_EX_DLGMODALFRAME, APP_CLASS, ctx->repair_mode ? "Spear Repair" : "Spear Setup", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT, 620, 420, NULL, NULL, GetModuleHandleA(NULL), &state);
+    ShowWindow(state.hwnd, SW_SHOW);
+    UpdateWindow(state.hwnd);
+    while (GetMessageA(&msg, NULL, 0, 0) > 0) {
+        TranslateMessage(&msg);
+        DispatchMessageA(&msg);
+    }
+}
+
+int main(void) {
+    SetupContext ctx;
+    ZeroMemory(&ctx, sizeof(ctx));
+    discover_context(&ctx);
+    if (ctx.uninstall_mode) {
+        perform_uninstall(&ctx);
+        return 0;
+    }
+    run_wizard(&ctx);
+    return 0;
+}

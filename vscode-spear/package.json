@@ -2,9 +2,10 @@
   "name": "spear-language",
   "displayName": "Spear Language",
   "description": "Syntax highlighting for the Spear programming language",
-  "version": "0.0.5",
+  "version": "0.0.7",
   "publisher": "local",
   "icon": "assets/spear-logo.png",
+  "main": "./extension.js",
   "repository": {
     "type": "git",
     "url": "https://example.com/local/spear"
@@ -21,7 +22,20 @@
     "sharp",
     "language"
   ],
+  "activationEvents": [
+    "onLanguage:spear"
+  ],
   "contributes": {
+    "configuration": {
+      "title": "Spear",
+      "properties": {
+        "spear.compilerPath": {
+          "type": "string",
+          "default": "",
+          "description": "Optional absolute path to spearc.exe. When empty, the extension uses build/spearc.exe from the current workspace."
+        }
+      }
+    },
     "languages": [
       {
         "id": "spear",

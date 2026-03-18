@@ -1,18 +1,12 @@
-num add(num left, num right) {
-    return left + right;
-}
+import "math.sp";
 
-text sharpen(text base) {
-    sharp {
-        let prefix = "sharp-";
-        return join(prefix, base);
-    }
-}
+package examples;
+module hello;
 
 spear launch() {
     numlist scores = pack(add(4, 5), 12, 20);
     textlist words = pack("spear", "edge");
-    let shots = 3;
+    var shots = 3;
 
     say(count(scores));
     say(at(scores, 0));
@@ -21,8 +15,18 @@ spear launch() {
         say(score);
     }
 
+    for (var i = 0; i < count(words); i = i + 1) {
+        if (same(at(words, i), "edge")) {
+            continue;
+        }
+        say(at(words, i));
+    }
+
     while (shots > 0) {
         say(shots);
+        if (shots == 2) {
+            break;
+        }
         shots = shots - 1;
     }
 }

@@ -24,6 +24,13 @@
     ],
     "description": "Create an inferred variable"
   },
+  "Var Value": {
+    "prefix": "var",
+    "body": [
+      "var ${1:name} = ${2:value};"
+    ],
+    "description": "Create a mutable inferred variable"
+  },
   "Const Value": {
     "prefix": "const",
     "body": [
@@ -40,10 +47,40 @@
     ],
     "description": "Iterate through a Spear list"
   },
+  "For Loop": {
+    "prefix": "for",
+    "body": [
+      "for (var ${1:i} = 0; ${1:i} < ${2:limit}; ${1:i} = ${1:i} + 1) {",
+      "    $0",
+      "}"
+    ],
+    "description": "Create a numeric for loop"
+  },
+  "Import": {
+    "prefix": "import",
+    "body": [
+      "import \"${1:module.sp}\";"
+    ],
+    "description": "Import another Spear source file"
+  },
+  "Node Bridge": {
+    "prefix": "nodecall",
+    "body": [
+      "nodecall(\"${1:package}\", \"${2:function}\", \"${3:{}}\")"
+    ],
+    "description": "Call a Node/npm function through the Spear bridge"
+  },
+  "Python Bridge": {
+    "prefix": "pycall",
+    "body": [
+      "pycall(\"${1:module}\", \"${2:function}\", \"${3:{}}\")"
+    ],
+    "description": "Call a Python/pip function through the Spear bridge"
+  },
   "Num Function": {
     "prefix": "spnum",
     "body": [
-      "num ${1:name}(num ${2:value}) {",
+      "function num ${1:name}(num ${2:value}) {",
       "    return ${2:value};",
       "}"
     ],
@@ -52,7 +89,7 @@
   "Text Function": {
     "prefix": "sptext",
     "body": [
-      "text ${1:name}(text ${2:value}) {",
+      "function text ${1:name}(text ${2:value}) {",
       "    return ${2:value};",
       "}"
     ],

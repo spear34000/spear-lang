@@ -3,13 +3,17 @@
   "name": "Spear",
   "patterns": [
     { "include": "#comments" },
+    { "include": "#imports" },
+    { "include": "#metadata" },
+    { "include": "#function-definitions" },
+    { "include": "#ui-builders" },
+    { "include": "#declarations" },
     { "include": "#strings" },
     { "include": "#numbers" },
-    { "include": "#function-definitions" },
     { "include": "#keywords" },
     { "include": "#builtins" },
     { "include": "#function-calls" },
-    { "include": "#variables" },
+    { "include": "#punctuation" },
     { "include": "#operators" }
   ],
   "repository": {
@@ -44,11 +48,39 @@
         }
       ]
     },
+    "metadata": {
+      "patterns": [
+        {
+          "name": "meta.declaration.package.spear",
+          "match": "\\b(package|module)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b",
+          "captures": {
+            "1": { "name": "keyword.control.spear" },
+            "2": { "name": "entity.name.namespace.spear" }
+          }
+        }
+      ]
+    },
+    "imports": {
+      "patterns": [
+        {
+          "name": "meta.import.spear",
+          "match": "\\b(import)\\s+(\"(?:\\\\[nrt\"\\\\]|[^\"\\\\])*\")\\s*;",
+          "captures": {
+            "1": { "name": "keyword.control.import.spear" },
+            "2": { "name": "string.quoted.double.spear" }
+          }
+        }
+      ]
+    },
     "keywords": {
       "patterns": [
         {
           "name": "keyword.control.spear",
-          "match": "\\b(spear|sharp|if|else|while|return|let|const|view|each|in)\\b"
+          "match": "\\b(spear|sharp|if|else|for|while|break|continue|return|each|in|throw|try|catch|class)\\b"
+        },
+        {
+          "name": "storage.modifier.spear",
+          "match": "\\b(function|let|var|const|view)\\b"
         },
         {
           "name": "storage.type.spear",
@@ -60,11 +92,62 @@
       "patterns": [
         {
           "name": "meta.function.definition.spear",
-          "match": "\\b(?:spear|num|text|view)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
-          "captures": {
-            "1": {
-              "name": "entity.name.function.spear"
+          "begin": "\\b(?:(function)\\s+)?(?:(spear|view|num|text|numlist|textlist))\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(\\()",
+          "beginCaptures": {
+            "1": { "name": "storage.modifier.spear" },
+            "2": { "name": "storage.type.function.spear" },
+            "3": { "name": "entity.name.function.spear" },
+            "4": { "name": "punctuation.section.parameters.begin.spear" }
+          },
+          "end": "(\\))",
+          "endCaptures": {
+            "1": { "name": "punctuation.section.parameters.end.spear" }
+          },
+          "patterns": [
+            {
+              "name": "meta.parameter.spear",
+              "match": "\\b(num|text|numlist|textlist)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b",
+              "captures": {
+                "1": { "name": "storage.type.spear" },
+                "2": { "name": "variable.parameter.spear" }
+              }
+            },
+            {
+              "name": "punctuation.separator.parameter.spear",
+              "match": ","
             }
+          ]
+        }
+      ]
+    },
+    "ui-builders": {
+      "patterns": [
+        {
+          "name": "meta.ui.builder.call.spear",
+          "match": "\\b(markup|page|stack|inline|column|row)\\b\\s*(?=\\(|\\{)",
+          "captures": {
+            "1": { "name": "support.function.builtin.spear" }
+          }
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "name": "meta.variable.declaration.spear",
+          "match": "\\b(const)\\s+(let|var|num|text|numlist|textlist)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b",
+          "captures": {
+            "1": { "name": "storage.modifier.spear" },
+            "2": { "name": "storage.type.spear" },
+            "3": { "name": "variable.other.definition.spear" }
+          }
+        },
+        {
+          "name": "meta.variable.declaration.spear",
+          "match": "\\b(let|var|num|text|numlist|textlist)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b",
+          "captures": {
+            "1": { "name": "storage.type.spear" },
+            "2": { "name": "variable.other.definition.spear" }
           }
         }
       ]
@@ -73,7 +156,7 @@
       "patterns": [
         {
           "name": "support.function.builtin.spear",
-          "match": "\\b(say|write|join|read|size|same|pack|push|count|at|guard|escape|markup|page|stack|inline|action)\\s*(?=\\()"
+          "match": "\\b(say|write|join|read|size|same|pack|push|count|at|guard|escape|markup|page|stack|inline|column|row|action|nodecall|pycall)\\b\\s*(?=\\(|\\{)"
         }
       ]
     },
@@ -81,15 +164,35 @@
       "patterns": [
         {
           "name": "entity.name.function.call.spear",
-          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()"
+          "match": "\\b(?!(?:if|else|for|while|return|each|in|function|let|var|const|view|package|module|import|throw|try|catch|class|say|write|join|read|size|same|pack|push|count|at|guard|escape|markup|page|stack|inline|column|row|action|nodecall|pycall|num|text|numlist|textlist|spear|sharp)\\b)([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()"
         }
       ]
     },
-    "variables": {
+    "punctuation": {
       "patterns": [
         {
-          "name": "variable.other.spear",
-          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\b"
+          "name": "punctuation.section.block.begin.spear",
+          "match": "\\{"
+        },
+        {
+          "name": "punctuation.section.block.end.spear",
+          "match": "\\}"
+        },
+        {
+          "name": "punctuation.section.group.begin.spear",
+          "match": "\\("
+        },
+        {
+          "name": "punctuation.section.group.end.spear",
+          "match": "\\)"
+        },
+        {
+          "name": "punctuation.separator.parameter.spear",
+          "match": ","
+        },
+        {
+          "name": "punctuation.terminator.statement.spear",
+          "match": ";"
         }
       ]
     },

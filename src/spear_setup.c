@@ -54,8 +54,8 @@ enum {
     OP_REMOVE = 2
 };
 
-#define LANG_JA LANG_EN
-#define LANG_ZH LANG_EN
+#define LANG_JA 2
+#define LANG_ZH 3
 
 typedef struct {
     char exe_path[4096];
@@ -218,7 +218,7 @@ static void draw_text_utf8(HDC hdc, int x, int y, int w, int h, UINT format, COL
 static void draw_button_face(DRAWITEMSTRUCT *dis, bool primary) {
     HDC hdc = dis->hDC;
     RECT rc = dis->rcItem;
-    char label[128];
+    wchar_t label[128];
     COLORREF fill = primary ? UI_ACCENT : UI_PANEL_ALT;
     COLORREF border = primary ? RGB(84, 148, 255) : UI_PANEL_EDGE;
     COLORREF text = primary ? RGB(250, 252, 255) : UI_TEXT;
@@ -236,9 +236,14 @@ static void draw_button_face(DRAWITEMSTRUCT *dis, bool primary) {
     DeleteObject(pen);
 
     if ((dis->itemState & ODS_DISABLED) != 0) text = UI_MUTED;
-    GetWindowTextA(dis->hwndItem, label, (int) sizeof(label));
-    draw_text_utf8(hdc, rc.left, rc.top + 1, rc.right - rc.left, rc.bottom - rc.top,
-        DT_CENTER | DT_VCENTER | DT_SINGLELINE, text, g_font_ui, label);
+    GetWindowTextW(dis->hwndItem, label, (int) (sizeof(label) / sizeof(label[0])));
+    {
+        HFONT old_font = g_font_ui ? (HFONT) SelectObject(hdc, g_font_ui) : NULL;
+        SetTextColor(hdc, text);
+        SetBkMode(hdc, TRANSPARENT);
+        DrawTextW(hdc, label, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        if (old_font) SelectObject(hdc, old_font);
+    }
 }
 
 static void draw_round_panel(HDC hdc, const RECT *rc, COLORREF fill, COLORREF border, int radius) {

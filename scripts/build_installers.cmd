@@ -20,6 +20,7 @@ if not exist "%USERPROFILE%\.dotnet\tools\wix.exe" (
 
 copy /Y build\spear-setup.exe dist\installers\SpearSetup.exe >NUL || exit /b 1
 copy /Y build\SpearSetup.msi dist\installers\SpearSetup.msi >NUL || exit /b 1
+del /Q build\SpearSetup.wixpdb 2>NUL
 
 echo Built:
 echo   dist\installers\SpearSetup.exe

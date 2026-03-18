@@ -22,6 +22,10 @@ check: spear
 	./build/spear.exe check examples/bridge.sp
 	./build/spear.exe build examples/web.sp
 	scripts\\check_regressions.cmd
+	del /Q build\\web.c 2> NUL
+	del /Q build\\web.exe 2> NUL
+	del /Q build\\spear-ui.html 2> NUL
+	del /Q build\\regression_run.log 2> NUL
 
 dist: setup
 	if not exist build\\dist mkdir build\\dist
@@ -45,4 +49,6 @@ clean:
 	del /Q build\*.exe 2> NUL
 	del /Q build\*.c 2> NUL
 	del /Q build\*.log 2> NUL
+	del /Q build\*.html 2> NUL
+	del /Q build\*.wixpdb 2> NUL
 	if exist build\\dist rmdir /S /Q build\\dist

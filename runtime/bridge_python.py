@@ -12,7 +12,13 @@ def main() -> int:
         candidate = getattr(module, fn, None)
         if not callable(candidate):
             raise RuntimeError(f"python bridge: function '{fn}' was not found in '{target}'")
-        arg = json.loads(payload) if payload else None
+        if payload:
+            try:
+                arg = json.loads(payload)
+            except json.JSONDecodeError:
+                arg = payload
+        else:
+            arg = None
         result = candidate(arg)
         if isinstance(result, str):
             text = result

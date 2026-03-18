@@ -36,6 +36,7 @@ copy /Y runtime\bridge_node.mjs build\dist\runtime\bridge_node.mjs >NUL
 copy /Y runtime\bridge_python.py build\dist\runtime\bridge_python.py >NUL
 copy /Y runtime\demo_node.cjs build\dist\runtime\demo_node.cjs >NUL
 copy /Y runtime\demo_python.py build\dist\runtime\demo_python.py >NUL
+copy /Y runtime\spear_std.py build\dist\runtime\spear_std.py >NUL
 copy /Y runtime\serve_static.ps1 build\dist\runtime\serve_static.ps1 >NUL
 
 xcopy /E /I /Y std build\dist\std >NUL

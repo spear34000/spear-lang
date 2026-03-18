@@ -20,6 +20,7 @@ example: spear
 check: spear
 	./build/spear.exe check examples/hello.sp
 	./build/spear.exe check examples/bridge.sp
+	./build/spear.exe check examples/platform.sp
 	./build/spear.exe build examples/web.sp
 	scripts\\check_regressions.cmd
 	del /Q build\\web.c 2> NUL

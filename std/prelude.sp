@@ -1,9 +1,24 @@
 import "assert.sp";
+import "json.sp";
+import "result.sp";
 import "math.sp";
 import "text.sp";
 import "lists.sp";
 import "paths.sp";
 import "io.sp";
+import "fs.sp";
+import "os.sp";
+import "net.sp";
+import "csv.sp";
+import "random.sp";
+import "stats.sp";
+import "vector.sp";
+import "matrix.sp";
+import "tensor.sp";
+import "crypto.sp";
+import "sqlite.sp";
+import "logger.sp";
+import "config.sp";
 import "bridge.sp";
 import "web.sp";
 

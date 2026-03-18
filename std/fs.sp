@@ -1,0 +1,32 @@
+import "bridge.sp";
+import "json.sp";
+
+package std;
+module fs;
+
+function text read_file_text(text path) {
+    return python_json("spear_std", "fs_read", json_object1(json_field("path", json_text(path))));
+}
+
+function text write_file_text(text path, text content) {
+    return python_json("spear_std", "fs_write", json_object2(
+        json_field("path", json_text(path)),
+        json_field("content", json_text(content))
+    ));
+}
+
+function num path_exists(text path) {
+    return same(python_json("spear_std", "fs_exists", json_object1(json_field("path", json_text(path)))), "1");
+}
+
+function text list_dir(text path) {
+    return python_json("spear_std", "fs_list", json_object1(json_field("path", json_text(path))));
+}
+
+function text make_dir(text path) {
+    return python_json("spear_std", "fs_mkdir", json_object1(json_field("path", json_text(path))));
+}
+
+function text remove_path(text path) {
+    return python_json("spear_std", "fs_remove", json_object1(json_field("path", json_text(path))));
+}

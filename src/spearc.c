@@ -1285,10 +1285,10 @@ static void collect_functions(Parser *parser, const char *source) {
         }
         if (token.kind == TOK_SPEAR) {
             is_entry = true;
-        } else if (token.kind == TOK_NUM || token.kind == TOK_TEXT || token.kind == TOK_VIEW) {
+        } else if (token.kind == TOK_NUM || token.kind == TOK_TEXT || token.kind == TOK_NUMLIST || token.kind == TOK_TEXTLIST || token.kind == TOK_VIEW) {
             return_type = token.kind == TOK_VIEW ? TYPE_TEXT : token_to_type(token.kind);
         } else {
-            fatal_at(token.line, token.col, "top-level definition must start with function, run, spear, num, text, or view");
+            fatal_at(token.line, token.col, "top-level definition must start with function, run, spear, num, text, numlist, textlist, or view");
         }
 
         Token name_tok = lexer_next(&lexer);
@@ -3772,7 +3772,7 @@ static void collect_exported_functions_recursive(const char *path, StringList *s
             scan_skip_block(&lexer);
             continue;
         }
-        if (token.kind == TOK_SPEAR || token.kind == TOK_NUM || token.kind == TOK_TEXT || token.kind == TOK_VIEW) {
+        if (token.kind == TOK_SPEAR || token.kind == TOK_NUM || token.kind == TOK_TEXT || token.kind == TOK_NUMLIST || token.kind == TOK_TEXTLIST || token.kind == TOK_VIEW) {
             Token name_tok = lexer_next(&lexer);
             if (name_tok.kind == TOK_IDENT) {
                 char *name = token_text(name_tok);

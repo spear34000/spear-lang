@@ -3323,7 +3323,7 @@ static const char *runtime_prelude =
 "static char *spear_page(SpearScope *scope, const char *title, const char *body) {\n"
 "    char *safe_title = spear_html_escape(scope, title);\n"
 "    const char *prefix = \"<!doctype html><html><head><meta charset=\\\"utf-8\\\"><meta name=\\\"viewport\\\" content=\\\"width=device-width,initial-scale=1\\\"><title>\";\n"
-"    const char *middle = \"</title></head><body>\";\n"
+"    const char *middle = \"</title><style>*,*::before,*::after{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:Georgia,\\\"Iowan Old Style\\\",\\\"Times New Roman\\\",serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}h1,h2,h3,h4,h5,h6,p,blockquote,figure,pre,ul,ol,dl{margin:0;padding:0}ul,ol{list-style-position:inside}img,svg,video,canvas{display:block;max-width:100%%}button,input,textarea,select{font:inherit}</style></head><body>\";\n"
 "    const char *suffix = \"</body></html>\";\n"
 "    size_t len = strlen(prefix) + strlen(safe_title) + strlen(middle) + strlen(body) + strlen(suffix) + 1;\n"
 "    char *dst = (char *) spear_alloc(scope, len);\n"

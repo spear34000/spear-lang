@@ -1,370 +1,178 @@
 run {
-    const title = "Spear Web";
-    const review_ready = 1;
-    strings queue_names = pack("Spear Commerce", "Atlas Docs", "Northstar CRM");
-    string html = landing_page(title, theme_product_bg()) {
-        centered(box(glass_panel_mod()) {
+    const title = "Spear Atelier";
+    const issue_count = 3;
+
+    string html = landing_page(title, theme_editorial_bg()) {
+        centered(box(modifier(glass_panel_mod(), modifier(padding(space_5()), max_width("1120px")))) {
             column_box(gap_space(space_5())) {
-                row_box(modifier(justify_between(), modifier(align_center(), modifier(padding_y(space_1()), wrap())))) {
-                    row_box(modifier(align_center(), gap_space(space_2()))) {
-                        markup("div", style_attr("width:46px;height:46px;border-radius:16px;background:linear-gradient(135deg,#4f8cff,#87b4ff);box-shadow:0 18px 40px rgba(79,140,255,0.35)"), "");
-                        column_box(gap_space("4px")) {
-                            markup("strong", style_attr("font-size:19px;letter-spacing:0.02em")) {
-                                "Spear Web";
-                            };
-                            label_text(foreground(tone_inverse_muted()), "Readable blocks. Sharp output.");
+                row_box(modifier(justify_between(), modifier(align_center(), wrap()))) {
+                    column_box(gap_space("4px")) {
+                        markup("span", style_attr(eyebrow_mod())) {
+                            "Spear Web";
+                        };
+                        markup("strong", style_attr("font-size:20px;letter-spacing:0.02em;color:#f8fafc")) {
+                            "Atelier";
                         };
                     };
-                    row_box(gap_space("10px")) {
-                        button_link(button_secondary_mod(), "#vision", "Vision");
-                        button_link(button_secondary_mod(), "#signals", "Signals");
-                        button_link(button_secondary_mod(), "#launch", "Launch");
+                    row_box(gap_space(space_2())) {
+                        state_link("#story", "Story", "yes");
+                        state_link("#system", "System", "no");
+                        state_link("#studio", "Studio", "no");
+                        state_link("#start", "Start", "no");
                     };
                 };
                 row_box(modifier(gap_space(space_5()), modifier(align_start(), wrap()))) {
-                    markup("section", style_attr("flex:1;min-width:420px")) {
+                    markup("section", style_attr("flex:1;min-width:440px")) {
                         column_box(gap_space("22px")) {
                             markup("span", style_attr(badge_mod())) {
-                                "Spear Scene";
+                                "Editorial Theme";
                             };
-                            markup("h1", style_attr(hero_title_mod())) {
-                                "Design strong product pages without falling back to raw CSS all day.";
+                            markup("h1", style_attr("margin:0;max-width:620px;font-size:82px;line-height:0.9;letter-spacing:-0.06em;color:#f8fafc")) {
+                                "Make web pages that feel art-directed before the polish pass begins.";
                             };
                             markup("p", style_attr(lead_copy_mod())) {
-                                "Spear Web should give you sharp defaults without locking you into a rigid template.";
+                                "Spear should not trap you in templates. It should give you a design system that already has rhythm, restraint, and taste.";
                             };
-                            row_box(gap_space(space_2())) {
-                                button_link(button_primary_mod(), "#launch", "Start with the launch block");
-                                button_link(button_secondary_mod(), "#signals", "See the signal charts");
-                            };
-                            row_box(modifier(gap_space(space_2()), wrap())) {
-                                box(stat_chip_mod()) {
-                                    column_box(gap_space("8px")) {
-                                        label_text(foreground(tone_inverse_muted()), "Shipping speed");
-                                        markup("strong", style_attr("font-size:28px;line-height:1.05")) {
-                                            "fast";
-                                        };
-                                    };
-                                };
-                                box(stat_chip_mod()) {
-                                    column_box(gap_space("8px")) {
-                                        label_text(foreground(tone_inverse_muted()), "Design floor");
-                                        markup("strong", style_attr("font-size:28px;line-height:1.05")) {
-                                            "high";
-                                        };
-                                    };
-                                };
-                                box(stat_chip_mod()) {
-                                    column_box(gap_space("8px")) {
-                                        label_text(foreground(tone_inverse_muted()), "Autonomy");
-                                        markup("strong", style_attr("font-size:28px;line-height:1.05")) {
-                                            "kept";
-                                        };
-                                    };
-                                };
-                            };
+                            action_bar("#start", "Open the starter", "#system", "See the system");
                         };
                     };
-                    markup("section", style_attr("flex:1;min-width:360px")) {
-                        column_box(gap_space(space_3())) {
-                            box(dark_panel_mod()) {
-                                column_box(gap_space(space_3())) {
-                                    row_box(modifier(justify_between(), align_center())) {
-                                        row_box(gap_space("8px")) {
-                                            markup("span", style_attr("width:12px;height:12px;border-radius:999px;background:#ff6b6b"), "");
-                                            markup("span", style_attr("width:12px;height:12px;border-radius:999px;background:#f7b955"), "");
-                                            markup("span", style_attr("width:12px;height:12px;border-radius:999px;background:#51cf66"), "");
-                                        };
-                                        label_text(foreground("rgba(236,243,255,0.62)"), "examples/web.sp");
+                    markup("section", style_attr("flex:1;min-width:320px")) {
+                        box(modifier(dark_panel_mod(), max_width("420px"))) {
+                            column_box(gap_space(space_3())) {
+                                row_box(modifier(justify_between(), align_center())) {
+                                    markup("span", style_attr(eyebrow_mod())) {
+                                        "Current note";
                                     };
-                                    markup("pre", style_attr("margin:0;color:#dbeafe;font-size:15px;line-height:1.65;white-space:pre-wrap")) {
-                                        "run {\n    string html = landing_page(\"Spear\", theme_product_bg()) {\n        section;\n    };\n}";
-                                    };
+                                    label_text(foreground(tone_inverse_muted()), "editorial.web");
+                                };
+                                markup("p", style_attr("margin:0;font-size:28px;line-height:1.08;color:#f8fafc")) {
+                                    "Less dashboard noise. More composition, hierarchy, and negative space.";
+                                };
+                                markup("p", style_attr(body_copy_inverse_mod())) {
+                                    "The point is not raw CSS avoidance. The point is being able to move quickly without flattening the visual result.";
                                 };
                             };
-                            form_card(
-                                "Prototype faster",
-                                "Use real form controls that already sit inside the same tone and spacing system.",
-                                column_box(gap_space(space_2())) {
-                                    text_input("Project name", "project_name", "Spear Commerce", "Project name");
-                                    email_input("Owner", "owner_email", "", "team@spear.dev");
-                                    text_area("Goal", "goal", "Premium launch page with charts", "What should this release feel like?", "4");
-                                    form_hint("The same primitives now render real HTML form controls and submit actions.");
-                                },
-                                "/start",
-                                "Start prototype"
-                            );
-                            feature_triptych(
-                                "Scene", "Think in sections", "Use layout primitives and token bundles instead of hardcoded CSS strings.",
-                                "Signal", "Think in visuals", "Charts and stat bars should feel like normal Spear building blocks.",
-                                "Taste", "Think in systems", "Tone, spacing, surface, and elevation should stay composable."
-                            );
                         };
                     };
                 };
             };
         });
-        centered(box(paper_panel_mod()) {
-            column_box(gap_space(space_3())) {
-                tab_row(
-                    tab_chip("Overview", "yes"),
-                    tab_chip("Signals", "no"),
-                    tab_chip("Launches", "no")
-                );
-                intro(
-                    "Spear should have its own design grammar.",
-                    "The goal is not to hide styling completely. The goal is to replace raw CSS with reusable design tokens that still let you steer the result."
-                );
-                dashboard_grid(
-                    stat_panel("Weekly visitors", "184k", "Traffic should be readable at a glance."),
-                    stat_panel("Conversion rate", "4.8%", "The visual baseline should stay strong under real numbers."),
-                    stat_panel("Build friction", "low", "Primitives should remove ceremony, not control."),
-                    stat_panel("Theme drift", "stable", "Tokens keep pages coherent while you remix layouts.")
-                );
-                feature_triptych(
-                    "Layouts", "Reusable structure", "Use rows, columns, boxes, and sections freely without dropping design quality.",
-                    "Charts", "Real data visuals", "The language can now turn numbers into text and chart widths without ceremony.",
-                    "Themes", "Opinionated quality", "Built-in tones and surfaces raise the visual floor while preserving freedom."
-                );
-                metric_bars(
-                    "Signal board",
-                    "Good primitives should make expressive UI easier, not narrower.",
-                    pack("Ease of writing", "Visual quality", "Freedom to remix"),
-                    pack(86, 82, 88),
-                    pack(tone_brand(), tone_warm(), tone_ink())
-                );
-                split(
-                    trend_line_card(
-                        "Release momentum",
-                        "This style of summary should be easy to drop into a product dashboard.",
-                        "+18%",
-                        tone_brand(),
-                        pack(42, 58, 49, 71, 84, 92)
-                    ),
-                    timeline_feed(
-                        "Ship log",
-                        "The same system should handle status storytelling without custom CSS.",
-                        pack("Mon", "Tue", "Wed"),
-                        pack("Design tokens added", "Form kit added", "Dashboard kit added"),
-                        pack("Spacing, tone, and panel bundles now compose across pages.", "Input shells match the product surface.", "Tables, tabs, and sidebars now fit the same visual language.")
-                    )
-                );
-                data_table(
-                    "Recent launches",
-                    "Structured data should fit the same design language as marketing sections.",
-                    join(
-                        join(table_header("Project"), table_header("Theme")),
-                        table_header("Status")
-                    ),
-                    join(
-                        join(
-                            table_row("Spear Commerce", "Product", "Shipped"),
-                            table_row("Atlas Docs", "Editorial", "Review")
-                        ),
-                        table_row("Northstar CRM", "Cinema", "Draft")
-                    )
-                );
-            };
-        });
-        centered(row_box(modifier(gap_space(space_3()), modifier(align_start(), wrap()))) {
-            markup("section", style_attr("flex:0 0 260px;min-width:240px")) {
-                sidebar_shell("Workspace") {
-                    column_box(gap_space(space_2())) {
-                        sidebar_link("#overview", "Overview", "yes");
-                        sidebar_link("#signals", "Signals", "no");
-                        sidebar_link("#launches", "Launches", "no");
-                        sidebar_link("#settings", "Settings", "no");
-                    };
-                };
-            };
-            markup("section", style_attr("flex:1;min-width:420px")) {
-                box(modifier(dark_panel_mod(), width_fill())) {
-                    row_box(modifier(justify_between(), modifier(align_center(), wrap()))) {
-                        column_box(gap_space(space_2())) {
-                            markup("h2", style_attr("margin:0;font-size:34px;line-height:1.05;color:#f8fafc")) {
-                                "Build pages that already look like someone cared.";
-                            };
-                            label_text(foreground("rgba(248,250,252,0.72)"), "That should come from the language's design system, not from losing control.");
-                        };
-                        button_link(action_warm_mod(), "/start", "Build with Spear");
-                    };
-                };
-            };
-        });
-        centered(column_box(gap_space(space_3())) {
-            calendar_strip(
-                "Release calendar",
-                "Scheduling UI should match the rest of the system instead of starting from scratch.",
-                join(
-                    join(
-                        calendar_chip("Mon", "Design audit", "no"),
-                        calendar_chip("Tue", "Ship tokens", "yes")
-                    ),
-                    join(
-                        calendar_chip("Wed", "Review forms", "no"),
-                        calendar_chip("Thu", "Launch page", "no")
-                    )
-                )
-            );
-            kanban_board(
-                kanban_lane("Backlog", "2 items", join(
-                    kanban_card("Research", "Chart patterns", "Compare timelines, trends, and scoreboards."),
-                    kanban_card("UI", "Drawer system", "Keep side panels inside the same tone rules.")
-                )),
-                kanban_lane("In progress", "2 items", join(
-                    kanban_card("Tokens", "Refine elevation", "Tune how panels stack in dense dashboards."),
-                    kanban_card("Apps", "Modal actions", "Make high-emphasis decisions feel premium.")
-                )),
-                kanban_lane("Done", "1 item", kanban_card("Foundation", "Design grammar", "Spacing, surfaces, charts, and data tables now share one system."))
-            );
+        centered(column_box(modifier(gap_space(space_4()), max_width("1120px"))) {
             split(
-                activity_feed(
-                    "Activity feed",
-                    "Operational updates should read cleanly without losing visual polish.",
-                    join(
+                box(paper_panel_mod()) {
+                    column_box(gap_space(space_3())) {
+                        markup("span", style_attr(eyebrow_mod())) {
+                            "Story";
+                        };
+                        markup("h2", style_attr(section_title_mod())) {
+                            "A calmer sample page";
+                        };
+                        markup("p", style_attr(body_copy_mod())) {
+                            "This example intentionally drops the overloaded product-demo feel. It reads more like a launch brief or studio note than a dashboard dump.";
+                        };
+                        feature_triptych(
+                            "Surface", "Use fewer layers", "Wide rhythm, strong typography, and clean surfaces do more than stacking ten flashy widgets.",
+                            "Flow", "Keep it readable", "A page should still scan well if someone only reads the headings and notices the shape.",
+                            "Control", "Leave room to steer", "The system should guide the result without freezing you into one branded layout."
+                        );
+                    };
+                },
+                box(paper_panel_mod()) {
+                    column_box(gap_space(space_3())) {
+                        markup("span", style_attr(eyebrow_mod())) {
+                            "Signal";
+                        };
+                        metric_bars(
+                            "What the language should optimize for",
+                            "A simple composition should already hold together visually.",
+                            pack("Readability", "Default taste", "Freedom to remix"),
+                            pack(93, 88, 91),
+                            pack(tone_ink(), tone_brand(), tone_warm())
+                        );
+                    };
+                }
+            );
+            row_box(modifier(gap_space(space_3()), wrap())) {
+                markup("section", style_attr("flex:1;min-width:340px")) {
+                    trend_line_card(
+                        "Draft quality",
+                        "The first pass should already look publishable.",
+                        "+24%",
+                        tone_ink(),
+                        pack(38, 44, 52, 61, 74, 88)
+                    );
+                };
+                markup("section", style_attr("flex:1;min-width:340px")) {
+                    activity_feed(
+                        "Studio notes",
+                        "A more editorial page still needs useful supporting information.",
                         join(
-                            activity_item("10:32", "Published token update", "Form primitives now inherit the same spacing and panel language."),
-                            activity_item("12:18", "Reviewed launch draft", "Trend cards and timeline feeds were added to the product dashboard.")
-                        ),
-                        activity_item("14:05", "Prepared release candidate", "Calendar and kanban blocks now exist for app-style screens.")
-                    )
-                ),
-                column_box(gap_space(space_3())) {
-                    modal_card(
-                        "Promote this release?",
-                        "High-emphasis decisions should already feel designed before you fine-tune the product.",
-                        join(
-                            button_link(button_secondary_mod(), "#later", "Review later"),
-                            button_link(action_warm_mod(), "#ship", "Ship now")
+                            join(
+                                activity_item("09:20", "Theme set", "Switched the page from glossy product energy to a calmer studio tone."),
+                                activity_item("11:10", "Spacing tuned", "Reduced visual clutter and let the typography carry more weight.")
+                            ),
+                            activity_item("14:40", "Form surface added", "The call-to-action form now feels like part of the composition, not an afterthought.")
                         )
                     );
-                    drawer_panel(
-                        "Right-side tools",
-                        "Drawers should be easy to stage for settings, comments, or quick actions.",
-                        column_box(gap_space(space_2())) {
-                            search_input("Owner", "owner_search", "Spear UI team", "Search owner");
-                            select_field("Status", "release_status", join(
-                                join(
-                                    select_option("review", "Ready for review", "yes"),
-                                    select_option("draft", "Draft", "no")
-                                ),
-                                select_option("ship", "Ready to ship", "no")
-                            ));
-                            form_hint("This panel uses the same form controls and state helpers as the rest of the page.");
-                        }
-                    );
-                }
-            );
-            filter_row(
-                filter_chip("All", "yes"),
-                filter_chip("Shipped", "no"),
-                filter_chip("In review", "no"),
-                filter_chip("Needs design", "no")
-            );
-            state_row(
-                state_link("#overview", "Overview", "yes"),
-                state_link("#pipeline", "Pipeline", "no"),
-                state_link("#forms", "Forms", "no"),
-                state_link("#launch", "Launch", "no")
-            );
-            master_detail(
-                activity_feed(
-                    "Inbox",
-                    "Master-detail layouts should be first-class for admin and product screens.",
-                    join(
-                        join(
-                            activity_item("15:10", "Review queued", "Spear Commerce launch needs final approval."),
-                            activity_item("15:42", "Theme updated", "Cinema theme card shadows were adjusted.")
-                        ),
-                        activity_item("16:08", "Spec synced", "Dashboard blocks were synced with the design grammar.")
-                    )
-                ),
-                column_box(gap_space(space_3())) {
-                    empty_state_panel(
-                        "Nothing selected yet",
-                        "Empty states should still feel part of the same system, not like an afterthought.",
-                        "#pick",
-                        "Choose an item"
-                    );
-                    toast_stack(
-                        toast_chip("Saved", "Token updates were applied to the workspace.", tone_brand()),
-                        toast_chip("Review", "Two launch drafts are waiting for approval.", tone_warm()),
-                        toast_chip("Ready", "The dashboard kit is synced to the latest branch.", "#16a34a")
-                    );
-                }
-            );
-            command_palette(
-                "Search everything",
-                "Command surfaces should be easy to stage for power users and still match the product aesthetic.",
-                join(
-                    join(
-                        command_item("G P", "Go to Projects", "Jump into the current workspace project list."),
-                        command_item("N L", "New Launch", "Create a new launch page from the shared design system.")
-                    ),
-                    command_item("S T", "Sync Tokens", "Refresh spacing, tones, and chart styles in the current app.")
-                )
-            );
-            stepper(
-                step_chip("1", "Draft", "no"),
-                step_chip("2", "Review", "yes"),
-                step_chip("3", "Approve", "no"),
-                step_chip("4", "Ship", "no")
-            );
-            status_banner(
-                "Review in progress",
-                "The product flow should communicate where the user is without leaving the design system.",
-                tone_brand()
-            );
+                };
+            };
             inspector_panel(
-                "Launch action flow",
-                "State links, action bars, and notices should make app behavior easy to stage without leaving the design system.",
-                action_bar("#preview", "Preview release", "#history", "View history"),
-                column_box(gap_space(space_2())) {
-                    route_notice("Ready to ship", "All required fields are filled and the release copy is approved.", "#ship", "Open ship checklist", tone_brand());
-                    route_notice("Review requested", "Marketing asked for one more pass on the hero message.", "#review", "Open review queue", tone_warm());
-                }
-            );
-            master_detail(
-                selection_list(
-                    "Release queue",
-                    "Selection flows should be easy to stage for content review and approvals.",
-                    each item in queue_names {
-                        if (same(item, "Spear Commerce")) {
-                            selection_item(item, "Ready for final review", "yes");
-                        } else {
-                            selection_item(item, "Queued for the next product pass", "no");
-                        };
-                    }
-                ),
-                detail_panel(
-                    "Spear Commerce",
-                    "This detail surface represents the selected item in the current flow.",
-                    column_box(gap_space(space_2())) {
-                        if (review_ready) {
-                            status_banner("Ready to ship", "Design review is complete and the page is aligned with the current token set.", "#16a34a");
-                        } else {
-                            status_banner("Waiting on review", "The selected item still has open visual and release checks.", tone_warm());
-                        };
-                        data_table(
-                            "Checklist",
-                            "The detail area should combine context, status, and supporting data.",
-                            join(
-                                join(table_header("Step"), table_header("Owner")),
-                                table_header("State")
-                            ),
-                            join(
+                "Start a page",
+                "Real controls should still look intentional inside the same visual system.",
+                action_bar("#preview", "Preview structure", "#tokens", "Review tokens"),
+                split(
+                    form_card(
+                        "Request a build",
+                        "This is a real HTML form surface, not a fake shell.",
+                        column_box(gap_space(space_2())) {
+                            text_input("Project", "project", "Atelier", "Project name");
+                            email_input("Owner", "owner", "", "editor@studio.dev");
+                            select_field("Mode", "mode", join(
                                 join(
-                                    table_row("Visual review", "Design", "Done"),
-                                    table_row("Content pass", "Editorial", "Done")
+                                    select_option("launch", "Launch page", "yes"),
+                                    select_option("notes", "Studio notes", "no")
                                 ),
-                                table_row("Release tag", "Platform", "Pending")
-                            )
+                                select_option("case", "Case study", "no")
+                            ));
+                            text_area("Direction", "direction", "", "Describe the mood, hierarchy, and outcome.", "5");
+                        },
+                        "/submit",
+                        "Send brief"
+                    ),
+                    column_box(gap_space(space_3())) {
+                        route_notice(
+                            "Review queue",
+                            "Use notice blocks for decisions and next actions instead of loud banner spam.",
+                            "#queue",
+                            "Open queue",
+                            tone_brand()
                         );
+                        if (issue_count > 0) {
+                            status_banner(
+                                "Open design notes",
+                                "Three notes still need a final pass before publishing.",
+                                tone_warm()
+                            );
+                        } else {
+                            status_banner(
+                                "Ready to publish",
+                                "The page is clean, approved, and ready to ship.",
+                                "#16a34a"
+                            );
+                        };
+                        quote_block("A design system should raise the floor without flattening the result.");
                     }
                 )
+            );
+            launch_banner(
+                "Write less layout glue.",
+                "Let the page start from a strong editorial baseline, then push it where the project needs to go.",
+                "#start",
+                "Build with Spear"
             );
         });
     };
+
     guard(size(html) > 0, "body must not be empty");
     write("build/spear-ui.html", html);
     print(html);

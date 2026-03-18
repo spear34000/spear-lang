@@ -117,6 +117,7 @@ Run like Python:
 ```bash
 spear examples/hello.sp
 spear build examples/web.sp
+spear serve examples/web.sp
 ```
 
 On Windows this is provided by [spear.cmd](/c:/Users/User/Desktop/spear/spear.cmd#L1).

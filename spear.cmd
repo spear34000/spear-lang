@@ -12,6 +12,12 @@ if /I "%~1"=="build" (
     set "input=%~2"
 )
 
+if /I "%~1"=="serve" (
+    if "%~2"=="" goto :usage
+    set "mode=serve"
+    set "input=%~2"
+)
+
 if not exist "%input%" (
     echo input not found: %input%
     exit /b 1
@@ -31,6 +37,7 @@ if not exist "build\spearc.exe" (
 
 set "name=%~n1"
 if /I "%mode%"=="build" set "name=%~n2"
+if /I "%mode%"=="serve" set "name=%~n2"
 
 set "c_out=build\%name%.c"
 set "exe_out=build\%name%.exe"
@@ -46,6 +53,17 @@ if /I "%mode%"=="build" (
     exit /b 0
 )
 
+if /I "%mode%"=="serve" (
+    "%exe_out%"
+    if errorlevel 1 exit /b 1
+    echo serving build at http://127.0.0.1:4173/
+    if exist "build\spear-ui.html" (
+        echo page: http://127.0.0.1:4173/spear-ui.html
+    )
+    python -m http.server 4173 --directory build
+    exit /b %errorlevel%
+)
+
 "%exe_out%"
 exit /b %errorlevel%
 
@@ -53,4 +71,5 @@ exit /b %errorlevel%
 echo usage:
 echo   spear file.sp
 echo   spear build file.sp
+echo   spear serve file.sp
 exit /b 1

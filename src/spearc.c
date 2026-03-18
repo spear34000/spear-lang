@@ -51,9 +51,12 @@ typedef enum {
     TOK_CONST,
     TOK_VIEW,
     TOK_SAY,
+    TOK_WRITE,
     TOK_IF,
     TOK_ELSE,
     TOK_WHILE,
+    TOK_EACH,
+    TOK_IN,
     TOK_RETURN,
     TOK_JOIN,
     TOK_READ,
@@ -301,9 +304,12 @@ static TokenKind keyword_kind(const char *text, size_t len) {
     if (len == 5 && strncmp(text, "const", len) == 0) return TOK_CONST;
     if (len == 4 && strncmp(text, "view", len) == 0) return TOK_VIEW;
     if (len == 3 && strncmp(text, "say", len) == 0) return TOK_SAY;
+    if (len == 5 && strncmp(text, "write", len) == 0) return TOK_WRITE;
     if (len == 2 && strncmp(text, "if", len) == 0) return TOK_IF;
     if (len == 4 && strncmp(text, "else", len) == 0) return TOK_ELSE;
     if (len == 5 && strncmp(text, "while", len) == 0) return TOK_WHILE;
+    if (len == 4 && strncmp(text, "each", len) == 0) return TOK_EACH;
+    if (len == 2 && strncmp(text, "in", len) == 0) return TOK_IN;
     if (len == 6 && strncmp(text, "return", len) == 0) return TOK_RETURN;
     if (len == 4 && strncmp(text, "join", len) == 0) return TOK_JOIN;
     if (len == 4 && strncmp(text, "read", len) == 0) return TOK_READ;
@@ -630,6 +636,12 @@ static char *make_scope_name(int scope_id) {
     return xstrdup(temp);
 }
 
+static char *new_temp(Parser *parser) {
+    char temp[32];
+    snprintf(temp, sizeof(temp), "_tmp_%d", parser->temp_counter++);
+    return xstrdup(temp);
+}
+
 static void scan_skip_block(Lexer *lexer) {
     Token token = lexer_next(lexer);
     if (token.kind != TOK_LBRACE) {
@@ -742,7 +754,15 @@ static bool at_returns_text(Parser *parser);
 
 static ValueType infer_expr_type(Parser *parser) {
     Token token = parser->lexer.current;
-    if (token.kind == TOK_STRING || token.kind == TOK_JOIN || token.kind == TOK_READ) {
+    if (token.kind == TOK_STRING ||
+        token.kind == TOK_JOIN ||
+        token.kind == TOK_READ ||
+        token.kind == TOK_ESCAPE ||
+        token.kind == TOK_MARKUP ||
+        token.kind == TOK_PAGE ||
+        token.kind == TOK_STACK ||
+        token.kind == TOK_INLINE ||
+        token.kind == TOK_ACTION) {
         return TYPE_TEXT;
     }
     if (token.kind == TOK_NUMBER || token.kind == TOK_SIZE || token.kind == TOK_SAME || token.kind == TOK_COUNT) {
@@ -1360,6 +1380,17 @@ static void parse_statement(Parser *parser, int scope_id) {
         return;
     }
 
+    if (match(parser, TOK_WRITE)) {
+        expect(parser, TOK_LPAREN, "expected '(' after write");
+        Expr path = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_COMMA, "expected ',' in write");
+        Expr content = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        expect(parser, TOK_SEMI, "expected ';'");
+        emit_line(parser, "spear_write_text(%s, %s);", path.code, content.code);
+        return;
+    }
+
     if (match(parser, TOK_GUARD)) {
         expect(parser, TOK_LPAREN, "expected '(' after guard");
         Expr cond = parse_num_expr(parser, scope_id);
@@ -1395,6 +1426,49 @@ static void parse_statement(Parser *parser, int scope_id) {
         expect(parser, TOK_RPAREN, "expected ')'");
         emit_line(parser, "while (%s)", cond.code);
         parse_block(parser, scope_id, false);
+        return;
+    }
+
+    if (match(parser, TOK_EACH)) {
+        Token item_tok = parser->lexer.current;
+        expect(parser, TOK_IDENT, "expected loop variable name");
+        char *item_name = token_text(item_tok);
+        expect(parser, TOK_IN, "expected 'in' after loop variable");
+        Token list_tok = parser->lexer.current;
+        expect(parser, TOK_IDENT, "expected list name");
+        char *list_name = token_text(list_tok);
+        ValueType list_type = lookup_symbol(parser, list_name);
+        if (list_type != TYPE_NUMLIST && list_type != TYPE_TEXTLIST) {
+            fatal_at(list_tok.line, list_tok.col, "each expects a list");
+        }
+
+        char *idx_name = new_temp(parser);
+        emit_line(parser, "{");
+        parser->depth++;
+        emit_line(parser, "for (long long %s = 0; %s < %s(%s); %s++)", idx_name, idx_name,
+            list_type == TYPE_NUMLIST ? "spear_numlist_count" : "spear_textlist_count",
+            list_name, idx_name);
+        emit_line(parser, "{");
+        parser->depth++;
+        emit_line(parser, "%s %s = %s(%s, %s);",
+            list_type == TYPE_NUMLIST ? "long long" : "char *",
+            item_name,
+            list_type == TYPE_NUMLIST ? "spear_numlist_at" : "spear_textlist_at",
+            list_name,
+            idx_name);
+        free(idx_name);
+        expect(parser, TOK_LBRACE, "expected '{' after each header");
+        int symbol_depth = parser->depth;
+        add_symbol(parser, item_name, list_type == TYPE_NUMLIST ? TYPE_NUM : TYPE_TEXT, false);
+        while (parser->lexer.current.kind != TOK_RBRACE && parser->lexer.current.kind != TOK_EOF) {
+            parse_statement(parser, scope_id);
+        }
+        expect(parser, TOK_RBRACE, "expected '}' after each body");
+        pop_symbols(parser, symbol_depth);
+        parser->depth--;
+        emit_line(parser, "}");
+        parser->depth--;
+        emit_line(parser, "}");
         return;
     }
 
@@ -1684,6 +1758,21 @@ static const char *runtime_prelude =
 "    char *dst = (char *) spear_alloc(scope, len);\n"
 "    sprintf(dst, \"<a href=\\\"%s\\\">%s</a>\", safe_href, safe_label);\n"
 "    return dst;\n"
+"}\n"
+"\n"
+"static void spear_write_text(const char *path, const char *content) {\n"
+"    FILE *fp = fopen(path, \"wb\");\n"
+"    if (!fp) {\n"
+"        fprintf(stderr, \"cannot write %s\\n\", path);\n"
+"        exit(1);\n"
+"    }\n"
+"    size_t len = strlen(content);\n"
+"    if (fwrite(content, 1, len, fp) != len) {\n"
+"        fprintf(stderr, \"failed to write %s\\n\", path);\n"
+"        fclose(fp);\n"
+"        exit(1);\n"
+"    }\n"
+"    fclose(fp);\n"
 "}\n"
 "\n"
 "static long long spear_text_size(const char *src) {\n"

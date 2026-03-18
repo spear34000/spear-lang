@@ -12,5 +12,7 @@ spear launch() {
     const let title = "Spear UI";
     let body = hero(title, "safe, fast, reliable");
     guard(size(body) > 0, "body must not be empty");
-    say(page(title, body));
+    text html = page(title, body);
+    write("build/spear-ui.html", html);
+    say(html);
 }

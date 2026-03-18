@@ -25,6 +25,8 @@ Recent syntax improvements focus on making the language easier to write:
 - `guard(...)` makes fail-fast contracts cheap
 - `escape(...)`, `markup(...)`, and `page(...)` make safe HTML output simpler
 - `view` makes UI components read like components instead of plain text helpers
+- `each item in list { ... }` cuts down list boilerplate
+- `write(path, content)` makes page/app output generation practical
 
 Rule of thumb:
 
@@ -79,7 +81,9 @@ spear launch() {
     const let title = "Spear UI";
     let body = hero(title, "safe, fast, reliable");
     guard(size(body) > 0, "body must not be empty");
-    say(page(title, body));
+    text html = page(title, body);
+    write("build/spear-ui.html", html);
+    say(html);
 }
 ```
 
@@ -91,11 +95,13 @@ spear launch() {
 - `const` immutable bindings
 - `num`, `text`, `numlist`, `textlist`
 - `say(...)`
+- `write(path, content)`
 - `join(a, b)`, `read()`, `size(text)`, `same(a, b)`
 - `guard(condition, message)`
 - `escape(text)`, `markup(tag, html)`, `page(title, body)`
 - `stack(a, b)`, `inline(a, b)`, `action(href, label)`
 - `pack(...)`, `push(list, value)`, `count(list)`, `at(list, index)`
+- `each item in list { ... }`
 - `sharp { ... }`
 - `if`, `else`, `while`, `return`
 
@@ -105,6 +111,15 @@ spear launch() {
 make
 make example
 ```
+
+Run like Python:
+
+```bash
+spear examples/hello.sp
+spear build examples/web.sp
+```
+
+On Windows this is provided by [spear.cmd](/c:/Users/User/Desktop/spear/spear.cmd#L1).
 
 Manual build:
 

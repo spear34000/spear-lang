@@ -17,6 +17,9 @@ spear launch() {
     say(count(scores));
     say(at(scores, 0));
     say(sharpen(at(words, 0)));
+    each score in scores {
+        say(score);
+    }
 
     while (shots > 0) {
         say(shots);

@@ -2,7 +2,7 @@
   "name": "spear-language",
   "displayName": "Spear Language",
   "description": "Syntax highlighting for the Spear programming language",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "local",
   "icon": "assets/spear-logo.png",
   "repository": {

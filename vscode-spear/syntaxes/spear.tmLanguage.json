@@ -48,7 +48,7 @@
       "patterns": [
         {
           "name": "keyword.control.spear",
-          "match": "\\b(spear|sharp|if|else|while|return|let|const|view)\\b"
+          "match": "\\b(spear|sharp|if|else|while|return|let|const|view|each|in)\\b"
         },
         {
           "name": "storage.type.spear",
@@ -73,7 +73,7 @@
       "patterns": [
         {
           "name": "support.function.builtin.spear",
-          "match": "\\b(say|join|read|size|same|pack|push|count|at|guard|escape|markup|page|stack|inline|action)\\s*(?=\\()"
+          "match": "\\b(say|write|join|read|size|same|pack|push|count|at|guard|escape|markup|page|stack|inline|action)\\s*(?=\\()"
         }
       ]
     },

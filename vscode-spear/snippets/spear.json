@@ -31,6 +31,15 @@
     ],
     "description": "Create an immutable inferred value"
   },
+  "Each Loop": {
+    "prefix": "each",
+    "body": [
+      "each ${1:item} in ${2:list} {",
+      "    $0",
+      "}"
+    ],
+    "description": "Iterate through a Spear list"
+  },
   "Num Function": {
     "prefix": "spnum",
     "body": [
@@ -71,6 +80,7 @@
       "        action(\"/start\", \"${2:Open App}\")",
       "    );",
       "    guard(size(body) > 0, \"body must not be empty\");",
+      "    write(\"build/app.html\", page(title, body));",
       "    say(page(title, body));",
       "}"
     ],

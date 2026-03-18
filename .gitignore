@@ -4,3 +4,4 @@ build/
 *.o
 *.ilk
 *.pdb
+*.vsix

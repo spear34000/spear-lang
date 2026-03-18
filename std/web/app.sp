@@ -303,3 +303,126 @@ function view master_detail(text master, text detail) {
         };
     };
 }
+
+function view step_chip(text index_value, text label, text active) {
+    variable shell = modifier(
+        padding_xy("10px", "14px"),
+        modifier(
+            corner_radius(radius_2()),
+            modifier(background("#ffffff"), modifier(border(line_soft()), shadow(elevation_1())))
+        )
+    );
+    if (same(active, "yes")) {
+        shell = modifier(
+            padding_xy("10px", "14px"),
+            modifier(
+                corner_radius(radius_2()),
+                modifier(background("rgba(79,140,255,0.14)"), modifier(border("1px solid rgba(79,140,255,0.36)"), shadow(elevation_1())))
+            )
+        );
+    }
+    return box(shell) {
+        row_box(modifier(gap_space(space_2()), align_center())) {
+            markup("span", style_attr("display:inline-block;width:28px;height:28px;border-radius:999px;background:#0f172a;color:#f8fafc;text-align:center;line-height:28px;font-weight:700")) {
+                escape(index_value);
+            };
+            markup("p", style_attr(body_copy_mod())) {
+                escape(label);
+            };
+        };
+    };
+}
+
+function view stepper(text first, text second, text third, text fourth) {
+    return row_box(modifier(gap_space(space_2()), wrap())) {
+        first;
+        second;
+        third;
+        fourth;
+    };
+}
+
+function view status_banner(text title, text body, text tone) {
+    return box(modifier(
+        padding(space_3()),
+        modifier(
+            corner_radius(radius_2()),
+            modifier(background("#ffffff"), modifier(border(line_soft()), style_rule("border-left", join("4px solid ", tone))))
+        )
+    )) {
+        column_box(gap_space(space_1())) {
+            markup("h4", style_attr(card_title_mod())) {
+                escape(title);
+            };
+            markup("p", style_attr(body_copy_mod())) {
+                escape(body);
+            };
+        };
+    };
+}
+
+function view selection_item(text title, text note, text active) {
+    variable shell = modifier(
+        padding(space_3()),
+        modifier(
+            corner_radius(radius_2()),
+            modifier(background("#ffffff"), modifier(border(line_soft()), shadow(elevation_1())))
+        )
+    );
+    if (same(active, "yes")) {
+        shell = modifier(
+            padding(space_3()),
+            modifier(
+                corner_radius(radius_2()),
+                modifier(background("rgba(79,140,255,0.10)"), modifier(border("1px solid rgba(79,140,255,0.36)"), shadow(elevation_1())))
+            )
+        );
+    }
+    return box(shell) {
+        column_box(gap_space("6px")) {
+            markup("h4", style_attr(card_title_mod())) {
+                escape(title);
+            };
+            markup("p", style_attr(body_copy_mod())) {
+                escape(note);
+            };
+        };
+    };
+}
+
+function view selection_list(text title, text body, text items) {
+    return box(paper_panel_mod()) {
+        column_box(gap_space(space_3())) {
+            column_box(gap_space(space_1())) {
+                markup("h3", style_attr(card_title_mod())) {
+                    escape(title);
+                };
+                markup("p", style_attr(body_copy_mod())) {
+                    escape(body);
+                };
+            };
+            column_box(gap_space(space_2())) {
+                items;
+            };
+        };
+    };
+}
+
+function view detail_panel(text title, text body, text content) {
+    return box(dark_panel_mod()) {
+        column_box(gap_space(space_3())) {
+            column_box(gap_space(space_1())) {
+                markup("p", style_attr(eyebrow_mod())) {
+                    "Detail";
+                };
+                markup("h3", style_attr("margin:0;font-size:28px;line-height:1.1;color:#f8fafc")) {
+                    escape(title);
+                };
+                markup("p", style_attr(body_copy_inverse_mod())) {
+                    escape(body);
+                };
+            };
+            content;
+        };
+    };
+}

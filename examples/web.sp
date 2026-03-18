@@ -289,6 +289,52 @@ run {
                     command_item("S T", "Sync Tokens", "Refresh spacing, tones, and chart styles in the current app.")
                 )
             );
+            stepper(
+                step_chip("1", "Draft", "no"),
+                step_chip("2", "Review", "yes"),
+                step_chip("3", "Approve", "no"),
+                step_chip("4", "Ship", "no")
+            );
+            status_banner(
+                "Review in progress",
+                "The product flow should communicate where the user is without leaving the design system.",
+                tone_brand()
+            );
+            master_detail(
+                selection_list(
+                    "Release queue",
+                    "Selection flows should be easy to stage for content review and approvals.",
+                    join(
+                        join(
+                            selection_item("Spear Commerce", "Ready for final review", "yes"),
+                            selection_item("Atlas Docs", "Waiting on editorial pass", "no")
+                        ),
+                        selection_item("Northstar CRM", "Needs chart tuning", "no")
+                    )
+                ),
+                detail_panel(
+                    "Spear Commerce",
+                    "This detail surface represents the selected item in the current flow.",
+                    column_box(gap_space(space_2())) {
+                        status_banner("Ready to ship", "Design review is complete and the page is aligned with the current token set.", "#16a34a");
+                        data_table(
+                            "Checklist",
+                            "The detail area should combine context, status, and supporting data.",
+                            join(
+                                join(table_header("Step"), table_header("Owner")),
+                                table_header("State")
+                            ),
+                            join(
+                                join(
+                                    table_row("Visual review", "Design", "Done"),
+                                    table_row("Content pass", "Editorial", "Done")
+                                ),
+                                table_row("Release tag", "Platform", "Pending")
+                            )
+                        );
+                    }
+                )
+            );
         });
     };
     guard(size(html) > 0, "body must not be empty");

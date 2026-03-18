@@ -96,10 +96,13 @@ Public entrypoints / 공개 진입점:
 - `std/assert.sp`
 - `std/bridge.sp`
 - `std/json.sp`
+- `std/map.sp`
 - `std/result.sp`
 - `std/fs.sp`
 - `std/os.sp`
+- `std/cli.sp`
 - `std/net.sp`
+- `std/http_server.sp`
 - `std/csv.sp`
 - `std/random.sp`
 - `std/stats.sp`
@@ -110,6 +113,7 @@ Public entrypoints / 공개 진입점:
 - `std/sqlite.sp`
 - `std/logger.sp`
 - `std/config.sp`
+- `std/test.sp`
 - `std/web.sp`
 
 Direct import / 직접 import:
@@ -149,6 +153,8 @@ Examples / 예제:
 - `examples/web.sp`: editorial landing page example
 - `examples/charts.sp`: chart-first review board example
 - `examples/platform.sp`: standard platform example for JSON, files, HTTP, SQLite, stats, and crypto
+- `examples/tool.sp`: CLI args plus map state example
+- `examples/server.sp`: minimal HTML server example
 
 Web example / 웹 예제:
 
@@ -216,6 +222,8 @@ build/spear.exe examples/hello.sp
 build/spear.exe build examples/web.sp
 build/spear.exe build examples/charts.sp
 build/spear.exe build examples/platform.sp
+build/spear.exe build examples/tool.sp
+build/spear.exe build examples/server.sp
 build/spear.exe serve examples/web.sp
 build/spear.exe check examples/hello.sp
 ```

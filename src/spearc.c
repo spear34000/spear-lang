@@ -82,6 +82,8 @@ typedef enum {
     TOK_PUSH,
     TOK_COUNT,
     TOK_AT,
+    TOK_ARGCOUNT,
+    TOK_ARGAT,
     TOK_GUARD,
     TOK_ESCAPE,
     TOK_MARKUP,
@@ -692,6 +694,8 @@ static TokenKind keyword_kind(const char *text, size_t len) {
     if (len == 4 && strncmp(text, "push", len) == 0) return TOK_PUSH;
     if (len == 5 && strncmp(text, "count", len) == 0) return TOK_COUNT;
     if (len == 2 && strncmp(text, "at", len) == 0) return TOK_AT;
+    if (len == 9 && strncmp(text, "arg_count", len) == 0) return TOK_ARGCOUNT;
+    if (len == 6 && strncmp(text, "arg_at", len) == 0) return TOK_ARGAT;
     if (len == 5 && strncmp(text, "guard", len) == 0) return TOK_GUARD;
     if (len == 6 && strncmp(text, "escape", len) == 0) return TOK_ESCAPE;
     if (len == 6 && strncmp(text, "markup", len) == 0) return TOK_MARKUP;
@@ -1407,11 +1411,14 @@ static ValueType infer_expr_type(Parser *parser) {
     if (token.kind == TOK_TEXT && peek_token(parser).kind == TOK_LPAREN) {
         return TYPE_TEXT;
     }
-    if (token.kind == TOK_NUMBER || token.kind == TOK_SIZE || token.kind == TOK_SAME || token.kind == TOK_COUNT) {
+    if (token.kind == TOK_NUMBER || token.kind == TOK_SIZE || token.kind == TOK_SAME || token.kind == TOK_COUNT || token.kind == TOK_ARGCOUNT) {
         return TYPE_NUM;
     }
     if (token.kind == TOK_AT) {
         return at_returns_text(parser) ? TYPE_TEXT : TYPE_NUM;
+    }
+    if (token.kind == TOK_ARGAT) {
+        return TYPE_TEXT;
     }
     if (token.kind == TOK_IDENT) {
         Token next = peek_token(parser);
@@ -1556,6 +1563,12 @@ static Expr parse_primary_num(Parser *parser, int scope_id) {
         buf_init(&code);
         buf_appendf(&code, "spear_numlist_at(%s, %s, %d, %d)", name, index.code, at_tok.line, at_tok.col);
         return make_expr(TYPE_NUM, buf_take(&code));
+    }
+
+    if (match(parser, TOK_ARGCOUNT)) {
+        expect(parser, TOK_LPAREN, "expected '(' after arg_count");
+        expect(parser, TOK_RPAREN, "expected ')'");
+        return make_expr(TYPE_NUM, xstrdup("spear_arg_count()"));
     }
 
     fatal_at(token.line, token.col, "expected numeric expression");
@@ -2230,6 +2243,19 @@ static Expr parse_text_expr(Parser *parser, int scope_id) {
         return make_expr(TYPE_TEXT, buf_take(&code));
     }
 
+    if (match(parser, TOK_ARGAT)) {
+        Token arg_tok = token;
+        expect(parser, TOK_LPAREN, "expected '(' after arg_at");
+        Expr index = parse_num_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        Buffer code;
+        char *scope_name = make_scope_name(scope_id);
+        buf_init(&code);
+        buf_appendf(&code, "spear_arg_at(&%s, %s, %d, %d)", scope_name, index.code, arg_tok.line, arg_tok.col);
+        free(scope_name);
+        return make_expr(TYPE_TEXT, buf_take(&code));
+    }
+
     fatal_at(token.line, token.col, "expected text expression");
     return make_expr(TYPE_TEXT, xstrdup("\"\""));
 }
@@ -2826,6 +2852,8 @@ static const char *runtime_prelude =
 "#include <windows.h>\n"
 "\n"
 "static const char *SPEAR_TOOL_DIR;\n"
+"static int SPEAR_ARGC;\n"
+"static char **SPEAR_ARGV;\n"
 "\n"
 "static int spear_eq(const char *a, const char *b) {\n"
 "    return strcmp(a, b) == 0;\n"
@@ -3466,6 +3494,15 @@ static const char *runtime_prelude =
 "\n"
 "static long long spear_numlist_count(SpearNumList *list) { return (long long) list->len; }\n"
 "static long long spear_textlist_count(SpearTextList *list) { return (long long) list->len; }\n"
+"\n"
+"static long long spear_arg_count(void) {\n"
+"    return SPEAR_ARGC > 0 ? (long long) (SPEAR_ARGC - 1) : 0;\n"
+"}\n"
+"\n"
+"static char *spear_arg_at(SpearScope *scope, long long index, int line, int col) {\n"
+"    if (index < 0 || index >= spear_arg_count()) { spear_runtime_fail_at(line, col, \"argument index out of bounds\"); }\n"
+"    return spear_text_clone(scope, SPEAR_ARGV[index + 1]);\n"
+"}\n"
 "\n"
 "static long long spear_numlist_at(SpearNumList *list, long long index, int line, int col) {\n"
 "    if (index < 0 || (size_t) index >= list->len) { spear_runtime_fail_at(line, col, \"numlist index out of bounds\"); }\n"
@@ -4182,7 +4219,7 @@ static char *compile_source(const char *source, const char *tool_dir, ImportInfo
     warn_unused_imports(&parser, imports, import_count);
 
     if (entry) {
-        buf_appendf(&parser.out, "\nint main(void) { return %s(); }\n", entry);
+        buf_appendf(&parser.out, "\nint main(int argc, char **argv) { SPEAR_ARGC = argc; SPEAR_ARGV = argv; return %s(); }\n", entry);
     }
 
     return buf_take(&parser.out);
@@ -4238,9 +4275,19 @@ int main(int argc, char **argv) {
     size_t direct_import_count = 0;
     ImportInfo *direct_imports = collect_direct_imports(input, stdin_source, &direct_import_count);
     char prelude_path[2048];
+    char repo_prelude_path[2048];
     checked_snprintf(prelude_path, sizeof(prelude_path), "%s\\std\\prelude.sp", tool_dir);
+    checked_snprintf(repo_prelude_path, sizeof(repo_prelude_path), "%s\\..\\std\\prelude.sp", tool_dir);
     char *source = load_source_tree(input, stdin_source, &seen, &active);
     FILE *prelude_fp = fopen(prelude_path, "rb");
+    if (!prelude_fp) {
+        prelude_fp = fopen(repo_prelude_path, "rb");
+        if (prelude_fp) {
+            fclose(prelude_fp);
+            checked_snprintf(prelude_path, sizeof(prelude_path), "%s", repo_prelude_path);
+            prelude_fp = fopen(prelude_path, "rb");
+        }
+    }
     if (prelude_fp) {
         fclose(prelude_fp);
         char *prelude = load_source_tree(prelude_path, NULL, &seen, &active);

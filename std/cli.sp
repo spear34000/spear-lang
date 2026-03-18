@@ -1,0 +1,37 @@
+import "json.sp";
+
+package std;
+module cli;
+
+function num args_count() {
+    return arg_count();
+}
+
+function text arg_text(num index) {
+    return arg_at(index);
+}
+
+function num arg_flag(text flag) {
+    variable i = 0;
+    while (i < args_count()) {
+        if (same(arg_at(i), flag)) {
+            return 1;
+        }
+        i = i + 1;
+    }
+    return 0;
+}
+
+function text arg_value(text flag, text fallback) {
+    variable i = 0;
+    while (i < args_count()) {
+        if (same(arg_at(i), flag)) {
+            if ((i + 1) < args_count()) {
+                return arg_at(i + 1);
+            }
+            return fallback;
+        }
+        i = i + 1;
+    }
+    return fallback;
+}

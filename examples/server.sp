@@ -1,0 +1,22 @@
+import "../std/web.sp";
+import "../std/http_server.sp";
+
+run {
+    const title = "Spear Server";
+    text body = page(title) {
+        markup("main", style_attr("min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f172a;color:#f8fafc;font-family:Segoe UI,sans-serif")) {
+            markup("section", style_attr("max-width:720px;padding:48px")) {
+                markup("p", style_attr("letter-spacing:0.18em;text-transform:uppercase;opacity:0.7")) {
+                    "Spear HTTP";
+                };
+                markup("h1", style_attr("font-size:56px;line-height:1.0;margin-top:12px")) {
+                    "Serve HTML with one function.";
+                };
+                markup("p", style_attr("margin-top:18px;font-size:18px;line-height:1.7;opacity:0.85")) {
+                    "Run the built binary and it will hold a local HTTP server on port 4173.";
+                };
+            };
+        };
+    };
+    print(serve_html(4173, body));
+}

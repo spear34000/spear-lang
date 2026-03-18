@@ -15,6 +15,7 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 try:
@@ -57,6 +58,41 @@ def json_keys(payload):
     if not isinstance(data, dict):
         return []
     return list(data.keys())
+
+
+def map_get(payload):
+    data = json.loads(payload.get("text", "{}"))
+    key = payload.get("key", "")
+    default = payload.get("default", "")
+    if not isinstance(data, dict):
+        return _text(default)
+    return _text(data.get(key, default))
+
+
+def map_set(payload):
+    data = json.loads(payload.get("text", "{}"))
+    if not isinstance(data, dict):
+        data = {}
+    key = payload.get("key", "")
+    value = payload.get("value")
+    data[key] = value
+    return json.dumps(data, ensure_ascii=False)
+
+
+def map_remove(payload):
+    data = json.loads(payload.get("text", "{}"))
+    if not isinstance(data, dict):
+        data = {}
+    key = payload.get("key", "")
+    data.pop(key, None)
+    return json.dumps(data, ensure_ascii=False)
+
+
+def map_has(payload):
+    data = json.loads(payload.get("text", "{}"))
+    if not isinstance(data, dict):
+        return 0
+    return 1 if payload.get("key", "") in data else 0
 
 
 def result_is_ok(payload):
@@ -157,6 +193,15 @@ def process_run(payload):
     }
 
 
+def parse_int(payload):
+    text = str(payload.get("text", "0")).strip()
+    fallback = int(payload.get("default", 0))
+    try:
+        return int(text)
+    except ValueError:
+        return fallback
+
+
 def http_request(payload):
     method = payload.get("method", "GET").upper()
     url = payload["url"]
@@ -178,6 +223,41 @@ def http_request(payload):
             "body": exc.read().decode("utf-8", errors="replace"),
             "headers": dict(exc.headers.items()),
         }
+
+
+def http_serve_text(payload):
+    host = payload.get("host", "127.0.0.1")
+    port = int(payload.get("port", 4173))
+    body = payload.get("body", "")
+    content_type = payload.get("content_type", "text/plain; charset=utf-8")
+    status = int(payload.get("status", 200))
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            encoded = body.encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            self.wfile.write(encoded)
+
+        def log_message(self, _format, *_args):
+            return
+
+    with ThreadingHTTPServer((host, port), Handler) as server:
+        server.serve_forever()
+
+
+def http_serve_directory(payload):
+    import functools
+    import http.server
+
+    host = payload.get("host", "127.0.0.1")
+    port = int(payload.get("port", 4173))
+    directory = payload.get("directory", ".")
+    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=directory)
+    with ThreadingHTTPServer((host, port), handler) as server:
+        server.serve_forever()
 
 
 def tcp_request(payload):

@@ -1,5 +1,6 @@
 import "assert.sp";
 import "json.sp";
+import "map.sp";
 import "result.sp";
 import "math.sp";
 import "text.sp";
@@ -8,7 +9,9 @@ import "paths.sp";
 import "io.sp";
 import "fs.sp";
 import "os.sp";
+import "cli.sp";
 import "net.sp";
+import "http_server.sp";
 import "csv.sp";
 import "random.sp";
 import "stats.sp";
@@ -19,6 +22,7 @@ import "crypto.sp";
 import "sqlite.sp";
 import "logger.sp";
 import "config.sp";
+import "test.sp";
 import "bridge.sp";
 import "web.sp";
 

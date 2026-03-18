@@ -15,11 +15,11 @@ function view chart_card(text title, text body) {
 function view signal_bar(text label, text value, text width, text tone) {
     return column_box(gap_space("8px")) {
         row_box(modifier(justify_between(), align_center())) {
-            label_text(foreground("#0f172a"), label);
-            label_text(foreground("#475569"), value);
+            label_text(foreground(tone_ink()), label);
+            label_text(foreground(tone_muted()), value);
         };
-        markup("div", style_attr("height:12px;border-radius:999px;background:#e2e8f0;overflow:hidden")) {
-            markup("div", style_attr(join(join("height:12px;border-radius:999px;background:", tone), join(";width:", width)))) {
+        markup("div", style_attr(metric_track_mod())) {
+            markup("div", style_attr(metric_fill_mod(tone, width))) {
                 "";
             };
         };
@@ -69,7 +69,7 @@ function text metric_bars_body(textlist labels, numlist values, textlist tones) 
 }
 
 function view metric_bars(text title, text body, textlist labels, numlist values, textlist tones) {
-    return box(modifier(padding("24px"), modifier(corner_radius("28px"), modifier(background("#fffdf9"), shadow("0 18px 50px rgba(15,23,42,0.10)"))))) {
+    return box(paper_panel_mod()) {
         column_box(gap_space("18px")) {
             intro(title, body);
             metric_bars_body(labels, values, tones);

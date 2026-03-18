@@ -218,6 +218,34 @@ function text hero_title_mod() {
     );
 }
 
+function text display_title_mod() {
+    return modifier(
+        margin("0"),
+        modifier(font_size("64px"), modifier(style_rule("line-height", "0.98"), style_rule("letter-spacing", "-0.045em")))
+    );
+}
+
+function text section_title_mod() {
+    return modifier(
+        margin("0"),
+        modifier(font_size("34px"), modifier(style_rule("line-height", "1.05"), foreground(tone_ink())))
+    );
+}
+
+function text card_title_mod() {
+    return modifier(
+        margin("0"),
+        modifier(font_size("20px"), modifier(style_rule("line-height", "1.2"), foreground(tone_ink())))
+    );
+}
+
+function text eyebrow_mod() {
+    return modifier(
+        margin("0"),
+        modifier(font_size("12px"), modifier(font_weight("700"), modifier(style_rule("letter-spacing", "0.08em"), foreground(tone_brand()))))
+    );
+}
+
 function text lead_copy_mod() {
     return modifier(
         margin("0"),
@@ -229,8 +257,56 @@ function text body_copy_mod() {
     return modifier(margin("0"), modifier(style_rule("line-height", "1.65"), foreground(tone_muted())));
 }
 
+function text body_copy_inverse_mod() {
+    return modifier(margin("0"), modifier(style_rule("line-height", "1.65"), foreground(tone_inverse_muted())));
+}
+
+function text caption_mod() {
+    return modifier(margin("0"), modifier(font_size("13px"), modifier(style_rule("line-height", "1.5"), foreground(tone_muted()))));
+}
+
 function text title_3_mod() {
     return modifier(margin("0"), modifier(font_size("24px"), modifier(style_rule("line-height", "1.15"), foreground(tone_ink()))));
+}
+
+function text input_shell_mod() {
+    return modifier(
+        padding_xy("13px", "15px"),
+        modifier(
+            corner_radius(radius_2()),
+            modifier(
+                background("rgba(255,255,255,0.92)"),
+                modifier(border("1px solid rgba(15,23,42,0.10)"), foreground(tone_soft_ink()))
+            )
+        )
+    );
+}
+
+function text input_dark_shell_mod() {
+    return modifier(
+        padding_xy("13px", "15px"),
+        modifier(
+            corner_radius(radius_2()),
+            modifier(
+                background("rgba(12,19,34,0.92)"),
+                modifier(border(line_inverse_soft()), foreground(tone_inverse()))
+            )
+        )
+    );
+}
+
+function text field_stack_mod() {
+    return modifier(gap_space(space_1()), width_fill());
+}
+
+function text form_card_mod() {
+    return modifier(
+        padding(space_4()),
+        modifier(
+            corner_radius(radius_3()),
+            modifier(background("rgba(255,255,255,0.05)"), modifier(border(line_inverse_soft()), shadow(elevation_1())))
+        )
+    );
 }
 
 function text metric_track_mod() {

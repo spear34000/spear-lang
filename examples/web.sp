@@ -80,6 +80,17 @@ run {
                                     };
                                 };
                             };
+                            form_card(
+                                "Prototype faster",
+                                "Use form primitives that already sit inside the same tone and spacing system.",
+                                column_box(gap_space(space_2())) {
+                                    text_field_dark("Project name", "Spear Commerce");
+                                    text_field_dark("Goal", "Premium launch page with charts");
+                                    form_hint("These are design-first input shells. Real form submission can layer on later.");
+                                },
+                                "/start",
+                                "Start prototype"
+                            );
                             feature_triptych(
                                 "Scene", "Think in sections", "Use layout primitives and token bundles instead of hardcoded CSS strings.",
                                 "Signal", "Think in visuals", "Charts and stat bars should feel like normal Spear building blocks.",

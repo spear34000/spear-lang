@@ -130,6 +130,22 @@ run {
                     pack(86, 82, 88),
                     pack(tone_brand(), tone_warm(), tone_ink())
                 );
+                split(
+                    trend_line_card(
+                        "Release momentum",
+                        "This style of summary should be easy to drop into a product dashboard.",
+                        "+18%",
+                        tone_brand(),
+                        pack(42, 58, 49, 71, 84, 92)
+                    ),
+                    timeline_feed(
+                        "Ship log",
+                        "The same system should handle status storytelling without custom CSS.",
+                        pack("Mon", "Tue", "Wed"),
+                        pack("Design tokens added", "Form kit added", "Dashboard kit added"),
+                        pack("Spacing, tone, and panel bundles now compose across pages.", "Input shells match the product surface.", "Tables, tabs, and sidebars now fit the same visual language.")
+                    )
+                );
                 data_table(
                     "Recent launches",
                     "Structured data should fit the same design language as marketing sections.",

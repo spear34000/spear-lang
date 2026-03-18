@@ -1700,6 +1700,29 @@ static char *parse_text_children(Parser *parser, int scope_id) {
 static Expr parse_text_expr(Parser *parser, int scope_id) {
     Token token = parser->lexer.current;
 
+    if (match(parser, TOK_IF)) {
+        expect(parser, TOK_LPAREN, "expected '(' after if");
+        warn_constant_condition(parser->lexer.current, "if");
+        Expr cond = parse_num_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        char *when_true = parse_text_children(parser, scope_id);
+        char *when_false = NULL;
+        if (match(parser, TOK_ELSE)) {
+            when_false = parse_text_children(parser, scope_id);
+        } else {
+            char *scope_name = make_scope_name(scope_id);
+            Buffer empty_code;
+            buf_init(&empty_code);
+            buf_appendf(&empty_code, "spear_text_clone(&%s, \"\")", scope_name);
+            free(scope_name);
+            when_false = buf_take(&empty_code);
+        }
+        Buffer code;
+        buf_init(&code);
+        buf_appendf(&code, "((%s) ? (%s) : (%s))", cond.code, when_true, when_false);
+        return make_expr(TYPE_TEXT, buf_take(&code));
+    }
+
     if (parser->lexer.current.kind == TOK_TEXT && peek_token(parser).kind == TOK_LPAREN) {
         advance(parser);
         expect(parser, TOK_LPAREN, "expected '(' after text");
@@ -2214,7 +2237,8 @@ static Expr parse_list_expr(Parser *parser, int scope_id, ValueType expected_typ
 }
 
 static bool starts_text_expr(Parser *parser) {
-    if ((parser->lexer.current.kind == TOK_TEXT && peek_token(parser).kind == TOK_LPAREN) ||
+    if (parser->lexer.current.kind == TOK_IF ||
+        (parser->lexer.current.kind == TOK_TEXT && peek_token(parser).kind == TOK_LPAREN) ||
         parser->lexer.current.kind == TOK_STRING ||
         parser->lexer.current.kind == TOK_JOIN ||
         parser->lexer.current.kind == TOK_READ ||

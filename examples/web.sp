@@ -1,5 +1,6 @@
 run {
     const title = "Spear Web";
+    const review_ready = 1;
     string html = landing_page(title, theme_product_bg()) {
         centered(box(glass_panel_mod()) {
             column_box(gap_space(space_5())) {
@@ -316,7 +317,11 @@ run {
                     "Spear Commerce",
                     "This detail surface represents the selected item in the current flow.",
                     column_box(gap_space(space_2())) {
-                        status_banner("Ready to ship", "Design review is complete and the page is aligned with the current token set.", "#16a34a");
+                        if (review_ready) {
+                            status_banner("Ready to ship", "Design review is complete and the page is aligned with the current token set.", "#16a34a");
+                        } else {
+                            status_banner("Waiting on review", "The selected item still has open visual and release checks.", tone_warm());
+                        };
                         data_table(
                             "Checklist",
                             "The detail area should combine context, status, and supporting data.",

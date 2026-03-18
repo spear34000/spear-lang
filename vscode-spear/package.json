@@ -1,0 +1,47 @@
+{
+  "name": "spear-language",
+  "displayName": "Spear Language",
+  "description": "Syntax highlighting for the Spear programming language",
+  "version": "0.0.4",
+  "publisher": "local",
+  "icon": "assets/spear-logo.png",
+  "repository": {
+    "type": "git",
+    "url": "https://example.com/local/spear"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "spear",
+    "sharp",
+    "language"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "spear",
+        "aliases": ["Spear", "spear"],
+        "extensions": [".sp"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "spear",
+        "scopeName": "source.spear",
+        "path": "./syntaxes/spear.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "spear",
+        "path": "./snippets/spear.json"
+      }
+    ]
+  }
+}

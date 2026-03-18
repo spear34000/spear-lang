@@ -1,0 +1,79 @@
+{
+  "Spear Entry": {
+    "prefix": "spear",
+    "body": [
+      "spear launch() {",
+      "    $0",
+      "}"
+    ],
+    "description": "Create a Spear entry function"
+  },
+  "Sharp Scope": {
+    "prefix": "sharp",
+    "body": [
+      "sharp {",
+      "    $0",
+      "}"
+    ],
+    "description": "Create a sharp memory scope"
+  },
+  "Let Value": {
+    "prefix": "let",
+    "body": [
+      "let ${1:name} = ${2:value};"
+    ],
+    "description": "Create an inferred variable"
+  },
+  "Const Value": {
+    "prefix": "const",
+    "body": [
+      "const let ${1:name} = ${2:value};"
+    ],
+    "description": "Create an immutable inferred value"
+  },
+  "Num Function": {
+    "prefix": "spnum",
+    "body": [
+      "num ${1:name}(num ${2:value}) {",
+      "    return ${2:value};",
+      "}"
+    ],
+    "description": "Create a numeric function"
+  },
+  "Text Function": {
+    "prefix": "sptext",
+    "body": [
+      "text ${1:name}(text ${2:value}) {",
+      "    return ${2:value};",
+      "}"
+    ],
+    "description": "Create a text function"
+  },
+  "View Function": {
+    "prefix": "view",
+    "body": [
+      "view ${1:name}(text ${2:title}, text ${3:body}) {",
+      "    return stack(",
+      "        markup(\"h1\", escape(${2:title})),",
+      "        markup(\"p\", escape(${3:body}))",
+      "    );",
+      "}"
+    ],
+    "description": "Create a UI-oriented Spear view component"
+  },
+  "HTML Page": {
+    "prefix": "page",
+    "body": [
+      "spear launch() {",
+      "    const let title = \"${1:Title}\";",
+      "    let body = stack(",
+      "        markup(\"h1\", escape(title)),",
+      "        action(\"/start\", \"${2:Open App}\")",
+      "    );",
+      "    guard(size(body) > 0, \"body must not be empty\");",
+      "    say(page(title, body));",
+      "}"
+    ],
+    "description": "Create a simple Spear HTML page"
+  }
+}

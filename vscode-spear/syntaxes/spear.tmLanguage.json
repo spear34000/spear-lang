@@ -1,0 +1,105 @@
+{
+  "scopeName": "source.spear",
+  "name": "Spear",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#function-definitions" },
+    { "include": "#keywords" },
+    { "include": "#builtins" },
+    { "include": "#function-calls" },
+    { "include": "#variables" },
+    { "include": "#operators" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.spear",
+          "match": "//.*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.spear",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.spear",
+              "match": "\\\\[nrt\"\\\\]"
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.integer.spear",
+          "match": "\\b\\d+\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.spear",
+          "match": "\\b(spear|sharp|if|else|while|return|let|const|view)\\b"
+        },
+        {
+          "name": "storage.type.spear",
+          "match": "\\b(num|text|numlist|textlist)\\b"
+        }
+      ]
+    },
+    "function-definitions": {
+      "patterns": [
+        {
+          "name": "meta.function.definition.spear",
+          "match": "\\b(?:spear|num|text|view)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.spear"
+            }
+          }
+        }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        {
+          "name": "support.function.builtin.spear",
+          "match": "\\b(say|join|read|size|same|pack|push|count|at|guard|escape|markup|page|stack|inline|action)\\s*(?=\\()"
+        }
+      ]
+    },
+    "function-calls": {
+      "patterns": [
+        {
+          "name": "entity.name.function.call.spear",
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()"
+        }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "name": "variable.other.spear",
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.spear",
+          "match": "(==|!=|<=|>=|=|\\+|-|\\*|/|%|<|>)"
+        }
+      ]
+    }
+  }
+}

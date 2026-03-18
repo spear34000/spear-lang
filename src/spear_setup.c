@@ -280,6 +280,7 @@ static const char *lang_code(int index) {
     }
 }
 
+static const char *tr(int lang, const char *key) __attribute__((unused));
 static const char *tr(int lang, const char *key) {
     if (strcmp(key, "wizard_setup") == 0) {
         if (lang == LANG_KO) return "Spear 설치";
@@ -457,6 +458,41 @@ static const char *tr(int lang, const char *key) {
     }
     return key;
 }
+
+static const char *ui_tr(int lang, const char *key) {
+    if (strcmp(key, "wizard_setup") == 0) return lang == LANG_KO ? "Spear 설치" : "Spear Setup";
+    if (strcmp(key, "wizard_repair") == 0) return lang == LANG_KO ? "Spear 복구" : "Spear Repair";
+    if (strcmp(key, "welcome_title") == 0) return lang == LANG_KO ? "Spear 설치에 오신 것을 환영합니다." : "Welcome to Spear";
+    if (strcmp(key, "welcome_body") == 0) return lang == LANG_KO ? "설치 중에 사용할 언어를 먼저 고른 다음, 필요한 구성 요소를 선택하세요." : "Choose the language for installation and runtime messages, then select the components you want.";
+    if (strcmp(key, "language_label") == 0) return lang == LANG_KO ? "사용 언어" : "Language";
+    if (strcmp(key, "components_title") == 0) return lang == LANG_KO ? "구성 요소 선택" : "Choose Components";
+    if (strcmp(key, "components_body") == 0) return lang == LANG_KO ? "설치할 항목을 고르세요. 설치 마법사를 다시 실행하면 나중에도 바꿀 수 있습니다." : "Select what to install. You can run the setup wizard again later to change these choices.";
+    if (strcmp(key, "check_path") == 0) return lang == LANG_KO ? "Spear를 사용자 PATH에 추가" : "Add Spear to the user PATH";
+    if (strcmp(key, "check_examples") == 0) return lang == LANG_KO ? "기본 예제 작업공간 설치" : "Install the bundled example workspace";
+    if (strcmp(key, "check_editor") == 0) return lang == LANG_KO ? "기본 VS Code 확장 설치" : "Install the bundled VS Code extension";
+    if (strcmp(key, "check_tests") == 0) return lang == LANG_KO ? "설치 후 자체 검사 실행" : "Run post-install self-checks";
+    if (strcmp(key, "ready_title") == 0) return lang == LANG_KO ? "설치 준비 완료" : "Ready To Install";
+    if (strcmp(key, "ready_body") == 0) return lang == LANG_KO ? "선택한 옵션을 확인한 뒤 설치를 누르세요." : "Review the selected options and click Install.";
+    if (strcmp(key, "installing_title") == 0) return lang == LANG_KO ? "설치 중" : "Installing";
+    if (strcmp(key, "installing_body") == 0) return lang == LANG_KO ? "Spear를 설치하고 있습니다. 설치가 끝나면 화면이 자동으로 갱신됩니다." : "Spear is being installed. The window will update when setup finishes.";
+    if (strcmp(key, "installing_status") == 0) return lang == LANG_KO ? "파일을 복사하고 설치를 구성하는 중입니다..." : "Copying files and configuring the installation...";
+    if (strcmp(key, "done_title") == 0) return lang == LANG_KO ? "설치 완료" : "Completed";
+    if (strcmp(key, "failed_title") == 0) return lang == LANG_KO ? "설치 실패" : "Installation Failed";
+    if (strcmp(key, "done_body") == 0) return lang == LANG_KO ? "Spear를 사용할 준비가 되었습니다." : "Spear is ready to use.";
+    if (strcmp(key, "failed_body") == 0) return lang == LANG_KO ? "설치를 끝내지 못했습니다." : "The installer could not finish.";
+    if (strcmp(key, "back") == 0) return lang == LANG_KO ? "< 이전" : "< Back";
+    if (strcmp(key, "next") == 0) return lang == LANG_KO ? "다음 >" : "Next >";
+    if (strcmp(key, "install") == 0) return lang == LANG_KO ? "설치" : "Install";
+    if (strcmp(key, "close") == 0) return lang == LANG_KO ? "닫기" : "Close";
+    if (strcmp(key, "cancel") == 0) return lang == LANG_KO ? "취소" : "Cancel";
+    if (strcmp(key, "yes") == 0) return lang == LANG_KO ? "예" : "yes";
+    if (strcmp(key, "no") == 0) return lang == LANG_KO ? "아니오" : "no";
+    if (strcmp(key, "found") == 0) return lang == LANG_KO ? "발견됨" : "found";
+    if (strcmp(key, "not_found") == 0) return lang == LANG_KO ? "없음" : "not found";
+    return key;
+}
+
+#define tr ui_tr
 
 static void fmt(char *out, size_t cap, const char *format, ...) {
     va_list args;
@@ -1195,6 +1231,10 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             state->mode_install = CreateWindowW(L"BUTTON", L"", WS_CHILD | BS_AUTORADIOBUTTON, 160, 156, 300, 22, hwnd, (HMENU) IDC_MODE_INSTALL, NULL, NULL);
             state->mode_repair = CreateWindowW(L"BUTTON", L"", WS_CHILD | BS_AUTORADIOBUTTON, 160, 184, 300, 22, hwnd, (HMENU) IDC_MODE_REPAIR, NULL, NULL);
             state->mode_remove = CreateWindowW(L"BUTTON", L"", WS_CHILD | BS_AUTORADIOBUTTON, 160, 212, 300, 22, hwnd, (HMENU) IDC_MODE_REMOVE, NULL, NULL);
+            combo_add_utf8(state->lang_combo, "English");
+            combo_add_utf8(state->lang_combo, "한국어");
+            SendMessageW(state->lang_combo, CB_SETCURSEL, LANG_EN, 0);
+            SendMessageW(state->lang_combo, CB_RESETCONTENT, 0, 0);
             combo_add_utf8(state->lang_combo, "English");
             combo_add_utf8(state->lang_combo, "한국어");
             SendMessageW(state->lang_combo, CB_SETCURSEL, LANG_EN, 0);

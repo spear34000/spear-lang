@@ -28,22 +28,7 @@ check: spear
 	del /Q build\\regression_run.log 2> NUL
 
 dist: setup
-	if not exist build\\dist mkdir build\\dist
-	copy /Y build\\spear.exe build\\dist\\spear.exe > NUL
-	copy /Y build\\spearc.exe build\\dist\\spearc.exe > NUL
-	copy /Y build\\spear-setup.exe build\\dist\\spear-setup.exe > NUL
-	if not exist build\\dist\\runtime mkdir build\\dist\\runtime
-	copy /Y runtime\\bridge_node.mjs build\\dist\\runtime\\bridge_node.mjs > NUL
-	copy /Y runtime\\bridge_python.py build\\dist\\runtime\\bridge_python.py > NUL
-	copy /Y runtime\\demo_node.cjs build\\dist\\runtime\\demo_node.cjs > NUL
-	copy /Y runtime\\demo_python.py build\\dist\\runtime\\demo_python.py > NUL
-	if exist build\\dist\\std rmdir /S /Q build\\dist\\std
-	xcopy /E /I /Y std build\\dist\\std > NUL
-	if exist build\\dist\\examples rmdir /S /Q build\\dist\\examples
-	xcopy /E /I /Y examples build\\dist\\examples > NUL
-	if exist build\\dist\\vscode-spear rmdir /S /Q build\\dist\\vscode-spear
-	xcopy /E /I /Y vscode-spear build\\dist\\vscode-spear > NUL
-	del /Q build\\dist\\vscode-spear\\*.vsix 2> NUL
+	scripts\\package_dist.cmd
 
 clean:
 	del /Q build\*.exe 2> NUL

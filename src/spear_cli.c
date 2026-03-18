@@ -169,6 +169,41 @@ static void exe_dir(char *out, size_t cap) {
     *slash = '\0';
 }
 
+static void parent_dir_inplace(char *path) {
+    char *slash = strrchr(path, '\\');
+    if (!slash) slash = strrchr(path, '/');
+    if (!slash) fail("cannot resolve parent directory");
+    *slash = '\0';
+}
+
+static void resolve_bundled_gcc(char *out, size_t cap, const char *bin_dir) {
+    char install_root[4096];
+    char candidate[4096];
+    format_text(install_root, sizeof(install_root), "%s", bin_dir);
+    parent_dir_inplace(install_root);
+
+    join_path(candidate, sizeof(candidate), install_root, "toolchain\\mingw64\\bin\\gcc.exe");
+    if (GetFileAttributesA(candidate) != INVALID_FILE_ATTRIBUTES) {
+        format_text(out, cap, "%s", candidate);
+        return;
+    }
+
+    if (SearchPathA(NULL, "gcc.exe", NULL, (DWORD) cap, out, NULL) && out[0]) {
+        return;
+    }
+
+    fail("gcc.exe was not found. Re-run setup and install the bundled toolchain.");
+}
+
+static void resolve_runtime_script(char *out, size_t cap, const char *bin_dir, const char *leaf) {
+    char install_root[4096];
+    char runtime_dir[4096];
+    format_text(install_root, sizeof(install_root), "%s", bin_dir);
+    parent_dir_inplace(install_root);
+    join_path(runtime_dir, sizeof(runtime_dir), install_root, "runtime");
+    join_path(out, cap, runtime_dir, leaf);
+}
+
 static void ensure_build_dir(void) {
     _mkdir("build");
 }
@@ -396,6 +431,8 @@ int main(int argc, char **argv) {
     char front_log[4096];
     char back_log[4096];
     char command[4096];
+    char gcc_path[4096];
+    char serve_script[4096];
 
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
@@ -471,7 +508,8 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    format_text(command, sizeof(command), "gcc -O3 -w -std=c11 -o \"%s\" \"%s\"", exe_out, c_out);
+    resolve_bundled_gcc(gcc_path, sizeof(gcc_path), install_dir);
+    format_text(command, sizeof(command), "\"%s\" -O3 -w -std=c11 -o \"%s\" \"%s\"", gcc_path, exe_out, c_out);
     if (run_process_capture(command, back_log) != 0) {
         if (_stricmp(mode, "build") == 0) {
             fprintf(stderr, "%s\n", cli_text("backend_failed"));
@@ -505,9 +543,11 @@ int main(int argc, char **argv) {
             ? "http://127.0.0.1:4173/spear-ui.html"
             : "http://127.0.0.1:4173/";
         printf("%s: %s\n", cli_text("serve_prefix"), html);
+        resolve_runtime_script(serve_script, sizeof(serve_script), install_dir, "serve_static.ps1");
         format_text(command, sizeof(command), "cmd /c start \"\" cmd /c \"ping -n 3 127.0.0.1 >nul && start \"\" \"%s\"\"", html);
         run_process_console(command);
-        return run_process_console("python -m http.server 4173 --directory build");
+        format_text(command, sizeof(command), "powershell -NoProfile -ExecutionPolicy Bypass -File \"%s\" -Root \"build\" -Port 4173", serve_script);
+        return run_process_console(command);
     }
 
     return 0;

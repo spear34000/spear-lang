@@ -10,6 +10,9 @@
 #define APP_CLASS "SpearSetupWizardWindow"
 #define APP_CLASS_W L"SpearSetupWizardWindow"
 #define WM_APP_INSTALL_DONE (WM_APP + 1)
+#define EMBEDDED_TRAILER_MAGIC "SPREMB01"
+#define EMBEDDED_PAYLOAD_MAGIC "SPRPKG01"
+#define EMBEDDED_TRAILER_SIZE 24
 
 #define IDC_TITLE 1001
 #define IDC_BODY 1002
@@ -25,10 +28,28 @@
 #define IDC_CANCEL 1012
 #define IDC_LANG_LABEL 1013
 #define IDC_LANG_COMBO 1014
+#define IDC_MODE_LABEL 1015
+#define IDC_MODE_INSTALL 1016
+#define IDC_MODE_REPAIR 1017
+#define IDC_MODE_REMOVE 1018
+
+#define UI_BG RGB(10, 16, 28)
+#define UI_PANEL RGB(16, 24, 40)
+#define UI_PANEL_ALT RGB(20, 32, 52)
+#define UI_ACCENT RGB(52, 120, 246)
+#define UI_ACCENT_SOFT RGB(30, 58, 100)
+#define UI_TEXT RGB(232, 240, 255)
+#define UI_MUTED RGB(160, 176, 204)
 
 enum {
     LANG_EN = 0,
     LANG_KO = 1
+};
+
+enum {
+    OP_INSTALL = 0,
+    OP_REPAIR = 1,
+    OP_REMOVE = 2
 };
 
 #define LANG_JA LANG_EN
@@ -43,6 +64,7 @@ typedef struct {
     char std_dir[4096];
     char examples_dir[4096];
     char editor_dir[4096];
+    char toolchain_dir[4096];
     char src_spear[4096];
     char src_spearc[4096];
     char src_setup[4096];
@@ -50,11 +72,15 @@ typedef struct {
     char src_std[4096];
     char src_examples[4096];
     char src_editor[4096];
+    char src_toolchain[4096];
+    char temp_payload_root[4096];
     bool has_std;
     bool has_examples;
     bool has_editor;
+    bool has_toolchain;
     bool has_gcc;
     bool has_code;
+    bool existing_install;
     bool repair_mode;
     bool uninstall_mode;
 } SetupContext;
@@ -65,6 +91,7 @@ typedef struct {
     bool install_editor;
     bool run_checks;
     int language_index;
+    int operation;
 } SetupOptions;
 
 typedef struct {
@@ -79,6 +106,10 @@ typedef struct {
     HWND check_tests;
     HWND lang_label;
     HWND lang_combo;
+    HWND mode_label;
+    HWND mode_install;
+    HWND mode_repair;
+    HWND mode_remove;
     HWND summary;
     HWND progress;
     HWND status;
@@ -91,6 +122,14 @@ typedef struct {
     bool ok;
     char result[8192];
 } WizardState;
+
+static HBRUSH g_brush_bg = NULL;
+static HBRUSH g_brush_panel = NULL;
+static HBRUSH g_brush_panel_alt = NULL;
+static HBRUSH g_brush_accent = NULL;
+static HFONT g_font_title = NULL;
+static HFONT g_font_body = NULL;
+static HFONT g_font_ui = NULL;
 
 static void fail(const char *fmt, ...) {
     char message[4096];
@@ -127,6 +166,29 @@ static void combo_add_utf8(HWND hwnd, const char *text) {
     wchar_t *wide = wide_from_utf8(text);
     SendMessageW(hwnd, CB_ADDSTRING, 0, (LPARAM) wide);
     free(wide);
+}
+
+static void apply_control_font(HWND hwnd, HFONT font) {
+    if (hwnd && font) SendMessageW(hwnd, WM_SETFONT, (WPARAM) font, TRUE);
+}
+
+static void ensure_theme_resources(void) {
+    if (!g_brush_bg) g_brush_bg = CreateSolidBrush(UI_BG);
+    if (!g_brush_panel) g_brush_panel = CreateSolidBrush(UI_PANEL);
+    if (!g_brush_panel_alt) g_brush_panel_alt = CreateSolidBrush(UI_PANEL_ALT);
+    if (!g_brush_accent) g_brush_accent = CreateSolidBrush(UI_ACCENT);
+    if (!g_font_title) {
+        g_font_title = CreateFontW(-28, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI");
+    }
+    if (!g_font_body) {
+        g_font_body = CreateFontW(-16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI");
+    }
+    if (!g_font_ui) {
+        g_font_ui = CreateFontW(-15, 0, 0, 0, FW_MEDIUM, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI");
+    }
 }
 
 static const char *lang_code(int index) {
@@ -536,6 +598,151 @@ static void copy_tree(const char *src_dir, const char *dst_dir) {
     FindClose(handle);
 }
 
+static unsigned int read_u32_le(const unsigned char *bytes) {
+    return ((unsigned int) bytes[0]) |
+           ((unsigned int) bytes[1] << 8) |
+           ((unsigned int) bytes[2] << 16) |
+           ((unsigned int) bytes[3] << 24);
+}
+
+static unsigned long long read_u64_le(const unsigned char *bytes) {
+    return ((unsigned long long) bytes[0]) |
+           ((unsigned long long) bytes[1] << 8) |
+           ((unsigned long long) bytes[2] << 16) |
+           ((unsigned long long) bytes[3] << 24) |
+           ((unsigned long long) bytes[4] << 32) |
+           ((unsigned long long) bytes[5] << 40) |
+           ((unsigned long long) bytes[6] << 48) |
+           ((unsigned long long) bytes[7] << 56);
+}
+
+static void make_temp_dir(char *out, size_t cap) {
+    char temp_root[1024];
+    char temp_name[1024];
+    DWORD len = GetTempPathA((DWORD) sizeof(temp_root), temp_root);
+    if (len == 0 || len >= sizeof(temp_root)) fail("TEMP is not available");
+    if (!GetTempFileNameA(temp_root, "spr", 0, temp_name)) fail("failed to allocate temp directory");
+    DeleteFileA(temp_name);
+    if (!CreateDirectoryA(temp_name, NULL)) fail("failed to create temp directory");
+    fmt(out, cap, "%s", temp_name);
+}
+
+static bool read_exact(HANDLE file, void *buffer, DWORD bytes) {
+    DWORD total = 0;
+    while (total < bytes) {
+        DWORD chunk = 0;
+        if (!ReadFile(file, (char *) buffer + total, bytes - total, &chunk, NULL)) return false;
+        if (chunk == 0) return false;
+        total += chunk;
+    }
+    return true;
+}
+
+static bool extract_embedded_payload(SetupContext *ctx) {
+    HANDLE file;
+    LARGE_INTEGER size;
+    LARGE_INTEGER pos;
+    unsigned char trailer[EMBEDDED_TRAILER_SIZE];
+    unsigned char header[16];
+    unsigned long long payload_offset;
+    unsigned long long payload_size;
+    unsigned int entry_count;
+    char temp_root[4096];
+    file = CreateFileA(ctx->exe_path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE) return false;
+    if (!GetFileSizeEx(file, &size) || size.QuadPart < EMBEDDED_TRAILER_SIZE) {
+        CloseHandle(file);
+        return false;
+    }
+    pos.QuadPart = size.QuadPart - EMBEDDED_TRAILER_SIZE;
+    if (!SetFilePointerEx(file, pos, NULL, FILE_BEGIN) || !read_exact(file, trailer, sizeof(trailer))) {
+        CloseHandle(file);
+        return false;
+    }
+    if (memcmp(trailer, EMBEDDED_TRAILER_MAGIC, 8) != 0) {
+        CloseHandle(file);
+        return false;
+    }
+    payload_offset = read_u64_le(trailer + 8);
+    payload_size = read_u64_le(trailer + 16);
+    if (payload_offset >= (unsigned long long) size.QuadPart ||
+        payload_size == 0 ||
+        payload_offset + payload_size > (unsigned long long) size.QuadPart - EMBEDDED_TRAILER_SIZE) {
+        CloseHandle(file);
+        return false;
+    }
+    pos.QuadPart = (LONGLONG) payload_offset;
+    if (!SetFilePointerEx(file, pos, NULL, FILE_BEGIN) || !read_exact(file, header, sizeof(header))) {
+        CloseHandle(file);
+        return false;
+    }
+    if (memcmp(header, EMBEDDED_PAYLOAD_MAGIC, 8) != 0 || read_u32_le(header + 8) != 1) {
+        CloseHandle(file);
+        return false;
+    }
+    entry_count = read_u32_le(header + 12);
+    make_temp_dir(temp_root, sizeof(temp_root));
+    for (unsigned int i = 0; i < entry_count; i++) {
+        unsigned char meta[12];
+        unsigned int path_len;
+        unsigned long long file_size;
+        char relative[4096];
+        char target[8192];
+        HANDLE out;
+        if (!read_exact(file, meta, sizeof(meta))) {
+            CloseHandle(file);
+            remove_tree_recursive(temp_root);
+            fail("failed to read bundled setup payload");
+        }
+        path_len = read_u32_le(meta);
+        file_size = read_u64_le(meta + 4);
+        if (path_len == 0 || path_len >= sizeof(relative)) {
+            CloseHandle(file);
+            remove_tree_recursive(temp_root);
+            fail("bundled setup payload path is invalid");
+        }
+        if (!read_exact(file, relative, path_len)) {
+            CloseHandle(file);
+            remove_tree_recursive(temp_root);
+            fail("failed to read bundled setup payload");
+        }
+        relative[path_len] = '\0';
+        for (unsigned int j = 0; j < path_len; j++) {
+            if (relative[j] == '/') relative[j] = '\\';
+        }
+        fmt(target, sizeof(target), "%s\\%s", temp_root, relative);
+        {
+            char parent[8192];
+            fmt(parent, sizeof(parent), "%s", target);
+            parent_dir(parent);
+            ensure_dir_recursive(parent);
+        }
+        out = CreateFileA(target, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (out == INVALID_HANDLE_VALUE) {
+            CloseHandle(file);
+            remove_tree_recursive(temp_root);
+            fail("failed to extract bundled setup payload");
+        }
+        while (file_size > 0) {
+            unsigned char buffer[65536];
+            DWORD chunk = file_size > sizeof(buffer) ? (DWORD) sizeof(buffer) : (DWORD) file_size;
+            DWORD written = 0;
+            if (!read_exact(file, buffer, chunk) || !WriteFile(out, buffer, chunk, &written, NULL) || written != chunk) {
+                CloseHandle(out);
+                CloseHandle(file);
+                remove_tree_recursive(temp_root);
+                fail("failed to extract bundled setup payload");
+            }
+            file_size -= chunk;
+        }
+        CloseHandle(out);
+    }
+    CloseHandle(file);
+    fmt(ctx->temp_payload_root, sizeof(ctx->temp_payload_root), "%s", temp_root);
+    fmt(ctx->source_root, sizeof(ctx->source_root), "%s", temp_root);
+    return true;
+}
+
 static int run_process_capture(const char *command_line, const char *working_dir, char *output, size_t output_cap) {
     SECURITY_ATTRIBUTES sa;
     HANDLE read_pipe = NULL;
@@ -590,10 +797,12 @@ static int run_process_capture(const char *command_line, const char *working_dir
 static void run_self_check(const SetupContext *ctx, const SetupOptions *options, char *out, size_t cap) {
     char spearc[4096];
     char spear[4096];
+    char bundled_gcc[4096];
     char check_file[4096];
     char temp_source[4096];
     char command[8192];
     char output[4096];
+    bool can_run_launcher_check;
     join_path(spearc, sizeof(spearc), ctx->bin_dir, "spearc.exe");
     join_path(spear, sizeof(spear), ctx->bin_dir, "spear.exe");
     if (options->install_examples && dir_exists(ctx->examples_dir)) {
@@ -614,7 +823,9 @@ static void run_self_check(const SetupContext *ctx, const SetupOptions *options,
         if (!(options->install_examples && dir_exists(ctx->examples_dir))) DeleteFileA(check_file);
         return;
     }
-    if (ctx->has_gcc) {
+    join_path(bundled_gcc, sizeof(bundled_gcc), ctx->toolchain_dir, "mingw64\\bin\\gcc.exe");
+    can_run_launcher_check = ctx->has_gcc || file_exists(bundled_gcc);
+    if (can_run_launcher_check) {
         fmt(command, sizeof(command), "\"%s\" check \"%s\"", spear, check_file);
         if (run_process_capture(command, ctx->install_root, output, sizeof(output)) != 0) {
             fmt(out, cap, "Installed, but launcher self-check failed.\r\n\r\n%s", output[0] ? output : "No details.");
@@ -623,7 +834,7 @@ static void run_self_check(const SetupContext *ctx, const SetupOptions *options,
         }
     }
     if (!(options->install_examples && dir_exists(ctx->examples_dir))) DeleteFileA(check_file);
-    fmt(out, cap, ctx->has_gcc ? "Installation finished and self-check passed." : "Installation finished. GCC was not found, so launcher validation was skipped.");
+    fmt(out, cap, can_run_launcher_check ? "Installation finished and self-check passed." : "Installation finished. GCC was not found, so launcher validation was skipped.");
 }
 
 static void discover_context(SetupContext *ctx) {
@@ -633,6 +844,7 @@ static void discover_context(SetupContext *ctx) {
     if (len == 0 || len >= sizeof(ctx->exe_path)) fail("cannot resolve installer path");
     fmt(ctx->source_root, sizeof(ctx->source_root), "%s", ctx->exe_path);
     parent_dir(ctx->source_root);
+    extract_embedded_payload(ctx);
     if (GetEnvironmentVariableA("LOCALAPPDATA", local_app, sizeof(local_app)) == 0) fail("LOCALAPPDATA is not available");
     if (GetEnvironmentVariableA("USERPROFILE", user_profile, sizeof(user_profile)) == 0) fail("USERPROFILE is not available");
     join_path(ctx->install_root, sizeof(ctx->install_root), local_app, "Programs\\Spear");
@@ -640,7 +852,13 @@ static void discover_context(SetupContext *ctx) {
     join_path(ctx->runtime_dir, sizeof(ctx->runtime_dir), ctx->install_root, "runtime");
     join_path(ctx->std_dir, sizeof(ctx->std_dir), ctx->install_root, "std");
     join_path(ctx->examples_dir, sizeof(ctx->examples_dir), ctx->install_root, "examples");
+    join_path(ctx->toolchain_dir, sizeof(ctx->toolchain_dir), ctx->install_root, "toolchain");
     fmt(ctx->editor_dir, sizeof(ctx->editor_dir), "%s\\.vscode\\extensions\\spear-language-local", user_profile);
+    {
+        char existing_launcher[4096];
+        join_path(existing_launcher, sizeof(existing_launcher), ctx->bin_dir, "spear.exe");
+        ctx->existing_install = file_exists(existing_launcher);
+    }
     ctx->repair_mode = strstr(GetCommandLineA(), "--repair") != NULL;
     ctx->uninstall_mode = strstr(GetCommandLineA(), "--uninstall") != NULL;
     if (!resolve_source_file(ctx->source_root, "spear.exe", ctx->src_spear, sizeof(ctx->src_spear)) ||
@@ -653,6 +871,7 @@ static void discover_context(SetupContext *ctx) {
     ctx->has_std = true;
     ctx->has_examples = resolve_source_dir(ctx->source_root, "examples", ctx->src_examples, sizeof(ctx->src_examples));
     ctx->has_editor = resolve_source_dir(ctx->source_root, "vscode-spear", ctx->src_editor, sizeof(ctx->src_editor));
+    ctx->has_toolchain = resolve_source_dir(ctx->source_root, "toolchain", ctx->src_toolchain, sizeof(ctx->src_toolchain));
     ctx->has_gcc = resolve_tool("gcc.exe");
     ctx->has_code = resolve_tool("code.cmd") || resolve_tool("code.exe");
 }
@@ -675,6 +894,13 @@ static void perform_uninstall(const SetupContext *ctx) {
     printf("Spear uninstalled from %s\n", ctx->install_root);
 }
 
+static void perform_uninstall_silent(const SetupContext *ctx) {
+    update_user_path(ctx->bin_dir, false);
+    remove_uninstall_info();
+    remove_tree_recursive(ctx->install_root);
+    remove_tree_recursive(ctx->editor_dir);
+}
+
 static void set_text(HWND hwnd, const char *text) {
     set_text_utf8(hwnd, text);
 }
@@ -685,6 +911,9 @@ static void read_options(WizardState *state) {
     state->options.install_editor = SendMessageA(state->check_editor, BM_GETCHECK, 0, 0) == BST_CHECKED;
     state->options.run_checks = SendMessageA(state->check_tests, BM_GETCHECK, 0, 0) == BST_CHECKED;
     state->options.language_index = (int) SendMessageW(state->lang_combo, CB_GETCURSEL, 0, 0);
+    if (SendMessageA(state->mode_remove, BM_GETCHECK, 0, 0) == BST_CHECKED) state->options.operation = OP_REMOVE;
+    else if (SendMessageA(state->mode_repair, BM_GETCHECK, 0, 0) == BST_CHECKED) state->options.operation = OP_REPAIR;
+    else state->options.operation = OP_INSTALL;
     if (state->options.language_index < 0) state->options.language_index = LANG_EN;
 }
 
@@ -694,8 +923,13 @@ static void write_options(WizardState *state) {
     SendMessageA(state->check_editor, BM_SETCHECK, state->options.install_editor ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageA(state->check_tests, BM_SETCHECK, state->options.run_checks ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(state->lang_combo, CB_SETCURSEL, state->options.language_index, 0);
+    SendMessageA(state->mode_install, BM_SETCHECK, state->options.operation == OP_INSTALL ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageA(state->mode_repair, BM_SETCHECK, state->options.operation == OP_REPAIR ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageA(state->mode_remove, BM_SETCHECK, state->options.operation == OP_REMOVE ? BST_CHECKED : BST_UNCHECKED, 0);
     EnableWindow(state->check_examples, state->ctx.has_examples ? TRUE : FALSE);
     EnableWindow(state->check_editor, state->ctx.has_editor ? TRUE : FALSE);
+    EnableWindow(state->mode_repair, state->ctx.existing_install ? TRUE : FALSE);
+    EnableWindow(state->mode_remove, state->ctx.existing_install ? TRUE : FALSE);
 }
 
 static void write_language_config(const SetupContext *ctx, int lang) {
@@ -717,7 +951,7 @@ static void build_summary(WizardState *state, char *out, size_t cap) {
         "Language:\r\n%s\r\n\r\n"
         "Core:\r\n- spear.exe\r\n- spearc.exe\r\n- spear-setup.exe\r\n- runtime bridge files\r\n\r\n"
         "Options:\r\n- PATH registration: %s\r\n- Example workspace: %s\r\n- VS Code extension: %s\r\n- Post-install self-check: %s\r\n\r\n"
-        "Detected:\r\n- gcc: %s\r\n- VS Code CLI: %s",
+        "Detected:\r\n- system gcc: %s\r\n- bundled toolchain: %s\r\n- VS Code CLI: %s",
         state->ctx.install_root,
         lang == LANG_KO ? "한국어" : "English",
         state->options.install_path ? tr(lang, "yes") : tr(lang, "no"),
@@ -725,6 +959,7 @@ static void build_summary(WizardState *state, char *out, size_t cap) {
         state->options.install_editor ? tr(lang, "yes") : tr(lang, "no"),
         state->options.run_checks ? tr(lang, "yes") : tr(lang, "no"),
         state->ctx.has_gcc ? tr(lang, "found") : tr(lang, "not_found"),
+        state->ctx.has_toolchain ? tr(lang, "found") : tr(lang, "not_found"),
         state->ctx.has_code ? tr(lang, "found") : tr(lang, "not_found"));
     }
 }
@@ -740,6 +975,10 @@ static void show_page(WizardState *state) {
     ShowWindow(state->check_tests, SW_HIDE);
     ShowWindow(state->lang_label, SW_HIDE);
     ShowWindow(state->lang_combo, SW_HIDE);
+    ShowWindow(state->mode_label, SW_HIDE);
+    ShowWindow(state->mode_install, SW_HIDE);
+    ShowWindow(state->mode_repair, SW_HIDE);
+    ShowWindow(state->mode_remove, SW_HIDE);
     ShowWindow(state->summary, SW_HIDE);
     ShowWindow(state->progress, SW_HIDE);
     ShowWindow(state->status, SW_HIDE);
@@ -748,8 +987,17 @@ static void show_page(WizardState *state) {
         set_text(state->title, state->ctx.repair_mode ? tr(state->options.language_index, "wizard_repair") : tr(state->options.language_index, "wizard_setup"));
         set_text(state->body, tr(state->options.language_index, "welcome_body"));
         set_text(state->lang_label, tr(state->options.language_index, "language_label"));
+        set_text(state->mode_label, "Action");
+        set_text(state->mode_install, state->ctx.existing_install ? "Reinstall Spear" : "Install Spear");
+        set_text(state->mode_repair, "Repair current install");
+        set_text(state->mode_remove, "Remove Spear");
+        write_options(state);
         ShowWindow(state->lang_label, SW_SHOW);
         ShowWindow(state->lang_combo, SW_SHOW);
+        ShowWindow(state->mode_label, SW_SHOW);
+        ShowWindow(state->mode_install, SW_SHOW);
+        ShowWindow(state->mode_repair, SW_SHOW);
+        ShowWindow(state->mode_remove, SW_SHOW);
         EnableWindow(state->back, FALSE);
         EnableWindow(state->next, TRUE);
         set_text(state->next, tr(state->options.language_index, "next"));
@@ -761,6 +1009,10 @@ static void show_page(WizardState *state) {
         set_text(state->check_editor, tr(state->options.language_index, "check_editor"));
         set_text(state->check_tests, tr(state->options.language_index, "check_tests"));
         write_options(state);
+        EnableWindow(state->check_path, state->options.operation != OP_REMOVE);
+        EnableWindow(state->check_examples, state->ctx.has_examples && state->options.operation != OP_REMOVE);
+        EnableWindow(state->check_editor, state->ctx.has_editor && state->options.operation != OP_REMOVE);
+        EnableWindow(state->check_tests, state->options.operation != OP_REMOVE);
         ShowWindow(state->check_path, SW_SHOW);
         ShowWindow(state->check_examples, SW_SHOW);
         ShowWindow(state->check_editor, SW_SHOW);
@@ -802,13 +1054,22 @@ static DWORD WINAPI install_worker(LPVOID param) {
     char summary[4096];
     state->ok = false;
     state->result[0] = '\0';
+    if (state->options.operation == OP_REMOVE) {
+        perform_uninstall_silent(&state->ctx);
+        fmt(state->result, sizeof(state->result), "Spear was removed from:\r\n%s", state->ctx.install_root);
+        state->ok = true;
+        PostMessageA(state->hwnd, WM_APP_INSTALL_DONE, 0, 0);
+        return 0;
+    }
     remove_tree_recursive(state->ctx.runtime_dir);
     remove_tree_recursive(state->ctx.std_dir);
     remove_tree_recursive(state->ctx.examples_dir);
     remove_tree_recursive(state->ctx.editor_dir);
+    remove_tree_recursive(state->ctx.toolchain_dir);
     ensure_dir_recursive(state->ctx.bin_dir);
     ensure_dir_recursive(state->ctx.runtime_dir);
     ensure_dir_recursive(state->ctx.std_dir);
+    ensure_dir_recursive(state->ctx.toolchain_dir);
     join_path(dst, sizeof(dst), state->ctx.bin_dir, "spear.exe");
     copy_file_to(state->ctx.src_spear, dst);
     join_path(dst, sizeof(dst), state->ctx.bin_dir, "spearc.exe");
@@ -817,13 +1078,14 @@ static DWORD WINAPI install_worker(LPVOID param) {
     copy_file_to(state->ctx.src_setup, dst);
     copy_tree(state->ctx.src_runtime, state->ctx.runtime_dir);
     copy_tree(state->ctx.src_std, state->ctx.std_dir);
+    if (state->ctx.has_toolchain) copy_tree(state->ctx.src_toolchain, state->ctx.toolchain_dir);
     write_language_config(&state->ctx, state->options.language_index);
     if (state->options.install_examples && state->ctx.has_examples) copy_tree(state->ctx.src_examples, state->ctx.examples_dir);
     if (state->options.install_editor && state->ctx.has_editor) copy_tree(state->ctx.src_editor, state->ctx.editor_dir);
     if (state->options.install_path) update_user_path(state->ctx.bin_dir, true);
     set_uninstall_info(state->ctx.install_root, state->ctx.bin_dir);
     if (state->options.run_checks) run_self_check(&state->ctx, &state->options, summary, sizeof(summary));
-    else fmt(summary, sizeof(summary), "Installation finished.");
+    else fmt(summary, sizeof(summary), state->options.operation == OP_REPAIR ? "Repair finished." : "Installation finished.");
     fmt(state->result, sizeof(state->result),
         "%s\r\n\r\nInstall root:\r\n%s\r\n\r\nStandard library:\r\n%s\r\n\r\nExamples:\r\n%s\r\n\r\nVS Code extension:\r\n%s",
         summary,
@@ -861,10 +1123,15 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
         case WM_CREATE:
             state = (WizardState *) ((CREATESTRUCTW *) lParam)->lpCreateParams;
             state->hwnd = hwnd;
+            ensure_theme_resources();
             state->title = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE, 24, 20, 560, 28, hwnd, (HMENU) IDC_TITLE, NULL, NULL);
             state->body = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE, 24, 56, 560, 60, hwnd, (HMENU) IDC_BODY, NULL, NULL);
             state->lang_label = CreateWindowW(L"STATIC", L"", WS_CHILD, 32, 126, 120, 22, hwnd, (HMENU) IDC_LANG_LABEL, NULL, NULL);
             state->lang_combo = CreateWindowW(L"COMBOBOX", L"", WS_CHILD | WS_VSCROLL | CBS_DROPDOWNLIST, 160, 122, 220, 240, hwnd, (HMENU) IDC_LANG_COMBO, NULL, NULL);
+            state->mode_label = CreateWindowW(L"STATIC", L"", WS_CHILD, 32, 158, 120, 22, hwnd, (HMENU) IDC_MODE_LABEL, NULL, NULL);
+            state->mode_install = CreateWindowW(L"BUTTON", L"", WS_CHILD | BS_AUTORADIOBUTTON, 160, 156, 300, 22, hwnd, (HMENU) IDC_MODE_INSTALL, NULL, NULL);
+            state->mode_repair = CreateWindowW(L"BUTTON", L"", WS_CHILD | BS_AUTORADIOBUTTON, 160, 184, 300, 22, hwnd, (HMENU) IDC_MODE_REPAIR, NULL, NULL);
+            state->mode_remove = CreateWindowW(L"BUTTON", L"", WS_CHILD | BS_AUTORADIOBUTTON, 160, 212, 300, 22, hwnd, (HMENU) IDC_MODE_REMOVE, NULL, NULL);
             combo_add_utf8(state->lang_combo, "English");
             combo_add_utf8(state->lang_combo, "한국어");
             SendMessageW(state->lang_combo, CB_SETCURSEL, LANG_EN, 0);
@@ -878,6 +1145,25 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             state->back = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE, 286, 346, 90, 28, hwnd, (HMENU) IDC_BACK, NULL, NULL);
             state->next = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 384, 346, 90, 28, hwnd, (HMENU) IDC_NEXT, NULL, NULL);
             state->cancel = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE, 482, 346, 90, 28, hwnd, (HMENU) IDC_CANCEL, NULL, NULL);
+            apply_control_font(state->title, g_font_title);
+            apply_control_font(state->body, g_font_body);
+            apply_control_font(state->lang_label, g_font_ui);
+            apply_control_font(state->lang_combo, g_font_ui);
+            apply_control_font(state->mode_label, g_font_ui);
+            apply_control_font(state->mode_install, g_font_ui);
+            apply_control_font(state->mode_repair, g_font_ui);
+            apply_control_font(state->mode_remove, g_font_ui);
+            apply_control_font(state->check_path, g_font_ui);
+            apply_control_font(state->check_examples, g_font_ui);
+            apply_control_font(state->check_editor, g_font_ui);
+            apply_control_font(state->check_tests, g_font_ui);
+            apply_control_font(state->summary, g_font_ui);
+            apply_control_font(state->status, g_font_ui);
+            apply_control_font(state->back, g_font_ui);
+            apply_control_font(state->next, g_font_ui);
+            apply_control_font(state->cancel, g_font_ui);
+            SendMessageA(state->progress, PBM_SETBARCOLOR, 0, (LPARAM) UI_ACCENT);
+            SendMessageA(state->progress, PBM_SETBKCOLOR, 0, (LPARAM) UI_ACCENT_SOFT);
             show_page(state);
             return 0;
         case WM_COMMAND:
@@ -890,6 +1176,14 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                             SetWindowTextW(hwnd, window_title);
                             free(window_title);
                         }
+                        show_page(state);
+                    }
+                    return 0;
+                case IDC_MODE_INSTALL:
+                case IDC_MODE_REPAIR:
+                case IDC_MODE_REMOVE:
+                    if (HIWORD(wParam) == BN_CLICKED) {
+                        read_options(state);
                         show_page(state);
                     }
                     return 0;
@@ -915,6 +1209,44 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                 case IDC_CANCEL:
                     if (!state->running) DestroyWindow(hwnd);
                     return 0;
+            }
+            return 0;
+        case WM_CTLCOLOREDIT:
+            SetTextColor((HDC) wParam, UI_TEXT);
+            SetBkColor((HDC) wParam, UI_PANEL_ALT);
+            return (LRESULT) g_brush_panel_alt;
+        case WM_CTLCOLORSTATIC:
+            SetTextColor((HDC) wParam, UI_TEXT);
+            if (state && (((HWND) lParam) == state->summary || ((HWND) lParam) == state->status)) {
+                SetBkColor((HDC) wParam, UI_PANEL_ALT);
+                return (LRESULT) g_brush_panel_alt;
+            }
+            SetBkMode((HDC) wParam, TRANSPARENT);
+            return (LRESULT) g_brush_bg;
+        case WM_CTLCOLORBTN:
+            SetTextColor((HDC) wParam, UI_TEXT);
+            SetBkColor((HDC) wParam, UI_BG);
+            return (LRESULT) g_brush_bg;
+        case WM_ERASEBKGND:
+            return 1;
+        case WM_PAINT:
+            {
+                PAINTSTRUCT ps;
+                RECT rc;
+                RECT header;
+                RECT panel;
+                HDC hdc = BeginPaint(hwnd, &ps);
+                GetClientRect(hwnd, &rc);
+                FillRect(hdc, &rc, g_brush_bg);
+                header = rc;
+                header.bottom = 112;
+                FillRect(hdc, &header, g_brush_accent);
+                panel.left = 16;
+                panel.top = 116;
+                panel.right = rc.right - 16;
+                panel.bottom = rc.bottom - 54;
+                FillRect(hdc, &panel, g_brush_panel);
+                EndPaint(hwnd, &ps);
             }
             return 0;
         case WM_APP_INSTALL_DONE:
@@ -949,6 +1281,7 @@ static void run_wizard(SetupContext *ctx) {
     state.options.install_editor = ctx->has_editor;
     state.options.run_checks = true;
     state.options.language_index = LANG_EN;
+    state.options.operation = ctx->repair_mode ? OP_REPAIR : (ctx->existing_install ? OP_REPAIR : OP_INSTALL);
     ZeroMemory(&icc, sizeof(icc));
     icc.dwSize = sizeof(icc);
     icc.dwICC = ICC_PROGRESS_CLASS;
@@ -979,8 +1312,10 @@ int main(void) {
     discover_context(&ctx);
     if (ctx.uninstall_mode) {
         perform_uninstall(&ctx);
+        if (ctx.temp_payload_root[0]) remove_tree_recursive(ctx.temp_payload_root);
         return 0;
     }
     run_wizard(&ctx);
+    if (ctx.temp_payload_root[0]) remove_tree_recursive(ctx.temp_payload_root);
     return 0;
 }

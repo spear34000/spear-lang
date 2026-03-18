@@ -37,15 +37,29 @@ function view comparison_chart(text title, text body, text a_label, text a_value
     };
 }
 
-function text metric_bars_body(textlist labels, textlist values, textlist widths, textlist tones) {
+function num chart_peak(numlist values) {
+    guard(count(values) > 0, "chart_peak requires at least one value");
+    variable best = at(values, 0);
+    variable i = 1;
+    while (i < count(values)) {
+        if (at(values, i) > best) {
+            best = at(values, i);
+        }
+        i = i + 1;
+    }
+    return best;
+}
+
+function text metric_bars_body(textlist labels, numlist values, textlist tones) {
+    variable peak = chart_peak(values);
     variable i = 0;
     sharp {
         variable out = "";
         while (i < count(labels)) {
             out = join(out, signal_bar(
                 at(labels, i),
-                at(values, i),
-                at(widths, i),
+                join(text(at(values, i)), "%"),
+                join(text((at(values, i) * 100) / peak), "%"),
                 at(tones, i)
             ));
             i = i + 1;
@@ -54,11 +68,11 @@ function text metric_bars_body(textlist labels, textlist values, textlist widths
     }
 }
 
-function view metric_bars(text title, text body, textlist labels, textlist values, textlist widths, textlist tones) {
+function view metric_bars(text title, text body, textlist labels, numlist values, textlist tones) {
     return box(modifier(padding("24px"), modifier(corner_radius("28px"), modifier(background("#fffdf9"), shadow("0 18px 50px rgba(15,23,42,0.10)"))))) {
         column_box(gap_space("18px")) {
             intro(title, body);
-            metric_bars_body(labels, values, widths, tones);
+            metric_bars_body(labels, values, tones);
         };
     };
 }

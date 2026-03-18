@@ -1403,6 +1403,9 @@ static ValueType infer_expr_type(Parser *parser) {
         token.kind == TOK_ACTION) {
         return TYPE_TEXT;
     }
+    if (token.kind == TOK_TEXT && peek_token(parser).kind == TOK_LPAREN) {
+        return TYPE_TEXT;
+    }
     if (token.kind == TOK_NUMBER || token.kind == TOK_SIZE || token.kind == TOK_SAME || token.kind == TOK_COUNT) {
         return TYPE_NUM;
     }
@@ -1696,6 +1699,19 @@ static char *parse_text_children(Parser *parser, int scope_id) {
 
 static Expr parse_text_expr(Parser *parser, int scope_id) {
     Token token = parser->lexer.current;
+
+    if (parser->lexer.current.kind == TOK_TEXT && peek_token(parser).kind == TOK_LPAREN) {
+        advance(parser);
+        expect(parser, TOK_LPAREN, "expected '(' after text");
+        Expr value = parse_num_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        Buffer code;
+        char *scope_name = make_scope_name(scope_id);
+        buf_init(&code);
+        buf_appendf(&code, "spear_text_from_num(&%s, %s)", scope_name, value.code);
+        free(scope_name);
+        return make_expr(TYPE_TEXT, buf_take(&code));
+    }
 
     if (match(parser, TOK_STRING)) {
         Buffer code;
@@ -2172,7 +2188,8 @@ static Expr parse_list_expr(Parser *parser, int scope_id, ValueType expected_typ
 }
 
 static bool starts_text_expr(Parser *parser) {
-    if (parser->lexer.current.kind == TOK_STRING ||
+    if ((parser->lexer.current.kind == TOK_TEXT && peek_token(parser).kind == TOK_LPAREN) ||
+        parser->lexer.current.kind == TOK_STRING ||
         parser->lexer.current.kind == TOK_JOIN ||
         parser->lexer.current.kind == TOK_READ ||
         parser->lexer.current.kind == TOK_ASK ||
@@ -3076,6 +3093,12 @@ static const char *runtime_prelude =
 "    memcpy(dst, a, len_a);\n"
 "    memcpy(dst + len_a, b, len_b + 1);\n"
 "    return dst;\n"
+"}\n"
+"\n"
+"static char *spear_text_from_num(SpearScope *scope, long long value) {\n"
+"    char temp[32];\n"
+"    sprintf(temp, \"%lld\", value);\n"
+"    return spear_text_clone(scope, temp);\n"
 "}\n"
 "\n"
 "static char *spear_style_chain(SpearScope *scope, const char *base, const char *mods) {\n"

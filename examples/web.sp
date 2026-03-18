@@ -37,8 +37,7 @@ run {
                     "Signal board",
                     "Numbers should turn into usable visuals with almost no ceremony.",
                     pack("Ease of writing", "Visual quality", "Flexibility"),
-                    pack("86%", "78%", "64%"),
-                    pack("86%", "78%", "64%"),
+                    pack(86, 78, 64),
                     pack("#4f8cff", "#ff8a3d", "#111827")
                 );
             }

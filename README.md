@@ -32,6 +32,7 @@ run {
 - `value`: inferred read-only value
 - `variable`: inferred mutable value
 - `number`, `string`, `numbers`, `strings`: clearer beginner type names
+- `text(number)` or `string(number)`: turn a number into text for UI and charts
 - `function`: explicit function declaration
 - `run { ... }`: simplest program entry
 
@@ -41,6 +42,7 @@ run {
 - `value`: 타입 추론되는 읽기 전용 값
 - `variable`: 타입 추론되는 변경 가능한 값
 - `number`, `string`, `numbers`, `strings`: 더 직관적인 초보자용 타입 이름
+- `text(number)` 또는 `string(number)`: 숫자를 UI/차트용 문자열로 바꾸기
 - `function`: 명시적인 함수 선언
 - `run { ... }`: 가장 쉬운 프로그램 시작점
 

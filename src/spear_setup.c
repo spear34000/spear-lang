@@ -33,10 +33,12 @@
 #define IDC_MODE_REMOVE 1018
 
 #define UI_BG RGB(10, 16, 28)
-#define UI_PANEL RGB(16, 24, 40)
-#define UI_PANEL_ALT RGB(20, 32, 52)
-#define UI_ACCENT RGB(52, 120, 246)
-#define UI_ACCENT_SOFT RGB(30, 58, 100)
+#define UI_PANEL RGB(15, 23, 38)
+#define UI_PANEL_ALT RGB(22, 32, 52)
+#define UI_PANEL_EDGE RGB(38, 52, 80)
+#define UI_ACCENT RGB(47, 111, 237)
+#define UI_ACCENT_SOFT RGB(28, 49, 88)
+#define UI_SIDEBAR RGB(8, 13, 24)
 #define UI_TEXT RGB(232, 240, 255)
 #define UI_MUTED RGB(160, 176, 204)
 
@@ -123,6 +125,7 @@ typedef struct {
 } WizardState;
 
 static HBRUSH g_brush_bg = NULL;
+static HBRUSH g_brush_sidebar = NULL;
 static HBRUSH g_brush_panel = NULL;
 static HBRUSH g_brush_panel_alt = NULL;
 static HBRUSH g_brush_accent = NULL;
@@ -173,6 +176,7 @@ static void apply_control_font(HWND hwnd, HFONT font) {
 
 static void ensure_theme_resources(void) {
     if (!g_brush_bg) g_brush_bg = CreateSolidBrush(UI_BG);
+    if (!g_brush_sidebar) g_brush_sidebar = CreateSolidBrush(UI_SIDEBAR);
     if (!g_brush_panel) g_brush_panel = CreateSolidBrush(UI_PANEL);
     if (!g_brush_panel_alt) g_brush_panel_alt = CreateSolidBrush(UI_PANEL_ALT);
     if (!g_brush_accent) g_brush_accent = CreateSolidBrush(UI_ACCENT);
@@ -188,6 +192,47 @@ static void ensure_theme_resources(void) {
         g_font_ui = CreateFontW(-15, 0, 0, 0, FW_MEDIUM, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
             OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI");
     }
+}
+
+static void draw_text_utf8(HDC hdc, int x, int y, int w, int h, UINT format, COLORREF color, HFONT font, const char *text) {
+    RECT rect;
+    wchar_t *wide = wide_from_utf8(text);
+    HFONT old_font = font ? (HFONT) SelectObject(hdc, font) : NULL;
+    SetTextColor(hdc, color);
+    SetBkMode(hdc, TRANSPARENT);
+    rect.left = x;
+    rect.top = y;
+    rect.right = x + w;
+    rect.bottom = y + h;
+    DrawTextW(hdc, wide, -1, &rect, format);
+    if (old_font) SelectObject(hdc, old_font);
+    free(wide);
+}
+
+static void draw_button_face(DRAWITEMSTRUCT *dis, bool primary) {
+    HDC hdc = dis->hDC;
+    RECT rc = dis->rcItem;
+    char label[128];
+    COLORREF fill = primary ? UI_ACCENT : UI_PANEL_ALT;
+    COLORREF border = primary ? RGB(84, 148, 255) : UI_PANEL_EDGE;
+    COLORREF text = primary ? RGB(250, 252, 255) : UI_TEXT;
+    HBRUSH brush = CreateSolidBrush(fill);
+    HPEN pen = CreatePen(PS_SOLID, 1, border);
+    HPEN old_pen = (HPEN) SelectObject(hdc, pen);
+    HBRUSH old_brush = (HBRUSH) SelectObject(hdc, brush);
+    int radius = 10;
+
+    if ((dis->itemState & ODS_SELECTED) != 0) OffsetRect(&rc, 0, 1);
+    RoundRect(hdc, rc.left, rc.top, rc.right, rc.bottom, radius, radius);
+    SelectObject(hdc, old_brush);
+    SelectObject(hdc, old_pen);
+    DeleteObject(brush);
+    DeleteObject(pen);
+
+    if ((dis->itemState & ODS_DISABLED) != 0) text = UI_MUTED;
+    GetWindowTextA(dis->hwndItem, label, (int) sizeof(label));
+    draw_text_utf8(hdc, rc.left, rc.top + 1, rc.right - rc.left, rc.bottom - rc.top,
+        DT_CENTER | DT_VCENTER | DT_SINGLELINE, text, g_font_ui, label);
 }
 
 static const char *lang_code(int index) {
@@ -932,6 +977,21 @@ static void build_summary(WizardState *state, char *out, size_t cap) {
 static void show_page(WizardState *state) {
     char text[8192];
     read_options(state);
+    MoveWindow(state->title, 220, 34, 420, 38, TRUE);
+    MoveWindow(state->body, 220, 76, 420, 46, TRUE);
+    MoveWindow(state->lang_label, 236, 172, 120, 24, TRUE);
+    MoveWindow(state->lang_combo, 380, 168, 210, 260, TRUE);
+    MoveWindow(state->mode_label, 236, 214, 120, 24, TRUE);
+    MoveWindow(state->mode_install, 380, 212, 210, 22, TRUE);
+    MoveWindow(state->mode_repair, 380, 242, 210, 22, TRUE);
+    MoveWindow(state->mode_remove, 380, 272, 210, 22, TRUE);
+    MoveWindow(state->check_path, 236, 172, 354, 22, TRUE);
+    MoveWindow(state->check_examples, 236, 206, 354, 22, TRUE);
+    MoveWindow(state->check_editor, 236, 240, 354, 22, TRUE);
+    MoveWindow(state->check_tests, 236, 274, 354, 22, TRUE);
+    MoveWindow(state->summary, 220, 162, 390, 184, TRUE);
+    MoveWindow(state->progress, 236, 186, 354, 18, TRUE);
+    MoveWindow(state->status, 236, 214, 354, 132, TRUE);
     set_text(state->back, tr(state->options.language_index, "back"));
     set_text(state->cancel, tr(state->options.language_index, "cancel"));
     ShowWindow(state->check_path, SW_HIDE);
@@ -952,10 +1012,10 @@ static void show_page(WizardState *state) {
         set_text(state->title, state->ctx.repair_mode ? tr(state->options.language_index, "wizard_repair") : tr(state->options.language_index, "wizard_setup"));
         set_text(state->body, tr(state->options.language_index, "welcome_body"));
         set_text(state->lang_label, tr(state->options.language_index, "language_label"));
-        set_text(state->mode_label, "Action");
-        set_text(state->mode_install, state->ctx.existing_install ? "Reinstall Spear" : "Install Spear");
-        set_text(state->mode_repair, "Repair current install");
-        set_text(state->mode_remove, "Remove Spear");
+        set_text(state->mode_label, state->options.language_index == LANG_KO ? "설치 작업" : "Action");
+        set_text(state->mode_install, state->options.language_index == LANG_KO ? (state->ctx.existing_install ? "Spear 다시 설치" : "Spear 설치") : (state->ctx.existing_install ? "Reinstall Spear" : "Install Spear"));
+        set_text(state->mode_repair, state->options.language_index == LANG_KO ? "현재 설치 복구" : "Repair current install");
+        set_text(state->mode_remove, state->options.language_index == LANG_KO ? "Spear 제거" : "Remove Spear");
         write_options(state);
         ShowWindow(state->lang_label, SW_SHOW);
         ShowWindow(state->lang_combo, SW_SHOW);
@@ -1089,8 +1149,8 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             state = (WizardState *) ((CREATESTRUCTW *) lParam)->lpCreateParams;
             state->hwnd = hwnd;
             ensure_theme_resources();
-            state->title = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE, 24, 20, 560, 28, hwnd, (HMENU) IDC_TITLE, NULL, NULL);
-            state->body = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE, 24, 56, 560, 60, hwnd, (HMENU) IDC_BODY, NULL, NULL);
+            state->title = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE, 220, 34, 420, 38, hwnd, (HMENU) IDC_TITLE, NULL, NULL);
+            state->body = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE, 220, 76, 420, 46, hwnd, (HMENU) IDC_BODY, NULL, NULL);
             state->lang_label = CreateWindowW(L"STATIC", L"", WS_CHILD, 32, 126, 120, 22, hwnd, (HMENU) IDC_LANG_LABEL, NULL, NULL);
             state->lang_combo = CreateWindowW(L"COMBOBOX", L"", WS_CHILD | WS_VSCROLL | CBS_DROPDOWNLIST, 160, 122, 220, 240, hwnd, (HMENU) IDC_LANG_COMBO, NULL, NULL);
             state->mode_label = CreateWindowW(L"STATIC", L"", WS_CHILD, 32, 158, 120, 22, hwnd, (HMENU) IDC_MODE_LABEL, NULL, NULL);
@@ -1107,9 +1167,9 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             state->summary = CreateWindowW(L"EDIT", L"", WS_CHILD | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL, 24, 132, 560, 190, hwnd, (HMENU) IDC_SUMMARY, NULL, NULL);
             state->progress = CreateWindowExW(0, PROGRESS_CLASSW, L"", WS_CHILD | PBS_MARQUEE, 24, 144, 560, 18, hwnd, (HMENU) IDC_PROGRESS, NULL, NULL);
             state->status = CreateWindowW(L"EDIT", L"", WS_CHILD | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL, 24, 176, 560, 146, hwnd, (HMENU) IDC_STATUS, NULL, NULL);
-            state->back = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE, 286, 346, 90, 28, hwnd, (HMENU) IDC_BACK, NULL, NULL);
-            state->next = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 384, 346, 90, 28, hwnd, (HMENU) IDC_NEXT, NULL, NULL);
-            state->cancel = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE, 482, 346, 90, 28, hwnd, (HMENU) IDC_CANCEL, NULL, NULL);
+            state->back = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 332, 376, 90, 32, hwnd, (HMENU) IDC_BACK, NULL, NULL);
+            state->next = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW | BS_DEFPUSHBUTTON, 432, 376, 90, 32, hwnd, (HMENU) IDC_NEXT, NULL, NULL);
+            state->cancel = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 532, 376, 90, 32, hwnd, (HMENU) IDC_CANCEL, NULL, NULL);
             apply_control_font(state->title, g_font_title);
             apply_control_font(state->body, g_font_body);
             apply_control_font(state->lang_label, g_font_ui);
@@ -1176,41 +1236,80 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                     return 0;
             }
             return 0;
+        case WM_DRAWITEM:
+            {
+                DRAWITEMSTRUCT *dis = (DRAWITEMSTRUCT *) lParam;
+                if (wParam == IDC_BACK || wParam == IDC_CANCEL) {
+                    draw_button_face(dis, false);
+                    return TRUE;
+                }
+                if (wParam == IDC_NEXT) {
+                    draw_button_face(dis, true);
+                    return TRUE;
+                }
+            }
+            break;
         case WM_CTLCOLOREDIT:
             SetTextColor((HDC) wParam, UI_TEXT);
             SetBkColor((HDC) wParam, UI_PANEL_ALT);
             return (LRESULT) g_brush_panel_alt;
         case WM_CTLCOLORSTATIC:
             SetTextColor((HDC) wParam, UI_TEXT);
+            if (state && (((HWND) lParam) == state->title || ((HWND) lParam) == state->body)) {
+                SetBkColor((HDC) wParam, UI_BG);
+                return (LRESULT) g_brush_bg;
+            }
             if (state && (((HWND) lParam) == state->summary || ((HWND) lParam) == state->status)) {
                 SetBkColor((HDC) wParam, UI_PANEL_ALT);
                 return (LRESULT) g_brush_panel_alt;
             }
-            SetBkMode((HDC) wParam, TRANSPARENT);
-            return (LRESULT) g_brush_bg;
+            SetBkColor((HDC) wParam, UI_PANEL);
+            return (LRESULT) g_brush_panel;
         case WM_CTLCOLORBTN:
             SetTextColor((HDC) wParam, UI_TEXT);
-            SetBkColor((HDC) wParam, UI_BG);
-            return (LRESULT) g_brush_bg;
+            if (state && ((((HWND) lParam) == state->back) || (((HWND) lParam) == state->next) || (((HWND) lParam) == state->cancel))) {
+                SetBkColor((HDC) wParam, UI_BG);
+                return (LRESULT) g_brush_bg;
+            }
+            SetBkColor((HDC) wParam, UI_PANEL);
+            return (LRESULT) g_brush_panel;
         case WM_ERASEBKGND:
             return 1;
         case WM_PAINT:
             {
                 PAINTSTRUCT ps;
                 RECT rc;
-                RECT header;
-                RECT panel;
+                RECT sidebar;
+                RECT content;
+                RECT card;
+                RECT accent_bar;
                 HDC hdc = BeginPaint(hwnd, &ps);
                 GetClientRect(hwnd, &rc);
                 FillRect(hdc, &rc, g_brush_bg);
-                header = rc;
-                header.bottom = 112;
-                FillRect(hdc, &header, g_brush_accent);
-                panel.left = 16;
-                panel.top = 116;
-                panel.right = rc.right - 16;
-                panel.bottom = rc.bottom - 54;
-                FillRect(hdc, &panel, g_brush_panel);
+                sidebar = rc;
+                sidebar.right = 184;
+                FillRect(hdc, &sidebar, g_brush_sidebar);
+                accent_bar = sidebar;
+                accent_bar.left = 0;
+                accent_bar.top = 0;
+                accent_bar.right = 6;
+                FillRect(hdc, &accent_bar, g_brush_accent);
+                content = rc;
+                content.left = 184;
+                FillRect(hdc, &content, g_brush_bg);
+                card.left = 220;
+                card.top = 150;
+                card.right = rc.right - 24;
+                card.bottom = rc.bottom - 64;
+                FillRect(hdc, &card, g_brush_panel);
+                FrameRect(hdc, &card, g_brush_panel_alt);
+                draw_text_utf8(hdc, 28, 28, 120, 34, DT_LEFT | DT_VCENTER | DT_SINGLELINE, UI_TEXT, g_font_title, "Spear");
+                draw_text_utf8(hdc, 28, 66, 120, 20, DT_LEFT | DT_VCENTER | DT_SINGLELINE, UI_MUTED, g_font_ui, "Installer");
+                draw_text_utf8(hdc, 28, 130, 120, 24, DT_LEFT | DT_VCENTER | DT_SINGLELINE, state && state->page == 0 ? UI_TEXT : UI_MUTED, g_font_ui, "1  Welcome");
+                draw_text_utf8(hdc, 28, 160, 120, 24, DT_LEFT | DT_VCENTER | DT_SINGLELINE, state && state->page == 1 ? UI_TEXT : UI_MUTED, g_font_ui, "2  Options");
+                draw_text_utf8(hdc, 28, 190, 120, 24, DT_LEFT | DT_VCENTER | DT_SINGLELINE, state && state->page == 2 ? UI_TEXT : UI_MUTED, g_font_ui, "3  Review");
+                draw_text_utf8(hdc, 28, 220, 120, 24, DT_LEFT | DT_VCENTER | DT_SINGLELINE, state && state->page == 3 ? UI_TEXT : UI_MUTED, g_font_ui, "4  Install");
+                draw_text_utf8(hdc, 28, 250, 120, 24, DT_LEFT | DT_VCENTER | DT_SINGLELINE, state && state->page >= 4 ? UI_TEXT : UI_MUTED, g_font_ui, "5  Finish");
                 EndPaint(hwnd, &ps);
             }
             return 0;
@@ -1260,7 +1359,7 @@ static void run_wizard(SetupContext *ctx) {
     RegisterClassW(&wc);
     {
         wchar_t *window_title = wide_from_utf8(ctx->repair_mode ? tr(LANG_EN, "wizard_repair") : tr(LANG_EN, "wizard_setup"));
-        CreateWindowExW(WS_EX_DLGMODALFRAME, APP_CLASS_W, window_title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT, 620, 420, NULL, NULL, GetModuleHandleA(NULL), &state);
+        CreateWindowExW(WS_EX_DLGMODALFRAME, APP_CLASS_W, window_title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT, 680, 460, NULL, NULL, GetModuleHandleA(NULL), &state);
         free(window_title);
     }
     ShowWindow(state.hwnd, SW_SHOW);

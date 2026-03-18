@@ -1,6 +1,7 @@
 CC = gcc
 CFLAGS ?= -O2 -Wall -Wextra -std=c11
 SETUP_LIBS ?= -lcomctl32
+SETUP_LDFLAGS ?= -mwindows
 
 all: spear setup
 
@@ -11,7 +12,7 @@ spear: spearc src/spear_cli.c
 	$(CC) $(CFLAGS) -o build/spear.exe src/spear_cli.c
 
 setup: spear src/spear_setup.c
-	$(CC) $(CFLAGS) -o build/spear-setup.exe src/spear_setup.c $(SETUP_LIBS)
+	$(CC) $(CFLAGS) $(SETUP_LDFLAGS) -o build/spear-setup.exe src/spear_setup.c $(SETUP_LIBS)
 
 example: spear
 	./build/spear.exe examples/hello.sp

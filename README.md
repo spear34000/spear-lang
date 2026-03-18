@@ -1,80 +1,22 @@
-# spear
+# Spear
 
-`spear` is a small compiled language implemented in C.
+**English**  
+Spear is a small compiled language implemented in C. It is designed to feel easy for beginners while still being structured enough for real tools, installers, and UI generation.
 
-- Source extension: `.sp`
-- Core memory concept: `sharp`
-- Build model: AOT translation from `spear` to C
+**한국어**  
+Spear는 C로 만든 작은 컴파일 언어입니다. 비전공자도 쉽게 읽고 쓸 수 있게 만들면서도, 실제 도구 제작, 설치기, UI 생성까지 다룰 수 있도록 구조를 갖추는 것을 목표로 합니다.
 
-## Sharp Memory
+- Source extension / 소스 확장자: `.sp`
+- Core memory concept / 핵심 메모리 개념: `sharp`
+- Build model / 빌드 모델: AOT translation from Spear to C / Spear를 C로 미리 변환한 뒤 빌드
 
-`sharp { ... }` creates a temporary memory region.
+## Quick Start / 빠른 시작
 
-- `text` values created inside the block live in that region.
-- Leaving the block releases those temporary strings together.
-- You do not manage `malloc` and `free` directly in user code.
+**English**  
+Beginner mode automatically includes `std/prelude.sp`, so very small programs can start immediately.
 
-## Easier Spear
-
-Recent syntax improvements focus on making the language easier to write:
-
-- `value` means "make a new read-only value"
-- `variable` means "make a new mutable value"
-- `const name = ...;` now works directly without `const let`
-- beginner-friendly aliases work too: `number`, `string`, `numbers`, `strings`, `mutable`
-- `pack(...)` can create lists with initial values
-- user functions make larger programs practical
-- `const` blocks accidental reassignment
-- `guard(...)` makes fail-fast contracts cheap
-- `escape(...)`, `markup(...)`, and `page(...)` make safe HTML output simpler
-- `view` makes UI components read like components instead of plain text helpers
-- `each item in list { ... }` cuts down list boilerplate
-- `var` is the short mutable binding form
-- `for`, `break`, and `continue` cover the standard control-flow baseline
-- `import "file.sp"` lets a program split across local Spear files
-- `module`, `package`, and `function` make multi-file code read like a real language
-- `nodecall(...)` and `pycall(...)` connect Spear to Node/npm and Python/pip code through JSON payloads
-- `write(path, content)` makes page/app output generation practical
-- checked arithmetic traps division-by-zero and 64-bit overflow with source locations
-- list bounds and `guard(...)` failures report `line:column` runtime locations
-- beginner aliases like `run { ... }`, `print(...)`, and `ask(...)` reduce boilerplate
-
-## Standard Library
-
-Spear now ships with a structured `std/` library.
-
-Public entrypoints:
-
-- `std/prelude.sp`: recommended starter import for app code
-- `std/math.sp`: numeric helpers
-- `std/text.sp`: text composition helpers
-- `std/lists.sp`: collection helpers
-- `std/io.sp`: console and file wrappers
-- `std/paths.sp`: path and build-output helpers
-- `std/assert.sp`: reusable validation helpers
-- `std/bridge.sp`: Node/Python bridge wrappers
-- `std/web.sp`: reusable `view` helpers for UI output
-
-Internal organization:
-
-- `std/math/`: arithmetic and comparison helpers
-- `std/text/`: text builders and layout helpers
-- `std/collections/`: list-focused utilities
-- `std/io/`: console and file helpers
-- `std/system/`: path and assertion helpers
-- `std/bridge/`: bridge-specific wrappers
-- `std/web/`: page, content, and action views
-
-Web building blocks now cover more of a real page:
-
-- layout: `page_shell`, `page_frame`, `container`, `section_block`, `article_block`, `panel`, `card`, `split`, `stack_block`, `header_bar`, `footer_note`
-- content: `heading1`, `heading2`, `heading3`, `paragraph`, `lead`, `hero`, `intro`, `note`, `success_note`, `warning_note`, `item`, `bullet_list`, `number_list`, `quote_block`, `code_line`, `metric`, `empty_state`, `faq_item`, `badge`
-- actions: `actions`, `action_bar`, `primary_action`, `secondary_action`, `button_row`, `link_row`, `nav_bar`, `cta_section`, `docs_cta`
-- attribute helpers: `attr`, `attrs`, `class_name`, `id_name`, `style_attr`, `href_attr`, `src_attr`, `alt_attr`
-- compose-like modifiers: `modifier`, `padding_all`, `padding_x`, `padding_y`, `margin_all`, `margin_x`, `margin_y`, `gap_space`, `background`, `foreground`, `corner_radius`, `border`, `fill_max_width`, `fill_max_height`, `width_fixed`, `max_width`, `min_width`, `height_fixed`, `min_height`, `center_x`, `align_center`, `justify_center`, `justify_between`, `shadow`, `font_size`, `font_weight`, `flex_col`, `flex_row`, `wrap`
-- compose-like blocks: `box(...) { ... }`, `surface_box(...) { ... }`, `column_box(...) { ... }`, `row_box(...) { ... }`, `label_text`, `button_link`, `image_block`, `spacer`
-
-Beginner mode automatically includes `std/prelude.sp`, so the smallest programs can start immediately:
+**한국어**  
+초보자 모드는 `std/prelude.sp`를 자동 포함하므로 아주 작은 프로그램은 바로 시작할 수 있습니다.
 
 ```sp
 run {
@@ -82,49 +24,27 @@ run {
 }
 ```
 
-Clear data shapes:
+## Core Syntax / 핵심 문법
 
-- `number` or `num`: one integer value
-- `string` or `text`: one text value
-- `numbers` or `numlist`: a list of integer values
-- `strings` or `textlist`: a list of text values
-- `value` or `let`: inferred read-only binding
-- `variable`, `mutable`, or `var`: inferred mutable binding
-- `const`: explicit constant binding, with or without a type
+**English**
 
-Clear declaration rules:
+- `const`: constant value
+- `value`: inferred read-only value
+- `variable`: inferred mutable value
+- `number`, `string`, `numbers`, `strings`: clearer beginner type names
+- `function`: explicit function declaration
+- `run { ... }`: simplest program entry
 
-- `value name = ...;`
-  - inferred type, read-only
-- `variable name = ...;`
-  - inferred type, mutable
-- `const name = ...;`
-  - inferred type, constant
-- `number name = ...;`
-  - explicit number
-- `string name = ...;`
-  - explicit string
-- `numbers name = ...;`
-  - explicit number list
-- `strings name = ...;`
-  - explicit string list
-- `const number name = ...;`
-  - explicit constant with a fixed type
+**한국어**
 
-Clear function rules:
+- `const`: 상수 값
+- `value`: 타입 추론되는 읽기 전용 값
+- `variable`: 타입 추론되는 변경 가능한 값
+- `number`, `string`, `numbers`, `strings`: 더 직관적인 초보자용 타입 이름
+- `function`: 명시적인 함수 선언
+- `run { ... }`: 가장 쉬운 프로그램 시작점
 
-- `function number add(number left, number right) { ... }`
-  - number-returning function
-- `function string title_line(string title) { ... }`
-  - string-returning function
-- `function view hero(string title, string body) { ... }`
-  - reusable UI/view function
-- `run { ... }`
-  - simplest app entry point
-- `spear launch() { ... }`
-  - named entry point when you want a formal app function
-
-That means beginner code can read like this:
+Example / 예시:
 
 ```sp
 run {
@@ -136,47 +56,74 @@ run {
 }
 ```
 
-Use direct modules only when you want a narrower surface:
+Function style / 함수 스타일:
+
+```sp
+function number add(number left, number right) {
+    return left + right;
+}
+```
+
+## Sharp Memory / Sharp 메모리
+
+**English**  
+`sharp { ... }` creates a temporary memory region. Text created inside the block is released together when the block ends.
+
+**한국어**  
+`sharp { ... }`는 임시 메모리 영역을 만듭니다. 블록 안에서 만든 텍스트는 블록이 끝날 때 함께 정리됩니다.
+
+```sp
+sharp {
+    string label = join("sharp-", "text");
+    print(label);
+}
+```
+
+## Standard Library / 표준 라이브러리
+
+**English**  
+Spear ships with a structured `std/` library. For most programs, `std/prelude.sp` is the main starting surface.
+
+**한국어**  
+Spear에는 구조화된 `std/` 표준 라이브러리가 포함됩니다. 대부분의 프로그램은 `std/prelude.sp`를 시작점으로 사용하면 됩니다.
+
+Public entrypoints / 공개 진입점:
+
+- `std/prelude.sp`: default starter surface / 기본 시작 표면
+- `std/math.sp`: numeric helpers / 숫자 유틸리티
+- `std/text.sp`: text helpers / 문자열 유틸리티
+- `std/lists.sp`: list helpers / 리스트 유틸리티
+- `std/io.sp`: console and file helpers / 콘솔 및 파일 유틸리티
+- `std/paths.sp`: path helpers / 경로 유틸리티
+- `std/assert.sp`: validation helpers / 검증 유틸리티
+- `std/bridge.sp`: Node/Python bridge helpers / Node/Python 연동 유틸리티
+- `std/web.sp`: reusable web UI helpers / 재사용 가능한 웹 UI 유틸리티
+
+Direct module import / 직접 모듈 import:
 
 ```sp
 import "../std/math.sp";
 import "../std/web.sp";
 ```
 
-Rule of thumb:
+## Web UI / 웹 UI
 
-- use `escape(...)` on untrusted text
-- use `markup(...)` to wrap already-safe HTML fragments
-- use `page(...)` to emit a full HTML document
+**English**  
+Spear includes a safe HTML and UI layer with Compose-style layout blocks and modifier chaining.
 
-## Example
+**한국어**  
+Spear는 안전한 HTML/UI 레이어를 포함하며, Compose 스타일의 레이아웃 블록과 modifier 체인을 지원합니다.
 
-```sp
-package examples;
-module hello;
+Main web pieces / 주요 웹 구성요소:
 
-run {
-    numbers scores = pack(add(4, 5), 12, 20);
-    strings words = pack("spear", "edge");
-    variable shots = clamp_num(3, 0, 10);
+- Layout / 레이아웃: `page_frame`, `container`, `section_block`, `split`, `header_bar`, `footer_note`
+- Content / 콘텐츠: `heading1`, `heading2`, `paragraph`, `hero`, `metric`, `quote_block`, `badge`
+- Actions / 액션: `primary_action`, `secondary_action`, `button_row`, `nav_bar`, `cta_section`
+- Attributes / 속성: `attr`, `attrs`, `class_name`, `style_attr`, `href_attr`, `src_attr`, `alt_attr`
+- Modifiers / modifier: `modifier`, `padding_all`, `padding_x`, `padding_y`, `background`, `foreground`, `corner_radius`, `border`, `gap_space`, `max_width`, `shadow`, `justify_center`, `justify_between`
+- Compose-style blocks / Compose 스타일 블록: `box(...) { ... }`, `surface_box(...) { ... }`, `column_box(...) { ... }`, `row_box(...) { ... }`
 
-    print(count(scores));
-    print(at(scores, 0));
-    print(prefix("sharp-", at(words, 0)));
-    print(sum(scores));
-    print(size(repeat("=", 5)));
-    for (var i = 0; i < count(words); i = i + 1) {
-        print(at(words, i));
-    }
-
-    while (shots > 0) {
-        print(shots);
-        shots = dec(shots);
-    }
-}
-```
-
-UI example:
+UI example / UI 예시:
 
 ```sp
 function view hero_block(string title, string body) {
@@ -207,44 +154,32 @@ run {
 }
 ```
 
-## Language Features
+## Diagnostics / 진단
 
-- `spear <name>() { ... }` entry function
-- `function number <name>(...)`, `function string <name>(...)`, `function view <name>(...)` functions
-- `run { ... }` beginner entry block
-- `value`, `variable`, and `const` declaration forms
-- `number`, `string`, `numbers`, `strings`, `mutable` beginner aliases
-- `const` immutable bindings
-- `num`, `text`, `numlist`, `textlist` also still work
-- `import`, `module`, `package`
-- `say(...)`, `print(...)`
-- `write(path, content)`
-- `nodecall(pkg, fn, payload)`, `pycall(module, fn, payload)`
-- `read()`, `ask(prompt)`
-- `join(a, b)`, `read()`, `size(text)`, `same(a, b)`
-- `guard(condition, message)`
-- `escape(text)`, `markup(tag, html)`, `page(title, body)`
-- block UI builders: `markup(tag) { ... }`, `page(title) { ... }`, `column { ... }`, `row { ... }`
-- `stack(a, b)`, `inline(a, b)`, `action(href, label)`
-- `pack(...)`, `push(list, value)`, `count(list)`, `at(list, index)`
-- `each item in list { ... }`
-- `sharp { ... }`
-- `if`, `else`, `for`, `while`, `break`, `continue`, `return`, `throw`
+**English**  
+`spear check` and `spearc --check` report syntax and semantic errors without generating a native output file. The compiler also emits warnings for several common issues.
 
-## Build
+**한국어**  
+`spear check`와 `spearc --check`는 네이티브 출력 파일을 만들지 않고 문법 및 의미 오류를 검사합니다. 컴파일러는 자주 발생하는 문제에 대한 경고도 출력합니다.
+
+Current checks / 현재 진단 항목:
+
+- multi-error collection / 여러 오류 연속 수집
+- unused variable and unused import / 미사용 변수 및 미사용 import
+- duplicate import / 중복 import
+- unreachable code / 도달 불가 코드
+- constant-condition warnings / 상수 조건 경고
+- VS Code live diagnostics / VS Code 실시간 진단
+
+## Build And Run / 빌드와 실행
 
 ```bash
 make
-make example
 make check
 make dist
 ```
 
-`make check` also runs `scripts/check_regressions.cmd` to cover loop-scope cleanup, imported-source line mapping, and declarative UI block syntax.
-
-Windows installer artifacts can be rebuilt with `scripts/build_installers.cmd` and are copied to `dist/installers/`.
-
-Run like Python:
+Run commands / 실행 명령:
 
 ```bash
 build/spear.exe examples/hello.sp
@@ -253,85 +188,49 @@ build/spear.exe serve examples/web.sp
 build/spear.exe check examples/hello.sp
 ```
 
-- `spear file.sp`: runs from a temporary native build and does not leave `.c` or `.exe` output behind
-- `spear serve file.sp`: also uses a temporary native build, but your Spear program can still write app output like `build/spear-ui.html`
-- `spear build file.sp`: writes persistent `build/<name>.c` and `build/<name>.exe`
-- `spear check file.sp`: validates syntax, imports, and top-level structure without generating native output
-- editor diagnostics use `spearc --check-stdin <file.sp>`, so unsaved checks do not leave temporary `.sp` files beside your source
+Command behavior / 명령 동작:
 
-`spear.exe` hides raw GCC output from the terminal.
+- `spear file.sp`: temporary native build only / 임시 네이티브 빌드만 수행
+- `spear serve file.sp`: temporary build plus app output / 임시 빌드 후 앱 출력 가능
+- `spear build file.sp`: writes persistent build artifacts / `build/`에 결과물 생성
+- `spear check file.sp`: syntax and structure validation only / 문법과 구조만 검사
 
-- Spear compile failures show a Spear-style message and write details to `build/*.spearc.log`
-- native backend failures write details to `build/*.native.log`
-- runtime failures print `spear runtime error: ...`
+## Installer / 설치기
 
-Bridge example:
+**English**  
+Install with `build/spear-setup.exe` or use the packaged installer artifacts in `dist/installers/`.
 
-```sp
-spear launch() {
-    say(nodecall("./demo_node.cjs", "render", "{\"name\":\"Spear\"}"));
-    say(pycall("demo_python", "render", "{\"name\":\"Spear\"}"));
-}
-```
+**한국어**  
+`build/spear-setup.exe`로 설치하거나 `dist/installers/`에 있는 패키지된 설치 파일을 사용할 수 있습니다.
 
-`nodecall` and `pycall` take a JSON string, call an external function, and return text.
-That gives Spear a safe extension story without turning the whole language into unchecked native FFI.
+Installer features / 설치기 기능:
 
-For a global command, install with `build/spear-setup.exe`.
-The setup executable now behaves like a small install wizard:
+- Windows wizard UI / Windows 마법사 UI
+- English and Korean language selection / 영어와 한국어 언어 선택
+- optional PATH registration / 선택적 PATH 등록
+- optional examples and VS Code extension install / 예제와 VS Code 확장 선택 설치
+- post-install self-check / 설치 후 자체 점검
 
-- real Windows wizard UI with `Back`, `Next`, `Install`, and `Close`
-- welcome step
-- tool detection for `gcc`, `node`, `python`, and VS Code
-- optional user `PATH` registration
-- optional bundled example workspace install
-- optional unpacked VS Code extension install
-- runtime bridge + editor asset copy into `%LOCALAPPDATA%\Programs\Spear`
-- uninstall metadata + install manifest registration
-- optional post-install self-check
-- completion step with next commands
+Artifacts / 산출물:
 
-After installation:
+- `dist/installers/SpearSetup.exe`
+- `dist/installers/SpearSetup.msi`
+- `vscode-spear/spear-language-0.2.0.vsix`
 
-```bash
-spear examples/hello.sp
-spear build examples/web.sp
-spear serve examples/web.sp
-spear check examples/hello.sp
-```
+## VS Code Extension / VS Code 확장
 
-Manual build:
+**English**  
+The `vscode-spear/` folder contains syntax highlighting, snippets, diagnostics, and the bundled `Spear Dark` theme.
 
-```bash
-make spear
-make setup
-make dist
-build/spear.exe examples/hello.sp
-```
+**한국어**  
+`vscode-spear/` 폴더에는 문법 강조, 스니펫, 진단 기능, 그리고 번들된 `Spear Dark` 테마가 포함되어 있습니다.
 
-## Workspace
+## Workspace / 작업공간 구조
 
-- `src/`: compiler implementation
-- `runtime/`: Node and Python bridge scripts for external ecosystem access
-- `examples/`: sample Spear programs
-- `std/`: bundled standard library with public entrypoints + internal submodules
-- `examples/bridge.sp`: bridge example for Node and Python calls
-- `examples/web.sp`: safe HTML/UI-flavored output example
-- `build/`: generated C and binaries
-- `build/dist/`: installer-ready package layout
-- `build/spear.exe`: Python-like Spear launcher
-- `build/spear-setup.exe`: Windows installer
-- `dist/installers/`: packaged `SpearSetup.exe` and `SpearSetup.msi`
-- `vscode-spear/`: VS Code extension files
-
-## VS Code Extension
-
-The `vscode-spear/` folder contains:
-
-- syntax highlighting
-- snippets
-- language configuration
-- real-time syntax diagnostics via `spearc --check`
-- logo asset
-
-Open that folder as an extension project or package it with `vsce`.
+- `src/`: compiler and launcher sources / 컴파일러 및 런처 소스
+- `runtime/`: Node and Python bridge scripts / Node 및 Python 브리지 스크립트
+- `examples/`: sample programs / 예제 프로그램
+- `std/`: bundled standard library / 번들 표준 라이브러리
+- `build/`: generated binaries and temporary output / 생성된 바이너리와 임시 출력
+- `dist/installers/`: packaged installer outputs / 패키지된 설치기 출력
+- `vscode-spear/`: VS Code extension / VS Code 확장

@@ -1238,6 +1238,10 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             combo_add_utf8(state->lang_combo, "English");
             combo_add_utf8(state->lang_combo, "한국어");
             SendMessageW(state->lang_combo, CB_SETCURSEL, LANG_EN, 0);
+            SendMessageW(state->lang_combo, CB_RESETCONTENT, 0, 0);
+            combo_add_utf8(state->lang_combo, "English");
+            combo_add_utf8(state->lang_combo, "한국어");
+            SendMessageW(state->lang_combo, CB_SETCURSEL, LANG_EN, 0);
             state->check_path = CreateWindowW(L"BUTTON", L"", WS_CHILD | BS_AUTOCHECKBOX, 32, 132, 520, 22, hwnd, (HMENU) IDC_CHECK_PATH, NULL, NULL);
             state->check_examples = CreateWindowW(L"BUTTON", L"", WS_CHILD | BS_AUTOCHECKBOX, 32, 162, 520, 22, hwnd, (HMENU) IDC_CHECK_EXAMPLES, NULL, NULL);
             state->check_editor = CreateWindowW(L"BUTTON", L"", WS_CHILD | BS_AUTOCHECKBOX, 32, 192, 520, 22, hwnd, (HMENU) IDC_CHECK_EDITOR, NULL, NULL);

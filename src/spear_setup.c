@@ -11,7 +11,6 @@
 #define APP_CLASS_W L"SpearSetupWizardWindow"
 #define WM_APP_INSTALL_DONE (WM_APP + 1)
 #define EMBEDDED_TRAILER_MAGIC "SPREMB01"
-#define EMBEDDED_PAYLOAD_MAGIC "SPRPKG01"
 #define EMBEDDED_TRAILER_SIZE 24
 
 #define IDC_TITLE 1001
@@ -572,6 +571,8 @@ static bool should_skip_file(const char *name) {
     return false;
 }
 
+static int run_process_capture(const char *command_line, const char *working_dir, char *output, size_t output_cap);
+
 static void copy_tree(const char *src_dir, const char *dst_dir) {
     char pattern[4096];
     WIN32_FIND_DATAA entry;
@@ -596,13 +597,6 @@ static void copy_tree(const char *src_dir, const char *dst_dir) {
         }
     } while (FindNextFileA(handle, &entry));
     FindClose(handle);
-}
-
-static unsigned int read_u32_le(const unsigned char *bytes) {
-    return ((unsigned int) bytes[0]) |
-           ((unsigned int) bytes[1] << 8) |
-           ((unsigned int) bytes[2] << 16) |
-           ((unsigned int) bytes[3] << 24);
 }
 
 static unsigned long long read_u64_le(const unsigned char *bytes) {
@@ -643,11 +637,12 @@ static bool extract_embedded_payload(SetupContext *ctx) {
     LARGE_INTEGER size;
     LARGE_INTEGER pos;
     unsigned char trailer[EMBEDDED_TRAILER_SIZE];
-    unsigned char header[16];
     unsigned long long payload_offset;
     unsigned long long payload_size;
-    unsigned int entry_count;
     char temp_root[4096];
+    char zip_path[4096];
+    char command[12288];
+    HANDLE out;
     file = CreateFileA(ctx->exe_path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (file == INVALID_HANDLE_VALUE) return false;
     if (!GetFileSizeEx(file, &size) || size.QuadPart < EMBEDDED_TRAILER_SIZE) {
@@ -671,73 +666,43 @@ static bool extract_embedded_payload(SetupContext *ctx) {
         CloseHandle(file);
         return false;
     }
-    pos.QuadPart = (LONGLONG) payload_offset;
-    if (!SetFilePointerEx(file, pos, NULL, FILE_BEGIN) || !read_exact(file, header, sizeof(header))) {
-        CloseHandle(file);
-        return false;
-    }
-    if (memcmp(header, EMBEDDED_PAYLOAD_MAGIC, 8) != 0 || read_u32_le(header + 8) != 1) {
-        CloseHandle(file);
-        return false;
-    }
-    entry_count = read_u32_le(header + 12);
     make_temp_dir(temp_root, sizeof(temp_root));
-    for (unsigned int i = 0; i < entry_count; i++) {
-        unsigned char meta[12];
-        unsigned int path_len;
-        unsigned long long file_size;
-        char relative[4096];
-        char target[8192];
-        HANDLE out;
-        if (!read_exact(file, meta, sizeof(meta))) {
-            CloseHandle(file);
-            remove_tree_recursive(temp_root);
-            fail("failed to read bundled setup payload");
-        }
-        path_len = read_u32_le(meta);
-        file_size = read_u64_le(meta + 4);
-        if (path_len == 0 || path_len >= sizeof(relative)) {
-            CloseHandle(file);
-            remove_tree_recursive(temp_root);
-            fail("bundled setup payload path is invalid");
-        }
-        if (!read_exact(file, relative, path_len)) {
-            CloseHandle(file);
-            remove_tree_recursive(temp_root);
-            fail("failed to read bundled setup payload");
-        }
-        relative[path_len] = '\0';
-        for (unsigned int j = 0; j < path_len; j++) {
-            if (relative[j] == '/') relative[j] = '\\';
-        }
-        fmt(target, sizeof(target), "%s\\%s", temp_root, relative);
-        {
-            char parent[8192];
-            fmt(parent, sizeof(parent), "%s", target);
-            parent_dir(parent);
-            ensure_dir_recursive(parent);
-        }
-        out = CreateFileA(target, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-        if (out == INVALID_HANDLE_VALUE) {
+    fmt(zip_path, sizeof(zip_path), "%s\\payload.zip", temp_root);
+    out = CreateFileA(zip_path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (out == INVALID_HANDLE_VALUE) {
+        CloseHandle(file);
+        remove_tree_recursive(temp_root);
+        fail("failed to create bundled setup payload");
+    }
+    pos.QuadPart = (LONGLONG) payload_offset;
+    if (!SetFilePointerEx(file, pos, NULL, FILE_BEGIN)) {
+        CloseHandle(out);
+        CloseHandle(file);
+        remove_tree_recursive(temp_root);
+        fail("failed to access bundled setup payload");
+    }
+    while (payload_size > 0) {
+        unsigned char buffer[65536];
+        DWORD chunk = payload_size > sizeof(buffer) ? (DWORD) sizeof(buffer) : (DWORD) payload_size;
+        DWORD written = 0;
+        if (!read_exact(file, buffer, chunk) || !WriteFile(out, buffer, chunk, &written, NULL) || written != chunk) {
+            CloseHandle(out);
             CloseHandle(file);
             remove_tree_recursive(temp_root);
             fail("failed to extract bundled setup payload");
         }
-        while (file_size > 0) {
-            unsigned char buffer[65536];
-            DWORD chunk = file_size > sizeof(buffer) ? (DWORD) sizeof(buffer) : (DWORD) file_size;
-            DWORD written = 0;
-            if (!read_exact(file, buffer, chunk) || !WriteFile(out, buffer, chunk, &written, NULL) || written != chunk) {
-                CloseHandle(out);
-                CloseHandle(file);
-                remove_tree_recursive(temp_root);
-                fail("failed to extract bundled setup payload");
-            }
-            file_size -= chunk;
-        }
-        CloseHandle(out);
+        payload_size -= chunk;
     }
+    CloseHandle(out);
     CloseHandle(file);
+    fmt(command, sizeof(command),
+        "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory('%s','%s')\"",
+        zip_path, temp_root);
+    if (run_process_capture(command, temp_root, NULL, 0) != 0) {
+        remove_tree_recursive(temp_root);
+        fail("failed to unpack bundled setup payload");
+    }
+    DeleteFileA(zip_path);
     fmt(ctx->temp_payload_root, sizeof(ctx->temp_payload_root), "%s", temp_root);
     fmt(ctx->source_root, sizeof(ctx->source_root), "%s", temp_root);
     return true;

@@ -6,6 +6,22 @@ mkdir build\dist
 mkdir build\dist\runtime
 mkdir build\dist\toolchain
 mkdir build\dist\toolchain\mingw64
+mkdir build\dist\toolchain\mingw64\bin
+mkdir build\dist\toolchain\mingw64\lib
+mkdir build\dist\toolchain\mingw64\lib\gcc
+mkdir build\dist\toolchain\mingw64\lib\gcc\x86_64-w64-mingw32
+mkdir build\dist\toolchain\mingw64\lib\gcc\x86_64-w64-mingw32\15.2.0
+mkdir build\dist\toolchain\mingw64\lib\gcc\x86_64-w64-mingw32\15.2.0\include
+mkdir build\dist\toolchain\mingw64\lib\gcc\x86_64-w64-mingw32\15.2.0\include-fixed
+mkdir build\dist\toolchain\mingw64\lib\bfd-plugins
+mkdir build\dist\toolchain\mingw64\libexec
+mkdir build\dist\toolchain\mingw64\libexec\gcc
+mkdir build\dist\toolchain\mingw64\libexec\gcc\x86_64-w64-mingw32
+mkdir build\dist\toolchain\mingw64\libexec\gcc\x86_64-w64-mingw32\15.2.0
+mkdir build\dist\toolchain\mingw64\x86_64-w64-mingw32
+mkdir build\dist\toolchain\mingw64\x86_64-w64-mingw32\bin
+mkdir build\dist\toolchain\mingw64\x86_64-w64-mingw32\include
+mkdir build\dist\toolchain\mingw64\x86_64-w64-mingw32\lib
 mkdir build\dist\vscode-spear
 mkdir build\dist\vscode-spear\assets
 mkdir build\dist\vscode-spear\snippets
@@ -37,10 +53,21 @@ if defined MINGW_ROOT (
   exit /b 1
 )
 
-xcopy /E /I /Y "%MINGW_SRC%\bin" build\dist\toolchain\mingw64\bin >NUL || exit /b 1
-xcopy /E /I /Y "%MINGW_SRC%\lib" build\dist\toolchain\mingw64\lib >NUL || exit /b 1
-xcopy /E /I /Y "%MINGW_SRC%\libexec" build\dist\toolchain\mingw64\libexec >NUL || exit /b 1
-xcopy /E /I /Y "%MINGW_SRC%\x86_64-w64-mingw32" build\dist\toolchain\mingw64\x86_64-w64-mingw32 >NUL || exit /b 1
+for %%F in (gcc.exe as.exe ld.exe libiconv-2.dll libintl-8.dll libwinpthread-1.dll libgmp-10.dll libisl-23.dll libmpc-3.dll libmpfr-6.dll zlib1.dll libzstd.dll) do (
+  copy /Y "%MINGW_SRC%\bin\%%F" build\dist\toolchain\mingw64\bin\%%F >NUL || exit /b 1
+)
+for %%F in (cc1.exe collect2.exe libgcc_s_seh-1.dll liblto_plugin.dll) do (
+  copy /Y "%MINGW_SRC%\libexec\gcc\x86_64-w64-mingw32\15.2.0\%%F" build\dist\toolchain\mingw64\libexec\gcc\x86_64-w64-mingw32\15.2.0\%%F >NUL || exit /b 1
+)
+copy /Y "%MINGW_SRC%\libexec\gcc\x86_64-w64-mingw32\15.2.0\liblto_plugin.dll" build\dist\toolchain\mingw64\lib\bfd-plugins\liblto_plugin.dll >NUL || exit /b 1
+for %%F in (crtbegin.o crtend.o libgcc.a libgcc_eh.a) do (
+  copy /Y "%MINGW_SRC%\lib\gcc\x86_64-w64-mingw32\15.2.0\%%F" build\dist\toolchain\mingw64\lib\gcc\x86_64-w64-mingw32\15.2.0\%%F >NUL || exit /b 1
+)
+xcopy /E /I /Y "%MINGW_SRC%\lib\gcc\x86_64-w64-mingw32\15.2.0\include" build\dist\toolchain\mingw64\lib\gcc\x86_64-w64-mingw32\15.2.0\include >NUL || exit /b 1
+xcopy /E /I /Y "%MINGW_SRC%\lib\gcc\x86_64-w64-mingw32\15.2.0\include-fixed" build\dist\toolchain\mingw64\lib\gcc\x86_64-w64-mingw32\15.2.0\include-fixed >NUL || exit /b 1
+xcopy /E /I /Y "%MINGW_SRC%\x86_64-w64-mingw32\bin" build\dist\toolchain\mingw64\x86_64-w64-mingw32\bin >NUL || exit /b 1
+xcopy /E /I /Y "%MINGW_SRC%\x86_64-w64-mingw32\include" build\dist\toolchain\mingw64\x86_64-w64-mingw32\include >NUL || exit /b 1
+xcopy /E /I /Y "%MINGW_SRC%\x86_64-w64-mingw32\lib" build\dist\toolchain\mingw64\x86_64-w64-mingw32\lib >NUL || exit /b 1
 if exist "%MINGW_SRC%\mingwvars.bat" copy /Y "%MINGW_SRC%\mingwvars.bat" build\dist\toolchain\mingw64\mingwvars.bat >NUL
 if exist "%MINGW_SRC%\version_info.txt" copy /Y "%MINGW_SRC%\version_info.txt" build\dist\toolchain\mingw64\version_info.txt >NUL
 

@@ -3,19 +3,76 @@ const cp = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
-function parseDiagnostic(output) {
-  const match = output.match(/spearc error \[line (\d+):(\d+)\] (.+)/);
-  if (!match) {
-    return null;
+function parseDiagnostics(output) {
+  const diagnostics = [];
+  const seen = new Set();
+  const pattern = /spearc (error|warning|\uC624\uB958|\uACBD\uACE0) \[line (\d+):(\d+)\] (.+)/g;
+  let match;
+
+  while ((match = pattern.exec(output)) !== null) {
+    const severity = match[1] === "warning" || match[1] === "\uACBD\uACE0"
+      ? vscode.DiagnosticSeverity.Warning
+      : vscode.DiagnosticSeverity.Error;
+    const line = Math.max(Number(match[2]) - 1, 0);
+    const col = Math.max(Number(match[3]) - 1, 0);
+    const message = match[4];
+    const key = `${severity}:${line}:${col}:${message}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    const diagnostic = new vscode.Diagnostic(
+      new vscode.Range(line, col, line, col + 1),
+      message,
+      severity
+    );
+    diagnostic.source = "spearc";
+
+    const lower = message.toLowerCase();
+    if (lower.includes("unused import")) {
+      diagnostic.code = "import.unused";
+      diagnostic.tags = [vscode.DiagnosticTag.Unnecessary];
+    } else if (lower.includes("duplicate import")) {
+      diagnostic.code = "import.duplicate";
+      diagnostic.tags = [vscode.DiagnosticTag.Unnecessary];
+    } else if (lower.includes("unused variable") || lower.includes("unused parameter")) {
+      diagnostic.code = "symbol.unused";
+      diagnostic.tags = [vscode.DiagnosticTag.Unnecessary];
+    } else if (lower.includes("unreachable code")) {
+      diagnostic.code = "flow.unreachable";
+      diagnostic.tags = [vscode.DiagnosticTag.Unnecessary];
+    } else if (lower.includes("condition is always")) {
+      diagnostic.code = "flow.constant-condition";
+    } else if (
+      lower.includes("expected ';'") ||
+      lower.includes("expected ')'") ||
+      lower.includes("expected '('") ||
+      lower.includes("expected '}'") ||
+      lower.includes("expected '{'") ||
+      lower.startsWith("unexpected ")
+    ) {
+      diagnostic.code = "syntax";
+    } else if (
+      lower.includes("unknown variable") ||
+      lower.includes("unknown function") ||
+      lower.includes("does not return") ||
+      lower.includes("type mismatch") ||
+      lower.includes("expected numeric expression") ||
+      lower.includes("expected text expression") ||
+      lower.includes("expected list expression")
+    ) {
+      diagnostic.code = "type";
+    } else if (
+      lower.includes("break is only valid") ||
+      lower.includes("continue is only valid")
+    ) {
+      diagnostic.code = "flow.control";
+    }
+
+    diagnostics.push(diagnostic);
   }
-  const line = Math.max(Number(match[1]) - 1, 0);
-  const col = Math.max(Number(match[2]) - 1, 0);
-  const message = match[3];
-  return new vscode.Diagnostic(
-    new vscode.Range(line, col, line, col + 1),
-    message,
-    vscode.DiagnosticSeverity.Error
-  );
+
+  return diagnostics;
 }
 
 function compilerPath(document) {
@@ -25,10 +82,32 @@ function compilerPath(document) {
   }
 
   const folder = vscode.workspace.getWorkspaceFolder(document.uri);
-  if (!folder) {
-    return null;
+  if (folder) {
+    const workspaceCompiler = path.join(folder.uri.fsPath, "build", "spearc.exe");
+    if (fs.existsSync(workspaceCompiler)) {
+      return workspaceCompiler;
+    }
   }
-  return path.join(folder.uri.fsPath, "build", "spearc.exe");
+
+  const localAppData = process.env.LOCALAPPDATA || "";
+  if (localAppData) {
+    const installedCompiler = path.join(localAppData, "Programs", "Spear", "bin", "spearc.exe");
+    if (fs.existsSync(installedCompiler)) {
+      return installedCompiler;
+    }
+  }
+
+  try {
+    const where = cp.spawnSync("where", ["spearc.exe"], { encoding: "utf8" });
+    if (where.status === 0) {
+      const first = String(where.stdout || "").split(/\r?\n/).map((line) => line.trim()).find(Boolean);
+      if (first && fs.existsSync(first)) {
+        return first;
+      }
+    }
+  } catch {}
+
+  return null;
 }
 
 async function validateDocument(document, collection) {
@@ -71,15 +150,15 @@ async function validateDocument(document, collection) {
       resolve();
     });
     child.on("close", (code) => {
+      const output = `${stderr}\n${stdout}`;
+      const diagnosticsList = parseDiagnostics(output);
       if (code === 0) {
-        collection.set(document.uri, []);
+        collection.set(document.uri, diagnosticsList);
         resolve();
         return;
       }
-      const output = `${stderr}\n${stdout}`;
-      const diagnostic = parseDiagnostic(output);
-      if (diagnostic) {
-        collection.set(document.uri, [diagnostic]);
+      if (diagnosticsList.length > 0) {
+        collection.set(document.uri, diagnosticsList);
       } else {
         collection.set(document.uri, [
           new vscode.Diagnostic(

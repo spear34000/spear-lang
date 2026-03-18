@@ -8,6 +8,7 @@
 #include <commctrl.h>
 
 #define APP_CLASS "SpearSetupWizardWindow"
+#define APP_CLASS_W L"SpearSetupWizardWindow"
 #define WM_APP_INSTALL_DONE (WM_APP + 1)
 
 #define IDC_TITLE 1001
@@ -22,6 +23,16 @@
 #define IDC_BACK 1010
 #define IDC_NEXT 1011
 #define IDC_CANCEL 1012
+#define IDC_LANG_LABEL 1013
+#define IDC_LANG_COMBO 1014
+
+enum {
+    LANG_EN = 0,
+    LANG_KO = 1
+};
+
+#define LANG_JA LANG_EN
+#define LANG_ZH LANG_EN
 
 typedef struct {
     char exe_path[4096];
@@ -29,14 +40,17 @@ typedef struct {
     char install_root[4096];
     char bin_dir[4096];
     char runtime_dir[4096];
+    char std_dir[4096];
     char examples_dir[4096];
     char editor_dir[4096];
     char src_spear[4096];
     char src_spearc[4096];
     char src_setup[4096];
     char src_runtime[4096];
+    char src_std[4096];
     char src_examples[4096];
     char src_editor[4096];
+    bool has_std;
     bool has_examples;
     bool has_editor;
     bool has_gcc;
@@ -50,6 +64,7 @@ typedef struct {
     bool install_examples;
     bool install_editor;
     bool run_checks;
+    int language_index;
 } SetupOptions;
 
 typedef struct {
@@ -62,6 +77,8 @@ typedef struct {
     HWND check_examples;
     HWND check_editor;
     HWND check_tests;
+    HWND lang_label;
+    HWND lang_combo;
     HWND summary;
     HWND progress;
     HWND status;
@@ -83,6 +100,218 @@ static void fail(const char *fmt, ...) {
     va_end(args);
     fprintf(stderr, "spear setup error: %s\n", message);
     exit(1);
+}
+
+static wchar_t *wide_from_utf8(const char *text) {
+    int needed;
+    wchar_t *buffer;
+    if (!text) text = "";
+    needed = MultiByteToWideChar(CP_UTF8, 0, text, -1, NULL, 0);
+    if (needed <= 0) fail("failed to convert UI text");
+    buffer = (wchar_t *) malloc((size_t) needed * sizeof(wchar_t));
+    if (!buffer) fail("out of memory");
+    if (!MultiByteToWideChar(CP_UTF8, 0, text, -1, buffer, needed)) {
+        free(buffer);
+        fail("failed to convert UI text");
+    }
+    return buffer;
+}
+
+static void set_text_utf8(HWND hwnd, const char *text) {
+    wchar_t *wide = wide_from_utf8(text);
+    SetWindowTextW(hwnd, wide);
+    free(wide);
+}
+
+static void combo_add_utf8(HWND hwnd, const char *text) {
+    wchar_t *wide = wide_from_utf8(text);
+    SendMessageW(hwnd, CB_ADDSTRING, 0, (LPARAM) wide);
+    free(wide);
+}
+
+static const char *lang_code(int index) {
+    switch (index) {
+        case LANG_KO: return "ko";
+        default: return "en";
+    }
+}
+
+static const char *tr(int lang, const char *key) {
+    if (strcmp(key, "wizard_setup") == 0) {
+        if (lang == LANG_KO) return "Spear 설치";
+        if (lang == LANG_JA) return "Spear セットアップ";
+        if (lang == LANG_ZH) return "Spear 安装";
+        return "Spear Setup";
+    }
+    if (strcmp(key, "wizard_repair") == 0) {
+        if (lang == LANG_KO) return "Spear 복구";
+        if (lang == LANG_JA) return "Spear 修復";
+        if (lang == LANG_ZH) return "Spear 修复";
+        return "Spear Repair";
+    }
+    if (strcmp(key, "welcome_title") == 0) {
+        if (lang == LANG_KO) return "Spear에 오신 것을 환영합니다";
+        if (lang == LANG_JA) return "Spear へようこそ";
+        if (lang == LANG_ZH) return "欢迎使用 Spear";
+        return "Welcome to Spear";
+    }
+    if (strcmp(key, "welcome_body") == 0) {
+        if (lang == LANG_KO) return "설치 중에 사용할 언어를 먼저 고른 다음, 필요한 구성 요소를 선택하세요.";
+        if (lang == LANG_JA) return "最初に使用する言語を選び、その後で必要な構成要素を選択してください。";
+        if (lang == LANG_ZH) return "先选择安装和运行时使用的语言，然后选择需要安装的组件。";
+        return "Choose the language for installation and runtime messages, then select the components you want.";
+    }
+    if (strcmp(key, "language_label") == 0) {
+        if (lang == LANG_KO) return "사용 언어";
+        if (lang == LANG_JA) return "使用言語";
+        if (lang == LANG_ZH) return "使用语言";
+        return "Language";
+    }
+    if (strcmp(key, "components_title") == 0) {
+        if (lang == LANG_KO) return "구성 요소 선택";
+        if (lang == LANG_JA) return "コンポーネントの選択";
+        if (lang == LANG_ZH) return "选择组件";
+        return "Choose Components";
+    }
+    if (strcmp(key, "components_body") == 0) {
+        if (lang == LANG_KO) return "설치할 항목을 고르세요. 나중에 설치 마법사를 다시 실행해 변경할 수 있습니다.";
+        if (lang == LANG_JA) return "インストールする項目を選択してください。後でセットアップを再実行して変更できます。";
+        if (lang == LANG_ZH) return "选择要安装的项目。之后可以重新运行安装向导进行修改。";
+        return "Select what to install. You can run the setup wizard again later to change these choices.";
+    }
+    if (strcmp(key, "check_path") == 0) {
+        if (lang == LANG_KO) return "Spear를 사용자 PATH에 추가";
+        if (lang == LANG_JA) return "Spear をユーザー PATH に追加";
+        if (lang == LANG_ZH) return "将 Spear 添加到用户 PATH";
+        return "Add Spear to the user PATH";
+    }
+    if (strcmp(key, "check_examples") == 0) {
+        if (lang == LANG_KO) return "기본 예제 작업공간 설치";
+        if (lang == LANG_JA) return "同梱のサンプルワークスペースをインストール";
+        if (lang == LANG_ZH) return "安装随附示例工作区";
+        return "Install the bundled example workspace";
+    }
+    if (strcmp(key, "check_editor") == 0) {
+        if (lang == LANG_KO) return "기본 VS Code 확장 설치";
+        if (lang == LANG_JA) return "同梱の VS Code 拡張機能をインストール";
+        if (lang == LANG_ZH) return "安装随附 VS Code 扩展";
+        return "Install the bundled VS Code extension";
+    }
+    if (strcmp(key, "check_tests") == 0) {
+        if (lang == LANG_KO) return "설치 후 자체 점검 실행";
+        if (lang == LANG_JA) return "インストール後にセルフチェックを実行";
+        if (lang == LANG_ZH) return "安装后运行自检";
+        return "Run post-install self-checks";
+    }
+    if (strcmp(key, "ready_title") == 0) {
+        if (lang == LANG_KO) return "설치 준비 완료";
+        if (lang == LANG_JA) return "インストールの準備完了";
+        if (lang == LANG_ZH) return "准备安装";
+        return "Ready To Install";
+    }
+    if (strcmp(key, "ready_body") == 0) {
+        if (lang == LANG_KO) return "선택한 옵션을 확인한 뒤 설치를 누르세요.";
+        if (lang == LANG_JA) return "選択した内容を確認してからインストールを押してください。";
+        if (lang == LANG_ZH) return "确认所选选项后，点击安装。";
+        return "Review the selected options and click Install.";
+    }
+    if (strcmp(key, "installing_title") == 0) {
+        if (lang == LANG_KO) return "설치 중";
+        if (lang == LANG_JA) return "インストール中";
+        if (lang == LANG_ZH) return "正在安装";
+        return "Installing";
+    }
+    if (strcmp(key, "installing_body") == 0) {
+        if (lang == LANG_KO) return "Spear를 설치하고 있습니다. 완료되면 화면이 자동으로 갱신됩니다.";
+        if (lang == LANG_JA) return "Spear をインストールしています。完了すると画面が自動で更新されます。";
+        if (lang == LANG_ZH) return "正在安装 Spear。完成后此窗口会自动更新。";
+        return "Spear is being installed. The window will update when setup finishes.";
+    }
+    if (strcmp(key, "installing_status") == 0) {
+        if (lang == LANG_KO) return "파일을 복사하고 설치를 구성하는 중입니다...";
+        if (lang == LANG_JA) return "ファイルをコピーしてインストールを構成しています...";
+        if (lang == LANG_ZH) return "正在复制文件并配置安装...";
+        return "Copying files and configuring the installation...";
+    }
+    if (strcmp(key, "done_title") == 0) {
+        if (lang == LANG_KO) return "설치 완료";
+        if (lang == LANG_JA) return "完了";
+        if (lang == LANG_ZH) return "已完成";
+        return "Completed";
+    }
+    if (strcmp(key, "failed_title") == 0) {
+        if (lang == LANG_KO) return "설치 실패";
+        if (lang == LANG_JA) return "インストール失敗";
+        if (lang == LANG_ZH) return "安装失败";
+        return "Installation Failed";
+    }
+    if (strcmp(key, "done_body") == 0) {
+        if (lang == LANG_KO) return "Spear를 사용할 준비가 되었습니다.";
+        if (lang == LANG_JA) return "Spear を使用する準備ができました。";
+        if (lang == LANG_ZH) return "Spear 已可以使用。";
+        return "Spear is ready to use.";
+    }
+    if (strcmp(key, "failed_body") == 0) {
+        if (lang == LANG_KO) return "설치를 완료하지 못했습니다.";
+        if (lang == LANG_JA) return "インストールを完了できませんでした。";
+        if (lang == LANG_ZH) return "安装未能完成。";
+        return "The installer could not finish.";
+    }
+    if (strcmp(key, "back") == 0) {
+        if (lang == LANG_KO) return "< 이전";
+        if (lang == LANG_JA) return "< 戻る";
+        if (lang == LANG_ZH) return "< 上一步";
+        return "< Back";
+    }
+    if (strcmp(key, "next") == 0) {
+        if (lang == LANG_KO) return "다음 >";
+        if (lang == LANG_JA) return "次へ >";
+        if (lang == LANG_ZH) return "下一步 >";
+        return "Next >";
+    }
+    if (strcmp(key, "install") == 0) {
+        if (lang == LANG_KO) return "설치";
+        if (lang == LANG_JA) return "インストール";
+        if (lang == LANG_ZH) return "安装";
+        return "Install";
+    }
+    if (strcmp(key, "close") == 0) {
+        if (lang == LANG_KO) return "닫기";
+        if (lang == LANG_JA) return "閉じる";
+        if (lang == LANG_ZH) return "关闭";
+        return "Close";
+    }
+    if (strcmp(key, "cancel") == 0) {
+        if (lang == LANG_KO) return "취소";
+        if (lang == LANG_JA) return "キャンセル";
+        if (lang == LANG_ZH) return "取消";
+        return "Cancel";
+    }
+    if (strcmp(key, "yes") == 0) {
+        if (lang == LANG_KO) return "예";
+        if (lang == LANG_JA) return "はい";
+        if (lang == LANG_ZH) return "是";
+        return "yes";
+    }
+    if (strcmp(key, "no") == 0) {
+        if (lang == LANG_KO) return "아니오";
+        if (lang == LANG_JA) return "いいえ";
+        if (lang == LANG_ZH) return "否";
+        return "no";
+    }
+    if (strcmp(key, "found") == 0) {
+        if (lang == LANG_KO) return "발견됨";
+        if (lang == LANG_JA) return "検出済み";
+        if (lang == LANG_ZH) return "已找到";
+        return "found";
+    }
+    if (strcmp(key, "not_found") == 0) {
+        if (lang == LANG_KO) return "없음";
+        if (lang == LANG_JA) return "未検出";
+        if (lang == LANG_ZH) return "未找到";
+        return "not found";
+    }
+    return key;
 }
 
 static void fmt(char *out, size_t cap, const char *format, ...) {
@@ -230,7 +459,7 @@ static void set_uninstall_info(const char *install_root, const char *bin_dir) {
     RegSetValueExA(key, "DisplayName", 0, REG_SZ, (const BYTE *) "Spear", 6);
     RegSetValueExA(key, "Publisher", 0, REG_SZ, (const BYTE *) "Spear Project", 14);
     RegSetValueExA(key, "InstallLocation", 0, REG_SZ, (const BYTE *) install_root, (DWORD) strlen(install_root) + 1);
-    RegSetValueExA(key, "DisplayVersion", 0, REG_SZ, (const BYTE *) "0.1.0", 6);
+    RegSetValueExA(key, "DisplayVersion", 0, REG_SZ, (const BYTE *) "0.2.0", 6);
     RegSetValueExA(key, "UninstallString", 0, REG_SZ, (const BYTE *) uninstall_cmd, (DWORD) strlen(uninstall_cmd) + 1);
     RegSetValueExA(key, "DisplayIcon", 0, REG_SZ, (const BYTE *) icon_path, (DWORD) strlen(icon_path) + 1);
     RegCloseKey(key);
@@ -409,6 +638,7 @@ static void discover_context(SetupContext *ctx) {
     join_path(ctx->install_root, sizeof(ctx->install_root), local_app, "Programs\\Spear");
     join_path(ctx->bin_dir, sizeof(ctx->bin_dir), ctx->install_root, "bin");
     join_path(ctx->runtime_dir, sizeof(ctx->runtime_dir), ctx->install_root, "runtime");
+    join_path(ctx->std_dir, sizeof(ctx->std_dir), ctx->install_root, "std");
     join_path(ctx->examples_dir, sizeof(ctx->examples_dir), ctx->install_root, "examples");
     fmt(ctx->editor_dir, sizeof(ctx->editor_dir), "%s\\.vscode\\extensions\\spear-language-local", user_profile);
     ctx->repair_mode = strstr(GetCommandLineA(), "--repair") != NULL;
@@ -416,9 +646,11 @@ static void discover_context(SetupContext *ctx) {
     if (!resolve_source_file(ctx->source_root, "spear.exe", ctx->src_spear, sizeof(ctx->src_spear)) ||
         !resolve_source_file(ctx->source_root, "spearc.exe", ctx->src_spearc, sizeof(ctx->src_spearc)) ||
         !resolve_source_file(ctx->source_root, "spear-setup.exe", ctx->src_setup, sizeof(ctx->src_setup)) ||
-        !resolve_source_dir(ctx->source_root, "runtime", ctx->src_runtime, sizeof(ctx->src_runtime))) {
-        fail("installer must run with spear.exe, spearc.exe, spear-setup.exe, and runtime available");
+        !resolve_source_dir(ctx->source_root, "runtime", ctx->src_runtime, sizeof(ctx->src_runtime)) ||
+        !resolve_source_dir(ctx->source_root, "std", ctx->src_std, sizeof(ctx->src_std))) {
+        fail("installer must run with spear.exe, spearc.exe, spear-setup.exe, runtime, and std available");
     }
+    ctx->has_std = true;
     ctx->has_examples = resolve_source_dir(ctx->source_root, "examples", ctx->src_examples, sizeof(ctx->src_examples));
     ctx->has_editor = resolve_source_dir(ctx->source_root, "vscode-spear", ctx->src_editor, sizeof(ctx->src_editor));
     ctx->has_gcc = resolve_tool("gcc.exe");
@@ -444,7 +676,7 @@ static void perform_uninstall(const SetupContext *ctx) {
 }
 
 static void set_text(HWND hwnd, const char *text) {
-    SetWindowTextA(hwnd, text);
+    set_text_utf8(hwnd, text);
 }
 
 static void read_options(WizardState *state) {
@@ -452,6 +684,8 @@ static void read_options(WizardState *state) {
     state->options.install_examples = SendMessageA(state->check_examples, BM_GETCHECK, 0, 0) == BST_CHECKED;
     state->options.install_editor = SendMessageA(state->check_editor, BM_GETCHECK, 0, 0) == BST_CHECKED;
     state->options.run_checks = SendMessageA(state->check_tests, BM_GETCHECK, 0, 0) == BST_CHECKED;
+    state->options.language_index = (int) SendMessageW(state->lang_combo, CB_GETCURSEL, 0, 0);
+    if (state->options.language_index < 0) state->options.language_index = LANG_EN;
 }
 
 static void write_options(WizardState *state) {
@@ -459,45 +693,73 @@ static void write_options(WizardState *state) {
     SendMessageA(state->check_examples, BM_SETCHECK, state->options.install_examples ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageA(state->check_editor, BM_SETCHECK, state->options.install_editor ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageA(state->check_tests, BM_SETCHECK, state->options.run_checks ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(state->lang_combo, CB_SETCURSEL, state->options.language_index, 0);
     EnableWindow(state->check_examples, state->ctx.has_examples ? TRUE : FALSE);
     EnableWindow(state->check_editor, state->ctx.has_editor ? TRUE : FALSE);
 }
 
+static void write_language_config(const SetupContext *ctx, int lang) {
+    char path[4096];
+    FILE *fp;
+    join_path(path, sizeof(path), ctx->install_root, "spear-lang.txt");
+    fp = fopen(path, "wb");
+    if (!fp) fail("failed to write language configuration");
+    fputs(lang_code(lang), fp);
+    fclose(fp);
+}
+
 static void build_summary(WizardState *state, char *out, size_t cap) {
     read_options(state);
+    {
+        int lang = state->options.language_index;
     fmt(out, cap,
         "Install location:\r\n%s\r\n\r\n"
+        "Language:\r\n%s\r\n\r\n"
         "Core:\r\n- spear.exe\r\n- spearc.exe\r\n- spear-setup.exe\r\n- runtime bridge files\r\n\r\n"
         "Options:\r\n- PATH registration: %s\r\n- Example workspace: %s\r\n- VS Code extension: %s\r\n- Post-install self-check: %s\r\n\r\n"
         "Detected:\r\n- gcc: %s\r\n- VS Code CLI: %s",
         state->ctx.install_root,
-        state->options.install_path ? "yes" : "no",
-        state->options.install_examples ? "yes" : "no",
-        state->options.install_editor ? "yes" : "no",
-        state->options.run_checks ? "yes" : "no",
-        state->ctx.has_gcc ? "found" : "not found",
-        state->ctx.has_code ? "found" : "not found");
+        lang == LANG_KO ? "한국어" : "English",
+        state->options.install_path ? tr(lang, "yes") : tr(lang, "no"),
+        state->options.install_examples ? tr(lang, "yes") : tr(lang, "no"),
+        state->options.install_editor ? tr(lang, "yes") : tr(lang, "no"),
+        state->options.run_checks ? tr(lang, "yes") : tr(lang, "no"),
+        state->ctx.has_gcc ? tr(lang, "found") : tr(lang, "not_found"),
+        state->ctx.has_code ? tr(lang, "found") : tr(lang, "not_found"));
+    }
 }
 
 static void show_page(WizardState *state) {
     char text[8192];
+    read_options(state);
+    set_text(state->back, tr(state->options.language_index, "back"));
+    set_text(state->cancel, tr(state->options.language_index, "cancel"));
     ShowWindow(state->check_path, SW_HIDE);
     ShowWindow(state->check_examples, SW_HIDE);
     ShowWindow(state->check_editor, SW_HIDE);
     ShowWindow(state->check_tests, SW_HIDE);
+    ShowWindow(state->lang_label, SW_HIDE);
+    ShowWindow(state->lang_combo, SW_HIDE);
     ShowWindow(state->summary, SW_HIDE);
     ShowWindow(state->progress, SW_HIDE);
     ShowWindow(state->status, SW_HIDE);
 
     if (state->page == 0) {
-        set_text(state->title, state->ctx.repair_mode ? "Repair Spear" : "Setup Spear");
-        set_text(state->body, "This wizard installs Spear in a standard Windows setup flow with Back, Next, Install, and Finish steps.");
+        set_text(state->title, state->ctx.repair_mode ? tr(state->options.language_index, "wizard_repair") : tr(state->options.language_index, "wizard_setup"));
+        set_text(state->body, tr(state->options.language_index, "welcome_body"));
+        set_text(state->lang_label, tr(state->options.language_index, "language_label"));
+        ShowWindow(state->lang_label, SW_SHOW);
+        ShowWindow(state->lang_combo, SW_SHOW);
         EnableWindow(state->back, FALSE);
         EnableWindow(state->next, TRUE);
-        set_text(state->next, "Next >");
+        set_text(state->next, tr(state->options.language_index, "next"));
     } else if (state->page == 1) {
-        set_text(state->title, "Choose Components");
-        set_text(state->body, "Select what to install. You can run the wizard again later to change these choices.");
+        set_text(state->title, tr(state->options.language_index, "components_title"));
+        set_text(state->body, tr(state->options.language_index, "components_body"));
+        set_text(state->check_path, tr(state->options.language_index, "check_path"));
+        set_text(state->check_examples, tr(state->options.language_index, "check_examples"));
+        set_text(state->check_editor, tr(state->options.language_index, "check_editor"));
+        set_text(state->check_tests, tr(state->options.language_index, "check_tests"));
         write_options(state);
         ShowWindow(state->check_path, SW_SHOW);
         ShowWindow(state->check_examples, SW_SHOW);
@@ -505,32 +767,32 @@ static void show_page(WizardState *state) {
         ShowWindow(state->check_tests, SW_SHOW);
         EnableWindow(state->back, TRUE);
         EnableWindow(state->next, TRUE);
-        set_text(state->next, "Next >");
+        set_text(state->next, tr(state->options.language_index, "next"));
     } else if (state->page == 2) {
-        set_text(state->title, "Ready To Install");
-        set_text(state->body, "Review the selected options and click Install.");
+        set_text(state->title, tr(state->options.language_index, "ready_title"));
+        set_text(state->body, tr(state->options.language_index, "ready_body"));
         build_summary(state, text, sizeof(text));
         set_text(state->summary, text);
         ShowWindow(state->summary, SW_SHOW);
         EnableWindow(state->back, TRUE);
         EnableWindow(state->next, TRUE);
-        set_text(state->next, "Install");
+        set_text(state->next, tr(state->options.language_index, "install"));
     } else if (state->page == 3) {
-        set_text(state->title, "Installing");
-        set_text(state->body, "Spear is being installed. The window will update when setup finishes.");
-        set_text(state->status, "Copying files and configuring the installation...");
+        set_text(state->title, tr(state->options.language_index, "installing_title"));
+        set_text(state->body, tr(state->options.language_index, "installing_body"));
+        set_text(state->status, tr(state->options.language_index, "installing_status"));
         ShowWindow(state->progress, SW_SHOW);
         ShowWindow(state->status, SW_SHOW);
         EnableWindow(state->back, FALSE);
         EnableWindow(state->next, FALSE);
     } else {
-        set_text(state->title, state->ok ? "Completed" : "Installation Failed");
-        set_text(state->body, state->ok ? "Spear is ready to use." : "The installer could not finish.");
+        set_text(state->title, state->ok ? tr(state->options.language_index, "done_title") : tr(state->options.language_index, "failed_title"));
+        set_text(state->body, state->ok ? tr(state->options.language_index, "done_body") : tr(state->options.language_index, "failed_body"));
         set_text(state->status, state->result);
         ShowWindow(state->status, SW_SHOW);
         EnableWindow(state->back, FALSE);
         EnableWindow(state->next, TRUE);
-        set_text(state->next, "Close");
+        set_text(state->next, tr(state->options.language_index, "close"));
     }
 }
 
@@ -541,10 +803,12 @@ static DWORD WINAPI install_worker(LPVOID param) {
     state->ok = false;
     state->result[0] = '\0';
     remove_tree_recursive(state->ctx.runtime_dir);
+    remove_tree_recursive(state->ctx.std_dir);
     remove_tree_recursive(state->ctx.examples_dir);
     remove_tree_recursive(state->ctx.editor_dir);
     ensure_dir_recursive(state->ctx.bin_dir);
     ensure_dir_recursive(state->ctx.runtime_dir);
+    ensure_dir_recursive(state->ctx.std_dir);
     join_path(dst, sizeof(dst), state->ctx.bin_dir, "spear.exe");
     copy_file_to(state->ctx.src_spear, dst);
     join_path(dst, sizeof(dst), state->ctx.bin_dir, "spearc.exe");
@@ -552,6 +816,8 @@ static DWORD WINAPI install_worker(LPVOID param) {
     join_path(dst, sizeof(dst), state->ctx.bin_dir, "spear-setup.exe");
     copy_file_to(state->ctx.src_setup, dst);
     copy_tree(state->ctx.src_runtime, state->ctx.runtime_dir);
+    copy_tree(state->ctx.src_std, state->ctx.std_dir);
+    write_language_config(&state->ctx, state->options.language_index);
     if (state->options.install_examples && state->ctx.has_examples) copy_tree(state->ctx.src_examples, state->ctx.examples_dir);
     if (state->options.install_editor && state->ctx.has_editor) copy_tree(state->ctx.src_editor, state->ctx.editor_dir);
     if (state->options.install_path) update_user_path(state->ctx.bin_dir, true);
@@ -559,9 +825,10 @@ static DWORD WINAPI install_worker(LPVOID param) {
     if (state->options.run_checks) run_self_check(&state->ctx, &state->options, summary, sizeof(summary));
     else fmt(summary, sizeof(summary), "Installation finished.");
     fmt(state->result, sizeof(state->result),
-        "%s\r\n\r\nInstall root:\r\n%s\r\n\r\nExamples:\r\n%s\r\n\r\nVS Code extension:\r\n%s",
+        "%s\r\n\r\nInstall root:\r\n%s\r\n\r\nStandard library:\r\n%s\r\n\r\nExamples:\r\n%s\r\n\r\nVS Code extension:\r\n%s",
         summary,
         state->ctx.install_root,
+        state->ctx.std_dir,
         (state->options.install_examples && dir_exists(state->ctx.examples_dir)) ? state->ctx.examples_dir : "not installed",
         (state->options.install_editor && dir_exists(state->ctx.editor_dir)) ? state->ctx.editor_dir : "not installed");
     state->ok = true;
@@ -586,30 +853,46 @@ static void start_install(WizardState *state) {
 }
 
 static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    WizardState *state = (WizardState *) GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+    WizardState *state = (WizardState *) GetWindowLongPtrW(hwnd, GWLP_USERDATA);
     switch (msg) {
         case WM_NCCREATE:
-            SetWindowLongPtrA(hwnd, GWLP_USERDATA, (LONG_PTR) ((CREATESTRUCTA *) lParam)->lpCreateParams);
+            SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR) ((CREATESTRUCTW *) lParam)->lpCreateParams);
             return TRUE;
         case WM_CREATE:
-            state = (WizardState *) ((CREATESTRUCTA *) lParam)->lpCreateParams;
+            state = (WizardState *) ((CREATESTRUCTW *) lParam)->lpCreateParams;
             state->hwnd = hwnd;
-            state->title = CreateWindowA("STATIC", "", WS_CHILD | WS_VISIBLE, 24, 20, 560, 28, hwnd, (HMENU) IDC_TITLE, NULL, NULL);
-            state->body = CreateWindowA("STATIC", "", WS_CHILD | WS_VISIBLE, 24, 56, 560, 60, hwnd, (HMENU) IDC_BODY, NULL, NULL);
-            state->check_path = CreateWindowA("BUTTON", "Add Spear to the user PATH", WS_CHILD | BS_AUTOCHECKBOX, 32, 132, 420, 22, hwnd, (HMENU) IDC_CHECK_PATH, NULL, NULL);
-            state->check_examples = CreateWindowA("BUTTON", "Install the bundled example workspace", WS_CHILD | BS_AUTOCHECKBOX, 32, 162, 420, 22, hwnd, (HMENU) IDC_CHECK_EXAMPLES, NULL, NULL);
-            state->check_editor = CreateWindowA("BUTTON", "Install the bundled VS Code extension", WS_CHILD | BS_AUTOCHECKBOX, 32, 192, 420, 22, hwnd, (HMENU) IDC_CHECK_EDITOR, NULL, NULL);
-            state->check_tests = CreateWindowA("BUTTON", "Run post-install self-checks", WS_CHILD | BS_AUTOCHECKBOX, 32, 222, 420, 22, hwnd, (HMENU) IDC_CHECK_TESTS, NULL, NULL);
-            state->summary = CreateWindowA("EDIT", "", WS_CHILD | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL, 24, 132, 560, 190, hwnd, (HMENU) IDC_SUMMARY, NULL, NULL);
-            state->progress = CreateWindowExA(0, PROGRESS_CLASSA, "", WS_CHILD | PBS_MARQUEE, 24, 144, 560, 18, hwnd, (HMENU) IDC_PROGRESS, NULL, NULL);
-            state->status = CreateWindowA("EDIT", "", WS_CHILD | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL, 24, 176, 560, 146, hwnd, (HMENU) IDC_STATUS, NULL, NULL);
-            state->back = CreateWindowA("BUTTON", "< Back", WS_CHILD | WS_VISIBLE, 286, 346, 90, 28, hwnd, (HMENU) IDC_BACK, NULL, NULL);
-            state->next = CreateWindowA("BUTTON", "Next >", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 384, 346, 90, 28, hwnd, (HMENU) IDC_NEXT, NULL, NULL);
-            state->cancel = CreateWindowA("BUTTON", "Cancel", WS_CHILD | WS_VISIBLE, 482, 346, 90, 28, hwnd, (HMENU) IDC_CANCEL, NULL, NULL);
+            state->title = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE, 24, 20, 560, 28, hwnd, (HMENU) IDC_TITLE, NULL, NULL);
+            state->body = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE, 24, 56, 560, 60, hwnd, (HMENU) IDC_BODY, NULL, NULL);
+            state->lang_label = CreateWindowW(L"STATIC", L"", WS_CHILD, 32, 126, 120, 22, hwnd, (HMENU) IDC_LANG_LABEL, NULL, NULL);
+            state->lang_combo = CreateWindowW(L"COMBOBOX", L"", WS_CHILD | WS_VSCROLL | CBS_DROPDOWNLIST, 160, 122, 220, 240, hwnd, (HMENU) IDC_LANG_COMBO, NULL, NULL);
+            combo_add_utf8(state->lang_combo, "English");
+            combo_add_utf8(state->lang_combo, "한국어");
+            SendMessageW(state->lang_combo, CB_SETCURSEL, LANG_EN, 0);
+            state->check_path = CreateWindowW(L"BUTTON", L"", WS_CHILD | BS_AUTOCHECKBOX, 32, 132, 520, 22, hwnd, (HMENU) IDC_CHECK_PATH, NULL, NULL);
+            state->check_examples = CreateWindowW(L"BUTTON", L"", WS_CHILD | BS_AUTOCHECKBOX, 32, 162, 520, 22, hwnd, (HMENU) IDC_CHECK_EXAMPLES, NULL, NULL);
+            state->check_editor = CreateWindowW(L"BUTTON", L"", WS_CHILD | BS_AUTOCHECKBOX, 32, 192, 520, 22, hwnd, (HMENU) IDC_CHECK_EDITOR, NULL, NULL);
+            state->check_tests = CreateWindowW(L"BUTTON", L"", WS_CHILD | BS_AUTOCHECKBOX, 32, 222, 520, 22, hwnd, (HMENU) IDC_CHECK_TESTS, NULL, NULL);
+            state->summary = CreateWindowW(L"EDIT", L"", WS_CHILD | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL, 24, 132, 560, 190, hwnd, (HMENU) IDC_SUMMARY, NULL, NULL);
+            state->progress = CreateWindowExW(0, PROGRESS_CLASSW, L"", WS_CHILD | PBS_MARQUEE, 24, 144, 560, 18, hwnd, (HMENU) IDC_PROGRESS, NULL, NULL);
+            state->status = CreateWindowW(L"EDIT", L"", WS_CHILD | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL, 24, 176, 560, 146, hwnd, (HMENU) IDC_STATUS, NULL, NULL);
+            state->back = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE, 286, 346, 90, 28, hwnd, (HMENU) IDC_BACK, NULL, NULL);
+            state->next = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 384, 346, 90, 28, hwnd, (HMENU) IDC_NEXT, NULL, NULL);
+            state->cancel = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE, 482, 346, 90, 28, hwnd, (HMENU) IDC_CANCEL, NULL, NULL);
             show_page(state);
             return 0;
         case WM_COMMAND:
             switch (LOWORD(wParam)) {
+                case IDC_LANG_COMBO:
+                    if (HIWORD(wParam) == CBN_SELCHANGE) {
+                        read_options(state);
+                        {
+                            wchar_t *window_title = wide_from_utf8(state->ctx.repair_mode ? tr(state->options.language_index, "wizard_repair") : tr(state->options.language_index, "wizard_setup"));
+                            SetWindowTextW(hwnd, window_title);
+                            free(window_title);
+                        }
+                        show_page(state);
+                    }
+                    return 0;
                 case IDC_BACK:
                     if (state->page > 0 && state->page < 3) {
                         state->page--;
@@ -651,11 +934,11 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             PostQuitMessage(0);
             return 0;
     }
-    return DefWindowProcA(hwnd, msg, wParam, lParam);
+    return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
 static void run_wizard(SetupContext *ctx) {
-    WNDCLASSA wc;
+    WNDCLASSW wc;
     MSG msg;
     INITCOMMONCONTROLSEX icc;
     WizardState state;
@@ -665,6 +948,7 @@ static void run_wizard(SetupContext *ctx) {
     state.options.install_examples = ctx->has_examples;
     state.options.install_editor = ctx->has_editor;
     state.options.run_checks = true;
+    state.options.language_index = LANG_EN;
     ZeroMemory(&icc, sizeof(icc));
     icc.dwSize = sizeof(icc);
     icc.dwICC = ICC_PROGRESS_CLASS;
@@ -672,16 +956,20 @@ static void run_wizard(SetupContext *ctx) {
     ZeroMemory(&wc, sizeof(wc));
     wc.lpfnWndProc = wizard_proc;
     wc.hInstance = GetModuleHandleA(NULL);
-    wc.lpszClassName = APP_CLASS;
-    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.lpszClassName = APP_CLASS_W;
+    wc.hCursor = LoadCursorW(NULL, (LPCWSTR) IDC_ARROW);
     wc.hbrBackground = (HBRUSH) (COLOR_WINDOW + 1);
-    RegisterClassA(&wc);
-    CreateWindowExA(WS_EX_DLGMODALFRAME, APP_CLASS, ctx->repair_mode ? "Spear Repair" : "Spear Setup", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT, 620, 420, NULL, NULL, GetModuleHandleA(NULL), &state);
+    RegisterClassW(&wc);
+    {
+        wchar_t *window_title = wide_from_utf8(ctx->repair_mode ? tr(LANG_EN, "wizard_repair") : tr(LANG_EN, "wizard_setup"));
+        CreateWindowExW(WS_EX_DLGMODALFRAME, APP_CLASS_W, window_title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT, 620, 420, NULL, NULL, GetModuleHandleA(NULL), &state);
+        free(window_title);
+    }
     ShowWindow(state.hwnd, SW_SHOW);
     UpdateWindow(state.hwnd);
-    while (GetMessageA(&msg, NULL, 0, 0) > 0) {
+    while (GetMessageW(&msg, NULL, 0, 0) > 0) {
         TranslateMessage(&msg);
-        DispatchMessageA(&msg);
+        DispatchMessageW(&msg);
     }
 }
 

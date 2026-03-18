@@ -2,7 +2,7 @@
   <Package
     Name="Spear"
     Manufacturer="Spear Project"
-    Version="0.1.0"
+    Version="0.2.0"
     UpgradeCode="D7F0C0E2-3B31-4B08-949D-365D49D9F0B2"
     Language="1033"
     Scope="perUser"
@@ -22,11 +22,21 @@
       <Directory Id="ProgramsFolder" Name="Programs">
         <Directory Id="INSTALLFOLDER" Name="Spear">
           <Directory Id="RuntimeFolder" Name="runtime" />
+          <Directory Id="StdFolder" Name="std">
+            <Directory Id="StdMathFolder" Name="math" />
+            <Directory Id="StdTextFolder" Name="text" />
+            <Directory Id="StdCollectionsFolder" Name="collections" />
+            <Directory Id="StdIoFolder" Name="io" />
+            <Directory Id="StdSystemFolder" Name="system" />
+            <Directory Id="StdBridgeFolder" Name="bridge" />
+            <Directory Id="StdWebFolder" Name="web" />
+          </Directory>
           <Directory Id="ExamplesFolder" Name="examples" />
           <Directory Id="VSCodeFolder" Name="vscode-spear">
             <Directory Id="VSCodeAssetsFolder" Name="assets" />
             <Directory Id="VSCodeSnippetsFolder" Name="snippets" />
             <Directory Id="VSCodeSyntaxesFolder" Name="syntaxes" />
+            <Directory Id="VSCodeThemesFolder" Name="themes" />
           </Directory>
         </Directory>
       </Directory>
@@ -44,6 +54,29 @@
       <ComponentRef Id="CmpRuntimeBridgePython" />
       <ComponentRef Id="CmpRuntimeDemoNode" />
       <ComponentRef Id="CmpRuntimeDemoPython" />
+      <ComponentRef Id="CmpStdPrelude" />
+      <ComponentRef Id="CmpStdMathFacade" />
+      <ComponentRef Id="CmpStdTextFacade" />
+      <ComponentRef Id="CmpStdListsFacade" />
+      <ComponentRef Id="CmpStdIoFacade" />
+      <ComponentRef Id="CmpStdPathsFacade" />
+      <ComponentRef Id="CmpStdAssertFacade" />
+      <ComponentRef Id="CmpStdBridgeFacade" />
+      <ComponentRef Id="CmpStdWebFacade" />
+      <ComponentRef Id="CmpStdMathArithmetic" />
+      <ComponentRef Id="CmpStdMathCompare" />
+      <ComponentRef Id="CmpStdTextBuilders" />
+      <ComponentRef Id="CmpStdTextLayout" />
+      <ComponentRef Id="CmpStdCollectionsListsBase" />
+      <ComponentRef Id="CmpStdIoConsole" />
+      <ComponentRef Id="CmpStdIoFiles" />
+      <ComponentRef Id="CmpStdSystemPathsBase" />
+      <ComponentRef Id="CmpStdSystemAssertsBase" />
+      <ComponentRef Id="CmpStdBridgeNodeBase" />
+      <ComponentRef Id="CmpStdBridgePythonBase" />
+      <ComponentRef Id="CmpStdWebLayout" />
+      <ComponentRef Id="CmpStdWebContent" />
+      <ComponentRef Id="CmpStdWebActions" />
       <ComponentRef Id="CmpExampleBridge" />
       <ComponentRef Id="CmpExampleHello" />
       <ComponentRef Id="CmpExampleMath" />
@@ -56,6 +89,7 @@
       <ComponentRef Id="CmpVsLogoSvg" />
       <ComponentRef Id="CmpVsSnippets" />
       <ComponentRef Id="CmpVsSyntax" />
+      <ComponentRef Id="CmpVsTheme" />
       <ComponentRef Id="CmpStartMenuShortcut" />
     </Feature>
 
@@ -85,6 +119,98 @@
 
     <Component Id="CmpRuntimeDemoPython" Directory="RuntimeFolder" Guid="*">
       <File Id="FileRuntimeDemoPython" Source="$(var.SourceDir)\runtime\demo_python.py" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdPrelude" Directory="StdFolder" Guid="*">
+      <File Id="FileStdPrelude" Source="$(var.SourceDir)\std\prelude.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdMathFacade" Directory="StdFolder" Guid="*">
+      <File Id="FileStdMath" Source="$(var.SourceDir)\std\math.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdTextFacade" Directory="StdFolder" Guid="*">
+      <File Id="FileStdText" Source="$(var.SourceDir)\std\text.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdListsFacade" Directory="StdFolder" Guid="*">
+      <File Id="FileStdLists" Source="$(var.SourceDir)\std\lists.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdIoFacade" Directory="StdFolder" Guid="*">
+      <File Id="FileStdIo" Source="$(var.SourceDir)\std\io.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdPathsFacade" Directory="StdFolder" Guid="*">
+      <File Id="FileStdPaths" Source="$(var.SourceDir)\std\paths.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdAssertFacade" Directory="StdFolder" Guid="*">
+      <File Id="FileStdAssert" Source="$(var.SourceDir)\std\assert.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdBridgeFacade" Directory="StdFolder" Guid="*">
+      <File Id="FileStdBridge" Source="$(var.SourceDir)\std\bridge.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdWebFacade" Directory="StdFolder" Guid="*">
+      <File Id="FileStdWeb" Source="$(var.SourceDir)\std\web.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdMathArithmetic" Directory="StdMathFolder" Guid="*">
+      <File Id="FileStdMathArithmetic" Source="$(var.SourceDir)\std\math\arithmetic.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdMathCompare" Directory="StdMathFolder" Guid="*">
+      <File Id="FileStdMathCompare" Source="$(var.SourceDir)\std\math\compare.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdTextBuilders" Directory="StdTextFolder" Guid="*">
+      <File Id="FileStdTextBuilders" Source="$(var.SourceDir)\std\text\builders.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdTextLayout" Directory="StdTextFolder" Guid="*">
+      <File Id="FileStdTextLayout" Source="$(var.SourceDir)\std\text\layout.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdCollectionsListsBase" Directory="StdCollectionsFolder" Guid="*">
+      <File Id="FileStdCollectionsListsBase" Source="$(var.SourceDir)\std\collections\lists_base.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdIoConsole" Directory="StdIoFolder" Guid="*">
+      <File Id="FileStdIoConsole" Source="$(var.SourceDir)\std\io\console.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdIoFiles" Directory="StdIoFolder" Guid="*">
+      <File Id="FileStdIoFiles" Source="$(var.SourceDir)\std\io\files.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdSystemPathsBase" Directory="StdSystemFolder" Guid="*">
+      <File Id="FileStdSystemPathsBase" Source="$(var.SourceDir)\std\system\paths_base.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdSystemAssertsBase" Directory="StdSystemFolder" Guid="*">
+      <File Id="FileStdSystemAssertsBase" Source="$(var.SourceDir)\std\system\asserts_base.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdBridgeNodeBase" Directory="StdBridgeFolder" Guid="*">
+      <File Id="FileStdBridgeNodeBase" Source="$(var.SourceDir)\std\bridge\node_base.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdBridgePythonBase" Directory="StdBridgeFolder" Guid="*">
+      <File Id="FileStdBridgePythonBase" Source="$(var.SourceDir)\std\bridge\python_base.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdWebLayout" Directory="StdWebFolder" Guid="*">
+      <File Id="FileStdWebLayout" Source="$(var.SourceDir)\std\web\layout.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdWebContent" Directory="StdWebFolder" Guid="*">
+      <File Id="FileStdWebContent" Source="$(var.SourceDir)\std\web\content.sp" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpStdWebActions" Directory="StdWebFolder" Guid="*">
+      <File Id="FileStdWebActions" Source="$(var.SourceDir)\std\web\actions.sp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpExampleBridge" Directory="ExamplesFolder" Guid="*">
@@ -133,6 +259,10 @@
 
     <Component Id="CmpVsSyntax" Directory="VSCodeSyntaxesFolder" Guid="*">
       <File Id="FileVsSyntax" Source="$(var.SourceDir)\vscode-spear\syntaxes\spear.tmLanguage.json" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpVsTheme" Directory="VSCodeThemesFolder" Guid="*">
+      <File Id="FileVsTheme" Source="$(var.SourceDir)\vscode-spear\themes\spear-dark-color-theme.json" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStartMenuShortcut" Directory="ApplicationProgramsFolder" Guid="*">

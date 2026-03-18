@@ -7,8 +7,122 @@
 #include <stdarg.h>
 #include <windows.h>
 
+static char g_lang[8] = "en";
+
+static int lang_is(const char *code) {
+    return _stricmp(g_lang, code) == 0;
+}
+
+static void load_lang_from_dir(const char *dir) {
+    char path[4096];
+    char parent[4096];
+    char *slash;
+    FILE *fp;
+    if (strlen(dir) + 16 >= sizeof(path)) return;
+    strcpy(path, dir);
+    strcat(path, "\\spear-lang.txt");
+    fp = fopen(path, "rb");
+    if (!fp) {
+        strcpy(parent, dir);
+        slash = strrchr(parent, '\\');
+        if (!slash) slash = strrchr(parent, '/');
+        if (!slash) return;
+        *slash = '\0';
+        if (strlen(parent) + 16 >= sizeof(path)) return;
+        strcpy(path, parent);
+        strcat(path, "\\spear-lang.txt");
+        fp = fopen(path, "rb");
+        if (!fp) return;
+    }
+    if (fgets(g_lang, sizeof(g_lang), fp)) {
+        if ((unsigned char) g_lang[0] == 0xEF && (unsigned char) g_lang[1] == 0xBB && (unsigned char) g_lang[2] == 0xBF) {
+            memmove(g_lang, g_lang + 3, strlen(g_lang + 3) + 1);
+        }
+        for (size_t i = 0; g_lang[i]; i++) {
+            if (g_lang[i] == '\r' || g_lang[i] == '\n') {
+                g_lang[i] = '\0';
+                break;
+            }
+        }
+        if (_stricmp(g_lang, "ko") != 0 && _stricmp(g_lang, "en") != 0) {
+            strcpy(g_lang, "en");
+        }
+    }
+    fclose(fp);
+}
+
+static const char *cli_text(const char *key) {
+    if (strcmp(key, "error_prefix") == 0) {
+        if (lang_is("ko")) return "spear 오류";
+        if (lang_is("ja")) return "spear エラー";
+        if (lang_is("zh")) return "spear 错误";
+        return "spear error";
+    }
+    if (strcmp(key, "usage") == 0) {
+        if (lang_is("ko")) return "사용법:\n  spear file.sp\n  spear build file.sp\n  spear serve file.sp\n  spear check file.sp\n";
+        if (lang_is("ja")) return "使い方:\n  spear file.sp\n  spear build file.sp\n  spear serve file.sp\n  spear check file.sp\n";
+        if (lang_is("zh")) return "用法:\n  spear file.sp\n  spear build file.sp\n  spear serve file.sp\n  spear check file.sp\n";
+        return "usage:\n  spear file.sp\n  spear build file.sp\n  spear serve file.sp\n  spear check file.sp\n";
+    }
+    if (strcmp(key, "expected_sp") == 0) {
+        if (lang_is("ko")) return ".sp 소스 파일이 필요합니다";
+        if (lang_is("ja")) return ".sp ソースファイルが必要です";
+        if (lang_is("zh")) return "需要 .sp 源文件";
+        return "expected a .sp source file";
+    }
+    if (strcmp(key, "missing_spearc") == 0) {
+        if (lang_is("ko")) return "spear.exe 옆에서 spearc.exe를 찾을 수 없습니다";
+        if (lang_is("ja")) return "spear.exe の隣に spearc.exe が見つかりません";
+        if (lang_is("zh")) return "在 spear.exe 旁边找不到 spearc.exe";
+        return "installed spearc.exe was not found next to spear.exe";
+    }
+    if (strcmp(key, "compile_failed") == 0) {
+        if (lang_is("ko")) return "spear 컴파일 오류: 소스 컴파일에 실패했습니다";
+        if (lang_is("ja")) return "spear コンパイルエラー: ソースのコンパイルに失敗しました";
+        if (lang_is("zh")) return "spear 编译错误：源代码编译失败";
+        return "spear compile error: source compilation failed";
+    }
+    if (strcmp(key, "backend_failed") == 0) {
+        if (lang_is("ko")) return "spear 백엔드 오류: 네이티브 빌드에 실패했습니다";
+        if (lang_is("ja")) return "spear バックエンドエラー: ネイティブビルドに失敗しました";
+        if (lang_is("zh")) return "spear 后端错误：原生构建失败";
+        return "spear backend error: native build failed";
+    }
+    if (strcmp(key, "details") == 0) {
+        if (lang_is("ko")) return "자세한 내용";
+        if (lang_is("ja")) return "詳細";
+        if (lang_is("zh")) return "详细信息";
+        return "details";
+    }
+    if (strcmp(key, "details_missing") == 0) {
+        if (lang_is("ko")) return "자세한 정보를 찾을 수 없습니다";
+        if (lang_is("ja")) return "詳細を取得できませんでした";
+        if (lang_is("zh")) return "无法获取详细信息";
+        return "details were not available";
+    }
+    if (strcmp(key, "checked") == 0) {
+        if (lang_is("ko")) return "검사 완료";
+        if (lang_is("ja")) return "チェック完了";
+        if (lang_is("zh")) return "检查完成";
+        return "checked";
+    }
+    if (strcmp(key, "built") == 0) {
+        if (lang_is("ko")) return "빌드 완료";
+        if (lang_is("ja")) return "ビルド完了";
+        if (lang_is("zh")) return "构建完成";
+        return "built";
+    }
+    if (strcmp(key, "serve_prefix") == 0) {
+        if (lang_is("ko")) return "spear serve";
+        if (lang_is("ja")) return "spear serve";
+        if (lang_is("zh")) return "spear serve";
+        return "spear serve";
+    }
+    return key;
+}
+
 static void fail(const char *message) {
-    fprintf(stderr, "spear error: %s\n", message);
+    fprintf(stderr, "%s: %s\n", cli_text("error_prefix"), message);
     exit(1);
 }
 
@@ -105,7 +219,7 @@ static void print_log_and_cleanup(const char *prefix, const char *log_path) {
     FILE *fp = fopen(log_path, "rb");
     fprintf(stderr, "%s\n", prefix);
     if (!fp) {
-        fprintf(stderr, "details were not available\n");
+        fprintf(stderr, "%s\n", cli_text("details_missing"));
         return;
     }
     for (;;) {
@@ -246,13 +360,13 @@ int main(int argc, char **argv) {
     char command[4096];
 
     if (argc < 2) {
-        fprintf(stderr, "usage:\n  spear file.sp\n  spear build file.sp\n  spear serve file.sp\n  spear check file.sp\n");
+        fprintf(stderr, "%s", cli_text("usage"));
         return 1;
     }
 
     if (_stricmp(argv[1], "build") == 0 || _stricmp(argv[1], "serve") == 0 || _stricmp(argv[1], "check") == 0) {
         if (argc < 3) {
-            fprintf(stderr, "usage:\n  spear file.sp\n  spear build file.sp\n  spear serve file.sp\n  spear check file.sp\n");
+            fprintf(stderr, "%s", cli_text("usage"));
             return 1;
         }
         mode = argv[1];
@@ -262,14 +376,14 @@ int main(int argc, char **argv) {
     }
 
     size_t input_len = strlen(input);
-    if (input_len < 3 || _stricmp(input + input_len - 3, ".sp") != 0) {
-        fail("expected a .sp source file");
-    }
-
     exe_dir(install_dir, sizeof(install_dir));
+    load_lang_from_dir(install_dir);
+    if (input_len < 3 || _stricmp(input + input_len - 3, ".sp") != 0) {
+        fail(cli_text("expected_sp"));
+    }
     join_path(spearc_path, sizeof(spearc_path), install_dir, "spearc.exe");
     if (GetFileAttributesA(spearc_path) == INVALID_FILE_ATTRIBUTES) {
-        fail("installed spearc.exe was not found next to spear.exe");
+        fail(cli_text("missing_spearc"));
     }
 
     ensure_build_dir();
@@ -299,27 +413,27 @@ int main(int argc, char **argv) {
     }
     if (run_process_capture(command, front_log) != 0) {
         if (_stricmp(mode, "build") == 0) {
-            fprintf(stderr, "spear compile error: source compilation failed\n");
-            fprintf(stderr, "details: %s\n", front_log);
+            fprintf(stderr, "%s\n", cli_text("compile_failed"));
+            fprintf(stderr, "%s: %s\n", cli_text("details"), front_log);
         } else {
-            print_log_and_cleanup("spear compile error: source compilation failed", front_log);
+            print_log_and_cleanup(cli_text("compile_failed"), front_log);
             cleanup_temp_dir(temp_dir, c_out, exe_out, front_log, back_log);
         }
         return 1;
     }
     if (_stricmp(mode, "check") == 0) {
         cleanup_temp_dir(temp_dir, c_out, exe_out, front_log, back_log);
-        printf("checked %s\n", input);
+        printf("%s %s\n", cli_text("checked"), input);
         return 0;
     }
 
     format_text(command, sizeof(command), "gcc -O3 -w -std=c11 -o \"%s\" \"%s\"", exe_out, c_out);
     if (run_process_capture(command, back_log) != 0) {
         if (_stricmp(mode, "build") == 0) {
-            fprintf(stderr, "spear backend error: native build failed\n");
-            fprintf(stderr, "details: %s\n", back_log);
+            fprintf(stderr, "%s\n", cli_text("backend_failed"));
+            fprintf(stderr, "%s: %s\n", cli_text("details"), back_log);
         } else {
-            print_log_and_cleanup("spear backend error: native build failed", back_log);
+            print_log_and_cleanup(cli_text("backend_failed"), back_log);
             cleanup_temp_dir(temp_dir, c_out, exe_out, front_log, back_log);
         }
         return 1;
@@ -331,7 +445,7 @@ int main(int argc, char **argv) {
     delete_if_exists(back_log);
 
     if (_stricmp(mode, "build") == 0) {
-        printf("built %s\n", exe_out);
+        printf("%s %s\n", cli_text("built"), exe_out);
         return 0;
     }
 
@@ -346,7 +460,7 @@ int main(int argc, char **argv) {
         const char *html = GetFileAttributesA("build\\spear-ui.html") != INVALID_FILE_ATTRIBUTES
             ? "http://127.0.0.1:4173/spear-ui.html"
             : "http://127.0.0.1:4173/";
-        printf("spear serve: %s\n", html);
+        printf("%s: %s\n", cli_text("serve_prefix"), html);
         format_text(command, sizeof(command), "cmd /c start \"\" \"%s\"", html);
         run_process_console(command);
         return run_process_console("python -m http.server 4173 --directory build");

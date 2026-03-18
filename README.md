@@ -18,7 +18,10 @@
 
 Recent syntax improvements focus on making the language easier to write:
 
-- `let` infers scalar variable types from the initializer
+- `value` means "make a new read-only value"
+- `variable` means "make a new mutable value"
+- `const name = ...;` now works directly without `const let`
+- beginner-friendly aliases work too: `number`, `string`, `numbers`, `strings`, `mutable`
 - `pack(...)` can create lists with initial values
 - user functions make larger programs practical
 - `const` blocks accidental reassignment
@@ -34,6 +37,111 @@ Recent syntax improvements focus on making the language easier to write:
 - `write(path, content)` makes page/app output generation practical
 - checked arithmetic traps division-by-zero and 64-bit overflow with source locations
 - list bounds and `guard(...)` failures report `line:column` runtime locations
+- beginner aliases like `run { ... }`, `print(...)`, and `ask(...)` reduce boilerplate
+
+## Standard Library
+
+Spear now ships with a structured `std/` library.
+
+Public entrypoints:
+
+- `std/prelude.sp`: recommended starter import for app code
+- `std/math.sp`: numeric helpers
+- `std/text.sp`: text composition helpers
+- `std/lists.sp`: collection helpers
+- `std/io.sp`: console and file wrappers
+- `std/paths.sp`: path and build-output helpers
+- `std/assert.sp`: reusable validation helpers
+- `std/bridge.sp`: Node/Python bridge wrappers
+- `std/web.sp`: reusable `view` helpers for UI output
+
+Internal organization:
+
+- `std/math/`: arithmetic and comparison helpers
+- `std/text/`: text builders and layout helpers
+- `std/collections/`: list-focused utilities
+- `std/io/`: console and file helpers
+- `std/system/`: path and assertion helpers
+- `std/bridge/`: bridge-specific wrappers
+- `std/web/`: page, content, and action views
+
+Web building blocks now cover more of a real page:
+
+- layout: `page_shell`, `page_frame`, `container`, `section_block`, `article_block`, `panel`, `card`, `split`, `stack_block`, `header_bar`, `footer_note`
+- content: `heading1`, `heading2`, `heading3`, `paragraph`, `lead`, `hero`, `intro`, `note`, `success_note`, `warning_note`, `item`, `bullet_list`, `number_list`, `quote_block`, `code_line`, `metric`, `empty_state`, `faq_item`, `badge`
+- actions: `actions`, `action_bar`, `primary_action`, `secondary_action`, `button_row`, `link_row`, `nav_bar`, `cta_section`, `docs_cta`
+- attribute helpers: `attr`, `attrs`, `class_name`, `id_name`, `style_attr`, `href_attr`, `src_attr`, `alt_attr`
+- compose-like modifiers: `modifier`, `padding_all`, `padding_x`, `padding_y`, `margin_all`, `margin_x`, `margin_y`, `gap_space`, `background`, `foreground`, `corner_radius`, `border`, `fill_max_width`, `fill_max_height`, `width_fixed`, `max_width`, `min_width`, `height_fixed`, `min_height`, `center_x`, `align_center`, `justify_center`, `justify_between`, `shadow`, `font_size`, `font_weight`, `flex_col`, `flex_row`, `wrap`
+- compose-like blocks: `box(...) { ... }`, `surface_box(...) { ... }`, `column_box(...) { ... }`, `row_box(...) { ... }`, `label_text`, `button_link`, `image_block`, `spacer`
+
+Beginner mode automatically includes `std/prelude.sp`, so the smallest programs can start immediately:
+
+```sp
+run {
+    print("hello");
+}
+```
+
+Clear data shapes:
+
+- `number` or `num`: one integer value
+- `string` or `text`: one text value
+- `numbers` or `numlist`: a list of integer values
+- `strings` or `textlist`: a list of text values
+- `value` or `let`: inferred read-only binding
+- `variable`, `mutable`, or `var`: inferred mutable binding
+- `const`: explicit constant binding, with or without a type
+
+Clear declaration rules:
+
+- `value name = ...;`
+  - inferred type, read-only
+- `variable name = ...;`
+  - inferred type, mutable
+- `const name = ...;`
+  - inferred type, constant
+- `number name = ...;`
+  - explicit number
+- `string name = ...;`
+  - explicit string
+- `numbers name = ...;`
+  - explicit number list
+- `strings name = ...;`
+  - explicit string list
+- `const number name = ...;`
+  - explicit constant with a fixed type
+
+Clear function rules:
+
+- `function number add(number left, number right) { ... }`
+  - number-returning function
+- `function string title_line(string title) { ... }`
+  - string-returning function
+- `function view hero(string title, string body) { ... }`
+  - reusable UI/view function
+- `run { ... }`
+  - simplest app entry point
+- `spear launch() { ... }`
+  - named entry point when you want a formal app function
+
+That means beginner code can read like this:
+
+```sp
+run {
+    numbers scores = pack(10, 20, 30);
+    const title = "Spear";
+    variable shots = 3;
+    print(count(scores));
+    print(title);
+}
+```
+
+Use direct modules only when you want a narrower surface:
+
+```sp
+import "../std/math.sp";
+import "../std/web.sp";
+```
 
 Rule of thumb:
 
@@ -44,26 +152,26 @@ Rule of thumb:
 ## Example
 
 ```sp
-import "math.sp";
-
 package examples;
 module hello;
 
-spear launch() {
-    numlist scores = pack(add(4, 5), 12, 20);
-    textlist words = pack("spear", "edge");
-    var shots = 3;
+run {
+    numbers scores = pack(add(4, 5), 12, 20);
+    strings words = pack("spear", "edge");
+    variable shots = clamp_num(3, 0, 10);
 
-    say(count(scores));
-    say(at(scores, 0));
-    say(sharpen(at(words, 0)));
+    print(count(scores));
+    print(at(scores, 0));
+    print(prefix("sharp-", at(words, 0)));
+    print(sum(scores));
+    print(size(repeat("=", 5)));
     for (var i = 0; i < count(words); i = i + 1) {
-        say(at(words, i));
+        print(at(words, i));
     }
 
     while (shots > 0) {
-        say(shots);
-        shots = shots - 1;
+        print(shots);
+        shots = dec(shots);
     }
 }
 ```
@@ -71,45 +179,48 @@ spear launch() {
 UI example:
 
 ```sp
-view hero(text title, text body) {
-    return markup("section") {
-        markup("h1") {
-            escape(title);
-        };
-        markup("p") {
-            escape(body);
-        };
-        row {
-            action("/start", "Open App");
-            action("#docs", "Docs");
+function view hero_block(string title, string body) {
+    return surface_box(corner_radius("24px")) {
+        column_box(gap_space("14px")) {
+            badge("Starter");
+            hero(title, body);
+            button_row("/start", "Open App", "#docs", "Docs");
         };
     };
 }
 
-spear launch() {
-    const let title = "Spear UI";
-    text html = page(title) {
-        column {
-            hero(title, "safe, fast, reliable");
-        };
-    };
+run {
+    const title = "Spear UI";
+    string html = page_frame(
+        title,
+        centered(header_bar(title, "safe, fast, reliable")),
+        centered(column_box(modifier(max_width("960px"), gap_space("24px"))) {
+            nav_bar("/", "Home", "#docs", "Docs", "#about", "About");
+            hero_block(title, "safe, fast, reliable");
+            cta_section("Start", "Open the app or read the docs.", "/start", "Open App");
+        }),
+        footer_note("Generated with Spear")
+    );
     guard(size(html) > 0, "body must not be empty");
     write("build/spear-ui.html", html);
-    say(html);
+    print(html);
 }
 ```
 
 ## Language Features
 
 - `spear <name>() { ... }` entry function
-- `function num <name>(...)`, `function text <name>(...)`, `view <name>(...)` functions
-- `let` and `var` type inference for scalar values
+- `function number <name>(...)`, `function string <name>(...)`, `function view <name>(...)` functions
+- `run { ... }` beginner entry block
+- `value`, `variable`, and `const` declaration forms
+- `number`, `string`, `numbers`, `strings`, `mutable` beginner aliases
 - `const` immutable bindings
-- `num`, `text`, `numlist`, `textlist`
+- `num`, `text`, `numlist`, `textlist` also still work
 - `import`, `module`, `package`
-- `say(...)`
+- `say(...)`, `print(...)`
 - `write(path, content)`
 - `nodecall(pkg, fn, payload)`, `pycall(module, fn, payload)`
+- `read()`, `ask(prompt)`
 - `join(a, b)`, `read()`, `size(text)`, `same(a, b)`
 - `guard(condition, message)`
 - `escape(text)`, `markup(tag, html)`, `page(title, body)`
@@ -203,6 +314,7 @@ build/spear.exe examples/hello.sp
 - `src/`: compiler implementation
 - `runtime/`: Node and Python bridge scripts for external ecosystem access
 - `examples/`: sample Spear programs
+- `std/`: bundled standard library with public entrypoints + internal submodules
 - `examples/bridge.sp`: bridge example for Node and Python calls
 - `examples/web.sp`: safe HTML/UI-flavored output example
 - `build/`: generated C and binaries

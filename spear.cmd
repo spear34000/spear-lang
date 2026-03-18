@@ -18,6 +18,12 @@ if /I "%~1"=="serve" (
     set "input=%~2"
 )
 
+if /I "%~1"=="check" (
+    if "%~2"=="" goto :usage
+    set "mode=check"
+    set "input=%~2"
+)
+
 if not exist "%input%" (
     echo input not found: %input%
     exit /b 1
@@ -33,6 +39,13 @@ if not exist "build" mkdir build
 if not exist "build\spearc.exe" (
     gcc -O3 -Wall -Wextra -std=c11 -o build\spearc.exe src\spearc.c
     if errorlevel 1 exit /b 1
+)
+
+if /I "%mode%"=="check" (
+    build\spearc.exe --check "%input%"
+    if errorlevel 1 exit /b 1
+    echo checked %input%
+    exit /b 0
 )
 
 set "name=%~n1"
@@ -72,4 +85,5 @@ echo usage:
 echo   spear file.sp
 echo   spear build file.sp
 echo   spear serve file.sp
+echo   spear check file.sp
 exit /b 1

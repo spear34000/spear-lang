@@ -1,0 +1,97 @@
+{
+  "name": "Spear Dark",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#1e252f",
+    "editor.foreground": "#d7dee9",
+    "editorLineNumber.foreground": "#536070",
+    "editorLineNumber.activeForeground": "#93a4b8",
+    "editor.selectionBackground": "#2c3a4c",
+    "editorCursor.foreground": "#ffcc66"
+  },
+  "tokenColors": [
+    {
+      "scope": [
+        "keyword.control.import.spear",
+        "keyword.control.module.spear",
+        "keyword.control.flow.spear"
+      ],
+      "settings": {
+        "foreground": "#ff9d3f"
+      }
+    },
+    {
+      "scope": [
+        "storage.modifier.spear",
+        "storage.type.variable.spear",
+        "storage.type.function.spear",
+        "storage.type.entry.spear",
+        "storage.type.memory.spear",
+        "storage.type.spear"
+      ],
+      "settings": {
+        "foreground": "#ff7ab2"
+      }
+    },
+    {
+      "scope": [
+        "entity.name.function.spear",
+        "entity.name.function.call.spear",
+        "support.function.builtin.spear"
+      ],
+      "settings": {
+        "foreground": "#c792ea"
+      }
+    },
+    {
+      "scope": [
+        "variable.other.definition.spear",
+        "variable.parameter.spear",
+        "variable.other.spear",
+        "variable.other.readwrite.spear",
+        "entity.name.namespace.spear"
+      ],
+      "settings": {
+        "foreground": "#7dcfff"
+      }
+    },
+    {
+      "scope": [
+        "string.quoted.double.spear"
+      ],
+      "settings": {
+        "foreground": "#ecc48d"
+      }
+    },
+    {
+      "scope": [
+        "constant.numeric.integer.spear"
+      ],
+      "settings": {
+        "foreground": "#ff966c"
+      }
+    },
+    {
+      "scope": [
+        "keyword.operator.spear",
+        "punctuation.section.block.begin.spear",
+        "punctuation.section.block.end.spear",
+        "punctuation.section.group.begin.spear",
+        "punctuation.section.group.end.spear",
+        "punctuation.separator.parameter.spear",
+        "punctuation.terminator.statement.spear"
+      ],
+      "settings": {
+        "foreground": "#d7dee9"
+      }
+    },
+    {
+      "scope": [
+        "comment.line.double-slash.spear"
+      ],
+      "settings": {
+        "foreground": "#63748a"
+      }
+    }
+  ]
+}

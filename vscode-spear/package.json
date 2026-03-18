@@ -2,7 +2,7 @@
   "name": "spear-language",
   "displayName": "Spear Language",
   "description": "Syntax highlighting for the Spear programming language",
-  "version": "0.0.7",
+  "version": "0.2.0",
   "publisher": "local",
   "icon": "assets/spear-logo.png",
   "main": "./extension.js",
@@ -49,6 +49,13 @@
         "language": "spear",
         "scopeName": "source.spear",
         "path": "./syntaxes/spear.tmLanguage.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "Spear Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/spear-dark-color-theme.json"
       }
     ],
     "snippets": [

@@ -103,9 +103,20 @@ run {
         });
         centered(box(paper_panel_mod()) {
             column_box(gap_space(space_3())) {
+                tab_row(
+                    tab_chip("Overview", "yes"),
+                    tab_chip("Signals", "no"),
+                    tab_chip("Launches", "no")
+                );
                 intro(
                     "Spear should have its own design grammar.",
                     "The goal is not to hide styling completely. The goal is to replace raw CSS with reusable design tokens that still let you steer the result."
+                );
+                dashboard_grid(
+                    stat_panel("Weekly visitors", "184k", "Traffic should be readable at a glance."),
+                    stat_panel("Conversion rate", "4.8%", "The visual baseline should stay strong under real numbers."),
+                    stat_panel("Build friction", "low", "Primitives should remove ceremony, not control."),
+                    stat_panel("Theme drift", "stable", "Tokens keep pages coherent while you remix layouts.")
                 );
                 feature_triptych(
                     "Layouts", "Reusable structure", "Use rows, columns, boxes, and sections freely without dropping design quality.",
@@ -119,19 +130,48 @@ run {
                     pack(86, 82, 88),
                     pack(tone_brand(), tone_warm(), tone_ink())
                 );
+                data_table(
+                    "Recent launches",
+                    "Structured data should fit the same design language as marketing sections.",
+                    join(
+                        join(table_header("Project"), table_header("Theme")),
+                        table_header("Status")
+                    ),
+                    join(
+                        join(
+                            table_row("Spear Commerce", "Product", "Shipped"),
+                            table_row("Atlas Docs", "Editorial", "Review")
+                        ),
+                        table_row("Northstar CRM", "Cinema", "Draft")
+                    )
+                );
             };
         });
-        box(modifier(dark_panel_mod(), modifier(max_width("1160px"), center_x()))) {
-            row_box(modifier(justify_between(), modifier(align_center(), wrap()))) {
-                column_box(gap_space(space_2())) {
-                    markup("h2", style_attr("margin:0;font-size:34px;line-height:1.05;color:#f8fafc")) {
-                        "Build pages that already look like someone cared.";
+        centered(row_box(modifier(gap_space(space_3()), modifier(align_start(), wrap()))) {
+            markup("section", style_attr("flex:0 0 260px;min-width:240px")) {
+                sidebar_shell("Workspace") {
+                    column_box(gap_space(space_2())) {
+                        sidebar_link("#overview", "Overview", "yes");
+                        sidebar_link("#signals", "Signals", "no");
+                        sidebar_link("#launches", "Launches", "no");
+                        sidebar_link("#settings", "Settings", "no");
                     };
-                    label_text(foreground("rgba(248,250,252,0.72)"), "That should come from the language's design system, not from losing control.");
                 };
-                button_link(action_warm_mod(), "/start", "Build with Spear");
             };
-        };
+            markup("section", style_attr("flex:1;min-width:420px")) {
+                box(modifier(dark_panel_mod(), width_fill())) {
+                    row_box(modifier(justify_between(), modifier(align_center(), wrap()))) {
+                        column_box(gap_space(space_2())) {
+                            markup("h2", style_attr("margin:0;font-size:34px;line-height:1.05;color:#f8fafc")) {
+                                "Build pages that already look like someone cared.";
+                            };
+                            label_text(foreground("rgba(248,250,252,0.72)"), "That should come from the language's design system, not from losing control.");
+                        };
+                        button_link(action_warm_mod(), "/start", "Build with Spear");
+                    };
+                };
+            };
+        });
     };
     guard(size(html) > 0, "body must not be empty");
     write("build/spear-ui.html", html);

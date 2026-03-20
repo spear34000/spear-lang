@@ -1033,7 +1033,7 @@ static void build_summary(WizardState *state, char *out, size_t cap) {
     fmt(out, cap,
         "Install location:\r\n%s\r\n\r\n"
         "Language:\r\n%s\r\n\r\n"
-        "Core:\r\n- spear.exe\r\n- spearc.exe\r\n- spear-setup.exe\r\n- runtime bridge files\r\n\r\n"
+        "Core:\r\n- spear.exe\r\n- spearc.exe\r\n- spear-setup.exe\r\n- runtime tools\r\n\r\n"
         "Options:\r\n- PATH registration: %s\r\n- Example workspace: %s\r\n- VS Code extension: %s\r\n- Post-install self-check: %s\r\n\r\n"
         "Detected:\r\n- system gcc: %s\r\n- bundled toolchain: %s\r\n- VS Code CLI: %s",
         state->ctx.install_root,

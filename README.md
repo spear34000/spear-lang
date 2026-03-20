@@ -311,7 +311,7 @@ The `vscode-spear/` folder contains syntax highlighting, snippets, diagnostics, 
 ## Workspace / 작업공간 구조
 
 - `src/`: compiler and launcher sources
-- `runtime/`: Node and Python bridge scripts
+- `runtime/`: bundled runtime tools, native helpers, and optional bridge scripts
 - `examples/`: sample programs
 - `std/`: bundled standard library
 - `build/`: generated binaries and temporary output

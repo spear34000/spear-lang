@@ -382,10 +382,12 @@ static Expr parse_list_expr(Parser *parser, int scope_id, ValueType expected_typ
 static Expr parse_map_expr(Parser *parser, int scope_id);
 static Expr parse_result_expr(Parser *parser, int scope_id);
 static Expr parse_value_expr(Parser *parser, int scope_id, ValueType type);
+static ValueType infer_expr_type(Parser *parser);
 static void parse_block(Parser *parser, int parent_scope_id, bool creates_scope);
 static bool starts_text_expr(Parser *parser);
 static bool at_returns_text(Parser *parser);
 static char *parse_text_children(Parser *parser, int scope_id);
+#include "spearc_statement_core.h"
 
 static ValueType infer_expr_type(Parser *parser) {
     Token token = parser->lexer.current;
@@ -1578,151 +1580,16 @@ static bool at_returns_text(Parser *parser) {
 }
 
 static bool parse_statement(Parser *parser, int scope_id) {
-    if (match(parser, TOK_MODULE) || match(parser, TOK_PACKAGE)) {
-        expect(parser, TOK_IDENT, "expected name after metadata");
-        expect(parser, TOK_SEMI, "expected ';' after metadata");
-        return false;
-    }
-
     if (match(parser, TOK_CLASS)) {
         fatal_at(parser->lexer.current.line, parser->lexer.current.col, "class is reserved but not implemented yet");
     }
 
-    if (match(parser, TOK_CONST)) {
-        bool infer = false;
-        if (parser->lexer.current.kind == TOK_IDENT) {
-            infer = true;
-        } else if (match_let_alias(parser)) {
-            infer = true;
+    {
+        bool handled = false;
+        bool terminated = parse_core_statement(parser, scope_id, &handled);
+        if (handled) {
+            return terminated;
         }
-        ValueType type;
-        if (infer) {
-            Token name_tok = parser->lexer.current;
-            expect(parser, TOK_IDENT, "expected variable name");
-            char *name = token_text(name_tok);
-            expect(parser, TOK_ASSIGN, "expected '='");
-            type = infer_expr_type(parser);
-            Expr value;
-            value = parse_value_expr(parser, scope_id, type);
-            expect(parser, TOK_SEMI, "expected ';'");
-            add_symbol(parser, name, type, true, name_tok.line, name_tok.col, false, false);
-            emit_line(parser, "%s %s = %s;", ctype_name(type), name, value.code);
-            return false;
-        }
-
-        if (!is_type_token(parser->lexer.current.kind)) {
-            fatal_at(parser->lexer.current.line, parser->lexer.current.col, "expected type or let after const");
-        }
-        type = token_to_type(parser->lexer.current.kind);
-        advance(parser);
-        Token name_tok = parser->lexer.current;
-        expect(parser, TOK_IDENT, "expected variable name");
-        char *name = token_text(name_tok);
-        expect(parser, TOK_ASSIGN, "expected '='");
-        Expr value;
-        value = parse_value_expr(parser, scope_id, type);
-        expect(parser, TOK_SEMI, "expected ';'");
-        add_symbol(parser, name, type, true, name_tok.line, name_tok.col, false, false);
-        emit_line(parser, "%s %s = %s;", ctype_name(type), name, value.code);
-        return false;
-    }
-
-    if (match_let_alias(parser) || match_var_alias(parser)) {
-        Token name_tok = parser->lexer.current;
-        expect(parser, TOK_IDENT, "expected variable name");
-        char *name = token_text(name_tok);
-        expect(parser, TOK_ASSIGN, "expected '='");
-        ValueType type = infer_expr_type(parser);
-        Expr value;
-        value = parse_value_expr(parser, scope_id, type);
-        expect(parser, TOK_SEMI, "expected ';'");
-        add_symbol(parser, name, type, false, name_tok.line, name_tok.col, false, false);
-        emit_line(parser, "%s %s = %s;", ctype_name(type), name, value.code);
-        return false;
-    }
-
-    if (is_type_token(parser->lexer.current.kind)) {
-        TokenKind decl_kind = parser->lexer.current.kind;
-        ValueType type = token_to_type(decl_kind);
-        advance(parser);
-        Token name_tok = parser->lexer.current;
-        expect(parser, TOK_IDENT, "expected variable name");
-        char *name = token_text(name_tok);
-        expect(parser, TOK_ASSIGN, "expected '='");
-        Expr value;
-        value = parse_value_expr(parser, scope_id, type);
-        expect(parser, TOK_SEMI, "expected ';'");
-        add_symbol(parser, name, type, false, name_tok.line, name_tok.col, false, false);
-        emit_line(parser, "%s %s = %s;", ctype_name(type), name, value.code);
-        return false;
-    }
-
-    if (match(parser, TOK_SAY)) {
-        expect(parser, TOK_LPAREN, "expected '(' after say");
-        if (at_returns_text(parser) || starts_text_expr(parser)) {
-            Expr value = parse_text_expr(parser, scope_id);
-            emit_line(parser, "printf(\"%%s\\n\", %s);", value.code);
-        } else {
-            Expr value = parse_num_expr(parser, scope_id);
-            emit_line(parser, "printf(\"%%lld\\n\", (long long) (%s));", value.code);
-        }
-        expect(parser, TOK_RPAREN, "expected ')'");
-        expect(parser, TOK_SEMI, "expected ';'");
-        return false;
-    }
-
-    if (match(parser, TOK_WRITE)) {
-        expect(parser, TOK_LPAREN, "expected '(' after write");
-        Expr path = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_COMMA, "expected ',' in write");
-        Expr content = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_RPAREN, "expected ')'");
-        expect(parser, TOK_SEMI, "expected ';'");
-        emit_line(parser, "spear_write_text(%s, %s);", path.code, content.code);
-        return false;
-    }
-
-    if (match(parser, TOK_PUT)) {
-        expect(parser, TOK_LPAREN, "expected '(' after put");
-        Expr map = parse_map_expr(parser, scope_id);
-        expect(parser, TOK_COMMA, "expected ',' in put");
-        Expr key = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_COMMA, "expected ',' in put");
-        Expr value = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_RPAREN, "expected ')'");
-        expect(parser, TOK_SEMI, "expected ';'");
-        emit_line(parser, "spear_map_set(%s, %s, %s);", map.code, key.code, value.code);
-        return false;
-    }
-
-    if (match(parser, TOK_DROP)) {
-        expect(parser, TOK_LPAREN, "expected '(' after drop");
-        Expr map = parse_map_expr(parser, scope_id);
-        expect(parser, TOK_COMMA, "expected ',' in drop");
-        Expr key = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_RPAREN, "expected ')'");
-        expect(parser, TOK_SEMI, "expected ';'");
-        emit_line(parser, "spear_map_remove(%s, %s);", map.code, key.code);
-        return false;
-    }
-
-    if (parser->lexer.current.kind == TOK_GUARD) {
-        Token guard_tok = parser->lexer.current;
-        advance(parser);
-        expect(parser, TOK_LPAREN, "expected '(' after guard");
-        warn_constant_condition(parser->lexer.current, "guard");
-        Expr cond = parse_num_expr(parser, scope_id);
-        expect(parser, TOK_COMMA, "expected ',' in guard");
-        Expr message = parse_text_expr(parser, scope_id);
-        expect(parser, TOK_RPAREN, "expected ')'");
-        expect(parser, TOK_SEMI, "expected ';'");
-        emit_line(parser, "if (!(%s)) { spear_runtime_fail_at(%d, %d, %s); }", cond.code, guard_tok.line, guard_tok.col, message.code);
-        return false;
-    }
-
-    if (match(parser, TOK_SHARP)) {
-        parse_block(parser, scope_id, true);
-        return false;
     }
 
     if (match(parser, TOK_IF)) {

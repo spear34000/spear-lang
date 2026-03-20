@@ -120,6 +120,7 @@ typedef enum {
     TOK_ALTATTR,
     TOK_ASK,
     TOK_KEEP,
+    TOK_DEFER,
     TOK_RUN
 } TokenKind;
 
@@ -157,6 +158,12 @@ typedef struct {
     char *code;
     ValueType type;
 } Expr;
+
+typedef struct {
+    char **items;
+    size_t count;
+    size_t cap;
+} StringList;
 
 typedef struct {
     char *name;
@@ -207,15 +214,12 @@ typedef struct {
     int active_scope_ids[128];
     int active_scope_loop_depths[128];
     int active_scope_count;
+    StringList defer_lists[128];
+    int defer_list_count;
+    bool in_defer_capture;
     char *current_package_name;
     char *current_module_name;
 } Parser;
-
-typedef struct {
-    char **items;
-    size_t count;
-    size_t cap;
-} StringList;
 
 static char g_compiler_lang[8] = "en";
 static char g_tool_dir[2048] = "";
@@ -392,6 +396,7 @@ static Expr parse_sharp_expr(Parser *parser, int scope_id, ValueType expected_ty
 #include "spearc_statement_core.h"
 #include "spearc_statement_control.h"
 #include "spearc_statement_tail.h"
+#include "spearc_statement_defer.h"
 #include "spearc_expr_num.h"
 #include "spearc_expr_text.h"
 #include "spearc_expr_value.h"
@@ -402,6 +407,14 @@ static Expr parse_sharp_expr(Parser *parser, int scope_id, ValueType expected_ty
 static bool parse_statement(Parser *parser, int scope_id) {
     if (match(parser, TOK_CLASS)) {
         fatal_at(parser->lexer.current.line, parser->lexer.current.col, "class is reserved but not implemented yet");
+    }
+
+    {
+        bool handled = false;
+        bool terminated = parse_defer_statement(parser, scope_id, &handled);
+        if (handled) {
+            return terminated;
+        }
     }
 
     {
@@ -4096,6 +4109,7 @@ static char *load_source_tree(const char *path, const char *root_source, PathLis
     char full_path[2048];
     char clean_path[2048];
     char base_dir[2048];
+    PathList local_imports = {0};
     normalize_import_leaf(clean_path, sizeof(clean_path), path);
     if (!_fullpath(full_path, clean_path, sizeof(full_path))) {
         fprintf(stderr, "%s: %s %s\n", compiler_message("error_prefix"), compiler_message("cannot_resolve"), clean_path);
@@ -4139,11 +4153,12 @@ static char *load_source_tree(const char *path, const char *root_source, PathLis
             memcpy(rel, start, rel_len);
             rel[rel_len] = '\0';
             resolve_import_path(next_path, sizeof(next_path), base_dir, rel);
-            if (_fullpath(full_child, next_path, sizeof(full_child)) && path_list_has(seen, full_child)) {
+            if (_fullpath(full_child, next_path, sizeof(full_child)) && path_list_has(&local_imports, full_child)) {
                 fprintf(stderr, "%s [line %d:%d] ", compiler_message("warning_prefix"), current_line, 1);
                 fprintf(stderr, compiler_message("duplicate_import"), rel);
                 fputc('\n', stderr);
             }
+            path_list_add(&local_imports, full_child);
             char *child = load_source_tree(next_path, NULL, seen, active);
             append_line_directive(&out, 1);
             buf_append(&out, child);
@@ -4169,6 +4184,10 @@ static char *load_source_tree(const char *path, const char *root_source, PathLis
 
     free(source);
     path_list_remove(active, full_path);
+    for (size_t i = 0; i < local_imports.count; i++) {
+        free(local_imports.items[i]);
+    }
+    free(local_imports.items);
     return buf_take(&out);
 }
 

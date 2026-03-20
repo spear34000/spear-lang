@@ -18,6 +18,9 @@ static void parser_init(Parser *parser, const char *src) {
     parser->current_is_entry = false;
     parser->loop_depth = 0;
     parser->active_scope_count = 0;
+    parser->defer_list_count = 0;
+    parser->in_defer_capture = false;
+    memset(parser->defer_lists, 0, sizeof(parser->defer_lists));
     parser->current_package_name = xstrdup("");
     parser->current_module_name = xstrdup("");
     parser->lexer.current = lexer_next(&parser->lexer);

@@ -26,4 +26,17 @@ static void string_list_add(StringList *list, const char *value) {
     list->items[list->count++] = xstrdup(value);
 }
 
+static void string_list_push(StringList *list, const char *value) {
+    if (list->count == list->cap) {
+        size_t next = list->cap ? list->cap * 2 : 8;
+        list->items = realloc(list->items, next * sizeof(char *));
+        if (!list->items) {
+            fprintf(stderr, "%s: %s\n", compiler_message("error_prefix"), compiler_message("oom"));
+            exit(1);
+        }
+        list->cap = next;
+    }
+    list->items[list->count++] = xstrdup(value);
+}
+
 #endif

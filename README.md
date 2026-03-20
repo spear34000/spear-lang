@@ -102,6 +102,8 @@ function number add(number left, number right) {
 
 `sharp text { ... }`, `sharp map { ... }`, and `sharp numbers { ... }` can also be used as value expressions. Use `keep ...;` inside the block to safely move the final value out of the temporary region.
 
+`defer ...;` can be used inside `sharp` blocks to run cleanup or final actions right before the sharp scope closes.
+
 **한국어**  
 `sharp { ... }`는 임시 메모리 영역을 만듭니다. 블록 안에서 만든 텍스트는 블록이 끝날 때 함께 정리됩니다.
 
@@ -115,6 +117,7 @@ sharp {
 ```sp
 value label = sharp text {
     value prefix = "sharp-";
+    defer print("leaving sharp");
     keep join(prefix, "text");
 };
 ```

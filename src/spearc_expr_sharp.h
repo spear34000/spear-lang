@@ -42,6 +42,7 @@ static Expr parse_sharp_expr(Parser *parser, int scope_id, ValueType expected_ty
     int inner_scope_id;
     int symbol_depth;
     bool has_keep = false;
+    int defer_index;
 
     match(parser, TOK_SHARP);
     if (is_type_token(parser->lexer.current.kind)) {
@@ -52,6 +53,14 @@ static Expr parse_sharp_expr(Parser *parser, int scope_id, ValueType expected_ty
         advance(parser);
     }
     expect(parser, TOK_LBRACE, "expected '{' after sharp");
+
+    if (parser->defer_list_count >= (int) (sizeof(parser->defer_lists) / sizeof(parser->defer_lists[0]))) {
+        fatal_at(parser->lexer.current.line, parser->lexer.current.col, "sharp nesting is too deep");
+    }
+    defer_index = parser->defer_list_count++;
+    parser->defer_lists[defer_index].items = NULL;
+    parser->defer_lists[defer_index].count = 0;
+    parser->defer_lists[defer_index].cap = 0;
 
     inner_scope_id = ++parser->scope_counter;
     parser->active_scope_ids[parser->active_scope_count++] = inner_scope_id;
@@ -91,6 +100,7 @@ static Expr parse_sharp_expr(Parser *parser, int scope_id, ValueType expected_ty
         fatal_at(sharp_tok.line, sharp_tok.col, "sharp expression requires keep");
     }
 
+    emit_deferred_statements(parser, &parser->defer_lists[defer_index]);
     {
         char *inner_scope_name = make_scope_name(inner_scope_id);
         emit_line(parser, "spear_scope_leave(&%s);", inner_scope_name);
@@ -98,6 +108,7 @@ static Expr parse_sharp_expr(Parser *parser, int scope_id, ValueType expected_ty
         free(inner_scope_name);
     }
 
+    parser->defer_list_count--;
     pop_symbols(parser, symbol_depth);
     parser->active_scope_count = saved_active_scope_count;
     parser->depth = saved_depth;

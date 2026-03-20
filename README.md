@@ -32,6 +32,7 @@ run {
 - `value`: inferred read-only value
 - `variable`: inferred mutable value
 - `number`, `string`, `numbers`, `strings`: beginner-friendly type names
+- `map`: native text map for keyed state
 - `text(number)` or `string(number)`: convert numbers to text for UI and charts
 - `function`: explicit function declaration
 - `run { ... }`: simplest program entry
@@ -53,6 +54,14 @@ run {
     variable shots = 3;
     print(count(scores));
     print(title);
+}
+```
+
+```sp
+run {
+    map state = map();
+    put(state, "mode", "native");
+    print(get(state, "mode", "missing"));
 }
 ```
 
@@ -153,6 +162,7 @@ Examples / 예제:
 - `examples/web.sp`: editorial landing page example
 - `examples/charts.sp`: chart-first review board example
 - `examples/platform.sp`: standard platform example for JSON, files, HTTP, SQLite, stats, and crypto
+- `examples/map_demo.sp`: native map state example
 - `examples/tool.sp`: CLI args plus map state example
 - `examples/server.sp`: minimal HTML server example
 
@@ -221,6 +231,7 @@ Run commands / 실행 명령:
 build/spear.exe examples/hello.sp
 build/spear.exe build examples/web.sp
 build/spear.exe build examples/charts.sp
+build/spear.exe build examples/map_demo.sp
 build/spear.exe build examples/platform.sp
 build/spear.exe build examples/tool.sp
 build/spear.exe build examples/server.sp

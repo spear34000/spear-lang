@@ -17,7 +17,8 @@ typedef enum {
     TYPE_NUM,
     TYPE_TEXT,
     TYPE_NUMLIST,
-    TYPE_TEXTLIST
+    TYPE_TEXTLIST,
+    TYPE_MAP
 } ValueType;
 
 typedef enum {
@@ -49,6 +50,7 @@ typedef enum {
     TOK_TEXT,
     TOK_NUMLIST,
     TOK_TEXTLIST,
+    TOK_MAP,
     TOK_LET,
     TOK_VAR,
     TOK_CONST,
@@ -84,6 +86,10 @@ typedef enum {
     TOK_AT,
     TOK_ARGCOUNT,
     TOK_ARGAT,
+    TOK_PUT,
+    TOK_GET,
+    TOK_HAS,
+    TOK_DROP,
     TOK_GUARD,
     TOK_ESCAPE,
     TOK_MARKUP,
@@ -658,6 +664,7 @@ static TokenKind keyword_kind(const char *text, size_t len) {
     if (len == 7 && strncmp(text, "numbers", len) == 0) return TOK_NUMLIST;
     if (len == 8 && strncmp(text, "textlist", len) == 0) return TOK_TEXTLIST;
     if (len == 7 && strncmp(text, "strings", len) == 0) return TOK_TEXTLIST;
+    if (len == 3 && strncmp(text, "map", len) == 0) return TOK_MAP;
     if (len == 3 && strncmp(text, "let", len) == 0) return TOK_LET;
     if (len == 3 && strncmp(text, "var", len) == 0) return TOK_VAR;
     if (len == 5 && strncmp(text, "const", len) == 0) return TOK_CONST;
@@ -696,6 +703,10 @@ static TokenKind keyword_kind(const char *text, size_t len) {
     if (len == 2 && strncmp(text, "at", len) == 0) return TOK_AT;
     if (len == 9 && strncmp(text, "arg_count", len) == 0) return TOK_ARGCOUNT;
     if (len == 6 && strncmp(text, "arg_at", len) == 0) return TOK_ARGAT;
+    if (len == 3 && strncmp(text, "put", len) == 0) return TOK_PUT;
+    if (len == 3 && strncmp(text, "get", len) == 0) return TOK_GET;
+    if (len == 3 && strncmp(text, "has", len) == 0) return TOK_HAS;
+    if (len == 4 && strncmp(text, "drop", len) == 0) return TOK_DROP;
     if (len == 5 && strncmp(text, "guard", len) == 0) return TOK_GUARD;
     if (len == 6 && strncmp(text, "escape", len) == 0) return TOK_ESCAPE;
     if (len == 6 && strncmp(text, "markup", len) == 0) return TOK_MARKUP;
@@ -993,6 +1004,7 @@ static ValueType token_to_type(TokenKind kind) {
         case TOK_TEXT: return TYPE_TEXT;
         case TOK_NUMLIST: return TYPE_NUMLIST;
         case TOK_TEXTLIST: return TYPE_TEXTLIST;
+        case TOK_MAP: return TYPE_MAP;
         default:
             fprintf(stderr, "spearc error: internal error: invalid type token\n");
             exit(1);
@@ -1005,12 +1017,13 @@ static const char *ctype_name(ValueType type) {
         case TYPE_TEXT: return "char *";
         case TYPE_NUMLIST: return "SpearNumList *";
         case TYPE_TEXTLIST: return "SpearTextList *";
+        case TYPE_MAP: return "SpearMap *";
         default: return "void *";
     }
 }
 
 static bool is_type_token(TokenKind kind) {
-    return kind == TOK_NUM || kind == TOK_TEXT || kind == TOK_NUMLIST || kind == TOK_TEXTLIST;
+    return kind == TOK_NUM || kind == TOK_TEXT || kind == TOK_NUMLIST || kind == TOK_TEXTLIST || kind == TOK_MAP;
 }
 
 static Token peek_token(Parser *parser) {
@@ -1373,6 +1386,8 @@ static Expr make_expr(ValueType type, char *code) {
 static Expr parse_num_expr(Parser *parser, int scope_id);
 static Expr parse_text_expr(Parser *parser, int scope_id);
 static Expr parse_list_expr(Parser *parser, int scope_id, ValueType expected_type);
+static Expr parse_map_expr(Parser *parser, int scope_id);
+static Expr parse_value_expr(Parser *parser, int scope_id, ValueType type);
 static void parse_block(Parser *parser, int parent_scope_id, bool creates_scope);
 static bool starts_text_expr(Parser *parser);
 static bool at_returns_text(Parser *parser);
@@ -1419,6 +1434,9 @@ static ValueType infer_expr_type(Parser *parser) {
     }
     if (token.kind == TOK_ARGAT) {
         return TYPE_TEXT;
+    }
+    if (token.kind == TOK_MAP && peek_token(parser).kind == TOK_LPAREN) {
+        return TYPE_MAP;
     }
     if (token.kind == TOK_IDENT) {
         Token next = peek_token(parser);
@@ -1472,9 +1490,7 @@ static Expr parse_primary_num(Parser *parser, int scope_id) {
                     expect(parser, TOK_COMMA, "expected ','");
                 }
                 Expr arg;
-                if (fn->params[i].type == TYPE_NUM) arg = parse_num_expr(parser, scope_id);
-                else if (fn->params[i].type == TYPE_TEXT) arg = parse_text_expr(parser, scope_id);
-                else arg = parse_list_expr(parser, scope_id, fn->params[i].type);
+                arg = parse_value_expr(parser, scope_id, fn->params[i].type);
                 buf_appendf(&args, ", %s", arg.code);
             }
             expect(parser, TOK_RPAREN, "expected ')'");
@@ -1538,7 +1554,8 @@ static Expr parse_primary_num(Parser *parser, int scope_id) {
         buf_init(&code);
         if (type == TYPE_NUMLIST) buf_appendf(&code, "spear_numlist_count(%s)", name);
         else if (type == TYPE_TEXTLIST) buf_appendf(&code, "spear_textlist_count(%s)", name);
-        else fatal_at(list_tok.line, list_tok.col, "count expects a list");
+        else if (type == TYPE_MAP) buf_appendf(&code, "spear_map_count(%s)", name);
+        else fatal_at(list_tok.line, list_tok.col, "count expects a list or map");
         return make_expr(TYPE_NUM, buf_take(&code));
     }
 
@@ -1569,6 +1586,19 @@ static Expr parse_primary_num(Parser *parser, int scope_id) {
         expect(parser, TOK_LPAREN, "expected '(' after arg_count");
         expect(parser, TOK_RPAREN, "expected ')'");
         return make_expr(TYPE_NUM, xstrdup("spear_arg_count()"));
+    }
+
+    if (match(parser, TOK_HAS)) {
+        Token has_tok = token;
+        expect(parser, TOK_LPAREN, "expected '(' after has");
+        Expr map = parse_map_expr(parser, scope_id);
+        expect(parser, TOK_COMMA, "expected ',' in has");
+        Expr key = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        Buffer code;
+        buf_init(&code);
+        buf_appendf(&code, "spear_map_has(%s, %s, %d, %d)", map.code, key.code, has_tok.line, has_tok.col);
+        return make_expr(TYPE_NUM, buf_take(&code));
     }
 
     fatal_at(token.line, token.col, "expected numeric expression");
@@ -1849,9 +1879,7 @@ static Expr parse_text_expr(Parser *parser, int scope_id) {
                     expect(parser, TOK_COMMA, "expected ','");
                 }
                 Expr arg;
-                if (fn->params[arg_index].type == TYPE_NUM) arg = parse_num_expr(parser, scope_id);
-                else if (fn->params[arg_index].type == TYPE_TEXT) arg = parse_text_expr(parser, scope_id);
-                else arg = parse_list_expr(parser, scope_id, fn->params[arg_index].type);
+                arg = parse_value_expr(parser, scope_id, fn->params[arg_index].type);
                 buf_appendf(&args, ", %s", arg.code);
                 arg_index++;
             }
@@ -2256,6 +2284,23 @@ static Expr parse_text_expr(Parser *parser, int scope_id) {
         return make_expr(TYPE_TEXT, buf_take(&code));
     }
 
+    if (match(parser, TOK_GET)) {
+        Token get_tok = token;
+        expect(parser, TOK_LPAREN, "expected '(' after get");
+        Expr map = parse_map_expr(parser, scope_id);
+        expect(parser, TOK_COMMA, "expected ',' in get");
+        Expr key = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_COMMA, "expected ',' in get");
+        Expr fallback = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        Buffer code;
+        char *scope_name = make_scope_name(scope_id);
+        buf_init(&code);
+        buf_appendf(&code, "spear_map_get(&%s, %s, %s, %s, %d, %d)", scope_name, map.code, key.code, fallback.code, get_tok.line, get_tok.col);
+        free(scope_name);
+        return make_expr(TYPE_TEXT, buf_take(&code));
+    }
+
     fatal_at(token.line, token.col, "expected text expression");
     return make_expr(TYPE_TEXT, xstrdup("\"\""));
 }
@@ -2319,6 +2364,42 @@ static Expr parse_list_expr(Parser *parser, int scope_id, ValueType expected_typ
     return make_expr(expected_type, xstrdup("NULL"));
 }
 
+static Expr parse_map_expr(Parser *parser, int scope_id) {
+    Token token = parser->lexer.current;
+    if (parser->lexer.current.kind == TOK_IDENT) {
+        char *name = token_text(token);
+        ValueType type = lookup_symbol(parser, name);
+        if (type != TYPE_MAP) {
+            fatal_at(token.line, token.col, "expected map variable, got non-map '%s'", name);
+        }
+        advance(parser);
+        return make_expr(TYPE_MAP, name);
+    }
+
+    if (match(parser, TOK_MAP)) {
+        expect(parser, TOK_LPAREN, "expected '(' after map");
+        expect(parser, TOK_RPAREN, "expected ')'");
+        Buffer code;
+        char *scope_name = make_scope_name(scope_id);
+        buf_init(&code);
+        buf_appendf(&code, "spear_map_new(&%s)", scope_name);
+        free(scope_name);
+        return make_expr(TYPE_MAP, buf_take(&code));
+    }
+
+    fatal_at(token.line, token.col, "expected map expression");
+    return make_expr(TYPE_MAP, xstrdup("NULL"));
+}
+
+static Expr parse_value_expr(Parser *parser, int scope_id, ValueType type) {
+    if (type == TYPE_NUM) return parse_num_expr(parser, scope_id);
+    if (type == TYPE_TEXT) return parse_text_expr(parser, scope_id);
+    if (type == TYPE_NUMLIST || type == TYPE_TEXTLIST) return parse_list_expr(parser, scope_id, type);
+    if (type == TYPE_MAP) return parse_map_expr(parser, scope_id);
+    fatal_at(parser->lexer.current.line, parser->lexer.current.col, "unsupported value type");
+    return make_expr(TYPE_NUM, xstrdup("0"));
+}
+
 static bool starts_text_expr(Parser *parser) {
     if (parser->lexer.current.kind == TOK_EACH ||
         parser->lexer.current.kind == TOK_IF ||
@@ -2346,6 +2427,8 @@ static bool starts_text_expr(Parser *parser) {
         parser->lexer.current.kind == TOK_HREFATTR ||
         parser->lexer.current.kind == TOK_SRCATTR ||
         parser->lexer.current.kind == TOK_ALTATTR ||
+        parser->lexer.current.kind == TOK_ARGAT ||
+        parser->lexer.current.kind == TOK_GET ||
         parser->lexer.current.kind == TOK_NODECALL ||
         parser->lexer.current.kind == TOK_PYCALL ||
         parser->lexer.current.kind == TOK_ACTION) {
@@ -2409,9 +2492,7 @@ static bool parse_statement(Parser *parser, int scope_id) {
             expect(parser, TOK_ASSIGN, "expected '='");
             type = infer_expr_type(parser);
             Expr value;
-            if (type == TYPE_NUM) value = parse_num_expr(parser, scope_id);
-            else if (type == TYPE_TEXT) value = parse_text_expr(parser, scope_id);
-            else value = parse_list_expr(parser, scope_id, type);
+            value = parse_value_expr(parser, scope_id, type);
             expect(parser, TOK_SEMI, "expected ';'");
             add_symbol(parser, name, type, true, name_tok.line, name_tok.col, false, false);
             emit_line(parser, "%s %s = %s;", ctype_name(type), name, value.code);
@@ -2428,9 +2509,7 @@ static bool parse_statement(Parser *parser, int scope_id) {
         char *name = token_text(name_tok);
         expect(parser, TOK_ASSIGN, "expected '='");
         Expr value;
-        if (type == TYPE_NUM) value = parse_num_expr(parser, scope_id);
-        else if (type == TYPE_TEXT) value = parse_text_expr(parser, scope_id);
-        else value = parse_list_expr(parser, scope_id, type);
+        value = parse_value_expr(parser, scope_id, type);
         expect(parser, TOK_SEMI, "expected ';'");
         add_symbol(parser, name, type, true, name_tok.line, name_tok.col, false, false);
         emit_line(parser, "%s %s = %s;", ctype_name(type), name, value.code);
@@ -2444,9 +2523,7 @@ static bool parse_statement(Parser *parser, int scope_id) {
         expect(parser, TOK_ASSIGN, "expected '='");
         ValueType type = infer_expr_type(parser);
         Expr value;
-        if (type == TYPE_NUM) value = parse_num_expr(parser, scope_id);
-        else if (type == TYPE_TEXT) value = parse_text_expr(parser, scope_id);
-        else value = parse_list_expr(parser, scope_id, type);
+        value = parse_value_expr(parser, scope_id, type);
         expect(parser, TOK_SEMI, "expected ';'");
         add_symbol(parser, name, type, false, name_tok.line, name_tok.col, false, false);
         emit_line(parser, "%s %s = %s;", ctype_name(type), name, value.code);
@@ -2462,9 +2539,7 @@ static bool parse_statement(Parser *parser, int scope_id) {
         char *name = token_text(name_tok);
         expect(parser, TOK_ASSIGN, "expected '='");
         Expr value;
-        if (type == TYPE_NUM) value = parse_num_expr(parser, scope_id);
-        else if (type == TYPE_TEXT) value = parse_text_expr(parser, scope_id);
-        else value = parse_list_expr(parser, scope_id, type);
+        value = parse_value_expr(parser, scope_id, type);
         expect(parser, TOK_SEMI, "expected ';'");
         add_symbol(parser, name, type, false, name_tok.line, name_tok.col, false, false);
         emit_line(parser, "%s %s = %s;", ctype_name(type), name, value.code);
@@ -2493,6 +2568,30 @@ static bool parse_statement(Parser *parser, int scope_id) {
         expect(parser, TOK_RPAREN, "expected ')'");
         expect(parser, TOK_SEMI, "expected ';'");
         emit_line(parser, "spear_write_text(%s, %s);", path.code, content.code);
+        return false;
+    }
+
+    if (match(parser, TOK_PUT)) {
+        expect(parser, TOK_LPAREN, "expected '(' after put");
+        Expr map = parse_map_expr(parser, scope_id);
+        expect(parser, TOK_COMMA, "expected ',' in put");
+        Expr key = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_COMMA, "expected ',' in put");
+        Expr value = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        expect(parser, TOK_SEMI, "expected ';'");
+        emit_line(parser, "spear_map_set(%s, %s, %s);", map.code, key.code, value.code);
+        return false;
+    }
+
+    if (match(parser, TOK_DROP)) {
+        expect(parser, TOK_LPAREN, "expected '(' after drop");
+        Expr map = parse_map_expr(parser, scope_id);
+        expect(parser, TOK_COMMA, "expected ',' in drop");
+        Expr key = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        expect(parser, TOK_SEMI, "expected ';'");
+        emit_line(parser, "spear_map_remove(%s, %s);", map.code, key.code);
         return false;
     }
 
@@ -2562,9 +2661,7 @@ static bool parse_statement(Parser *parser, int scope_id) {
                 expect(parser, TOK_ASSIGN, "expected '='");
                 ValueType type = infer_expr_type(parser);
                 Expr value;
-                if (type == TYPE_NUM) value = parse_num_expr(parser, scope_id);
-                else if (type == TYPE_TEXT) value = parse_text_expr(parser, scope_id);
-                else value = parse_list_expr(parser, scope_id, type);
+                value = parse_value_expr(parser, scope_id, type);
                 add_symbol(parser, name, type, false, name_tok.line, name_tok.col, false, false);
                 buf_appendf(&init, "%s %s = %s", ctype_name(type), name, value.code);
             } else if (is_type_token(parser->lexer.current.kind)) {
@@ -2575,9 +2672,7 @@ static bool parse_statement(Parser *parser, int scope_id) {
                 char *name = token_text(name_tok);
                 expect(parser, TOK_ASSIGN, "expected '='");
                 Expr value;
-                if (type == TYPE_NUM) value = parse_num_expr(parser, scope_id);
-                else if (type == TYPE_TEXT) value = parse_text_expr(parser, scope_id);
-                else value = parse_list_expr(parser, scope_id, type);
+                value = parse_value_expr(parser, scope_id, type);
                 add_symbol(parser, name, type, false, name_tok.line, name_tok.col, false, false);
                 buf_appendf(&init, "%s %s = %s", ctype_name(type), name, value.code);
             } else if (parser->lexer.current.kind == TOK_IDENT) {
@@ -2590,9 +2685,7 @@ static bool parse_statement(Parser *parser, int scope_id) {
                 }
                 expect(parser, TOK_ASSIGN, "expected '='");
                 Expr value;
-                if (type == TYPE_NUM) value = parse_num_expr(parser, scope_id);
-                else if (type == TYPE_TEXT) value = parse_text_expr(parser, scope_id);
-                else value = parse_list_expr(parser, scope_id, type);
+                value = parse_value_expr(parser, scope_id, type);
                 buf_appendf(&init, "%s = %s", name, value.code);
             } else {
                 fatal_at(parser->lexer.current.line, parser->lexer.current.col, "unsupported for initializer");
@@ -2620,9 +2713,7 @@ static bool parse_statement(Parser *parser, int scope_id) {
                 }
                 expect(parser, TOK_ASSIGN, "expected '='");
                 Expr value;
-                if (type == TYPE_NUM) value = parse_num_expr(parser, scope_id);
-                else if (type == TYPE_TEXT) value = parse_text_expr(parser, scope_id);
-                else value = parse_list_expr(parser, scope_id, type);
+                value = parse_value_expr(parser, scope_id, type);
                 buf_appendf(&step, "%s = %s", name, value.code);
             } else {
                 fatal_at(parser->lexer.current.line, parser->lexer.current.col, "unsupported for step");
@@ -2795,9 +2886,7 @@ static bool parse_statement(Parser *parser, int scope_id) {
         }
         expect(parser, TOK_ASSIGN, "expected '='");
         Expr value;
-        if (type == TYPE_NUM) value = parse_num_expr(parser, scope_id);
-        else if (type == TYPE_TEXT) value = parse_text_expr(parser, scope_id);
-        else value = parse_list_expr(parser, scope_id, type);
+        value = parse_value_expr(parser, scope_id, type);
         expect(parser, TOK_SEMI, "expected ';'");
         emit_line(parser, "%s = %s;", name, value.code);
         return false;
@@ -3177,6 +3266,14 @@ static const char *runtime_prelude =
 "    size_t cap;\n"
 "} SpearTextList;\n"
 "\n"
+"typedef struct SpearMap {\n"
+"    SpearScope *owner;\n"
+"    char **keys;\n"
+"    char **values;\n"
+"    size_t len;\n"
+"    size_t cap;\n"
+"} SpearMap;\n"
+"\n"
 "static void spear_numlist_push(SpearNumList *list, long long value);\n"
 "static void spear_textlist_push(SpearTextList *list, const char *value);\n"
 "\n"
@@ -3491,6 +3588,74 @@ static const char *runtime_prelude =
 "    }\n"
 "    list->items[list->len++] = spear_text_clone(list->owner, value);\n"
 "}\n"
+"\n"
+"static void spear_map_drop(void *ptr) {\n"
+"    SpearMap *map = (SpearMap *) ptr;\n"
+"    free(map->keys);\n"
+"    free(map->values);\n"
+"    free(map);\n"
+"}\n"
+"\n"
+"static SpearMap *spear_map_new(SpearScope *scope) {\n"
+"    SpearMap *map = (SpearMap *) calloc(1, sizeof(SpearMap));\n"
+"    if (!map) { spear_runtime_fail(\"out of memory\"); }\n"
+"    map->owner = scope;\n"
+"    spear_scope_add_cleanup(scope, spear_map_drop, map);\n"
+"    return map;\n"
+"}\n"
+"\n"
+"static size_t spear_map_find(SpearMap *map, const char *key) {\n"
+"    for (size_t i = 0; i < map->len; i++) {\n"
+"        if (strcmp(map->keys[i], key) == 0) return i;\n"
+"    }\n"
+"    return (size_t) -1;\n"
+"}\n"
+"\n"
+"static void spear_map_set(SpearMap *map, const char *key, const char *value) {\n"
+"    size_t index = spear_map_find(map, key);\n"
+"    if (index != (size_t) -1) {\n"
+"        map->values[index] = spear_text_clone(map->owner, value);\n"
+"        return;\n"
+"    }\n"
+"    if (map->len == map->cap) {\n"
+"        size_t next = map->cap ? map->cap * 2 : 8;\n"
+"        char **keys = (char **) realloc(map->keys, next * sizeof(char *));\n"
+"        char **values = (char **) realloc(map->values, next * sizeof(char *));\n"
+"        if (!keys || !values) { spear_runtime_fail(\"out of memory\"); }\n"
+"        map->keys = keys;\n"
+"        map->values = values;\n"
+"        map->cap = next;\n"
+"    }\n"
+"    map->keys[map->len] = spear_text_clone(map->owner, key);\n"
+"    map->values[map->len] = spear_text_clone(map->owner, value);\n"
+"    map->len++;\n"
+"}\n"
+"\n"
+"static long long spear_map_has(SpearMap *map, const char *key, int line, int col) {\n"
+"    (void) line;\n"
+"    (void) col;\n"
+"    return spear_map_find(map, key) != (size_t) -1;\n"
+"}\n"
+"\n"
+"static char *spear_map_get(SpearScope *scope, SpearMap *map, const char *key, const char *fallback, int line, int col) {\n"
+"    (void) line;\n"
+"    (void) col;\n"
+"    size_t index = spear_map_find(map, key);\n"
+"    if (index == (size_t) -1) return spear_text_clone(scope, fallback);\n"
+"    return spear_text_clone(scope, map->values[index]);\n"
+"}\n"
+"\n"
+"static void spear_map_remove(SpearMap *map, const char *key) {\n"
+"    size_t index = spear_map_find(map, key);\n"
+"    if (index == (size_t) -1) return;\n"
+"    for (size_t i = index + 1; i < map->len; i++) {\n"
+"        map->keys[i - 1] = map->keys[i];\n"
+"        map->values[i - 1] = map->values[i];\n"
+"    }\n"
+"    map->len--;\n"
+"}\n"
+"\n"
+"static long long spear_map_count(SpearMap *map) { return (long long) map->len; }\n"
 "\n"
 "static long long spear_numlist_count(SpearNumList *list) { return (long long) list->len; }\n"
 "static long long spear_textlist_count(SpearTextList *list) { return (long long) list->len; }\n"

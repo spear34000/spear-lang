@@ -2,7 +2,7 @@ import "bridge.sp";
 import "json.sp";
 
 package std;
-module map;
+module maps;
 
 function text map_empty() {
     return "{}";

@@ -33,6 +33,7 @@ run {
 - `variable`: inferred mutable value
 - `number`, `string`, `numbers`, `strings`: beginner-friendly type names
 - `map`: native text map for keyed state
+- `result`: native text result for success/error flow
 - `text(number)` or `string(number)`: convert numbers to text for UI and charts
 - `function`: explicit function declaration
 - `run { ... }`: simplest program entry
@@ -62,6 +63,14 @@ run {
     map state = map();
     put(state, "mode", "native");
     print(get(state, "mode", "missing"));
+}
+```
+
+```sp
+run {
+    result job = ok("ready");
+    print(is_ok(job));
+    print(unwrap(job));
 }
 ```
 

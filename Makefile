@@ -22,6 +22,7 @@ check: spear
 	./build/spear.exe check examples/bridge.sp
 	./build/spear.exe check examples/map_demo.sp
 	./build/spear.exe check examples/platform.sp
+	./build/spear.exe check examples/result_demo.sp
 	./build/spear.exe check examples/tool.sp
 	./build/spear.exe check examples/server.sp
 	./build/spear.exe build examples/web.sp

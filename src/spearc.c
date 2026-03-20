@@ -18,7 +18,8 @@ typedef enum {
     TYPE_TEXT,
     TYPE_NUMLIST,
     TYPE_TEXTLIST,
-    TYPE_MAP
+    TYPE_MAP,
+    TYPE_RESULT
 } ValueType;
 
 typedef enum {
@@ -51,6 +52,7 @@ typedef enum {
     TOK_NUMLIST,
     TOK_TEXTLIST,
     TOK_MAP,
+    TOK_RESULT,
     TOK_LET,
     TOK_VAR,
     TOK_CONST,
@@ -90,6 +92,11 @@ typedef enum {
     TOK_GET,
     TOK_HAS,
     TOK_DROP,
+    TOK_OK,
+    TOK_FAIL,
+    TOK_ISOK,
+    TOK_UNWRAP,
+    TOK_ERRORTEXT,
     TOK_GUARD,
     TOK_ESCAPE,
     TOK_MARKUP,
@@ -665,6 +672,7 @@ static TokenKind keyword_kind(const char *text, size_t len) {
     if (len == 8 && strncmp(text, "textlist", len) == 0) return TOK_TEXTLIST;
     if (len == 7 && strncmp(text, "strings", len) == 0) return TOK_TEXTLIST;
     if (len == 3 && strncmp(text, "map", len) == 0) return TOK_MAP;
+    if (len == 6 && strncmp(text, "result", len) == 0) return TOK_RESULT;
     if (len == 3 && strncmp(text, "let", len) == 0) return TOK_LET;
     if (len == 3 && strncmp(text, "var", len) == 0) return TOK_VAR;
     if (len == 5 && strncmp(text, "const", len) == 0) return TOK_CONST;
@@ -707,6 +715,11 @@ static TokenKind keyword_kind(const char *text, size_t len) {
     if (len == 3 && strncmp(text, "get", len) == 0) return TOK_GET;
     if (len == 3 && strncmp(text, "has", len) == 0) return TOK_HAS;
     if (len == 4 && strncmp(text, "drop", len) == 0) return TOK_DROP;
+    if (len == 2 && strncmp(text, "ok", len) == 0) return TOK_OK;
+    if (len == 4 && strncmp(text, "fail", len) == 0) return TOK_FAIL;
+    if (len == 5 && strncmp(text, "is_ok", len) == 0) return TOK_ISOK;
+    if (len == 6 && strncmp(text, "unwrap", len) == 0) return TOK_UNWRAP;
+    if (len == 10 && strncmp(text, "error_text", len) == 0) return TOK_ERRORTEXT;
     if (len == 5 && strncmp(text, "guard", len) == 0) return TOK_GUARD;
     if (len == 6 && strncmp(text, "escape", len) == 0) return TOK_ESCAPE;
     if (len == 6 && strncmp(text, "markup", len) == 0) return TOK_MARKUP;
@@ -1005,6 +1018,7 @@ static ValueType token_to_type(TokenKind kind) {
         case TOK_NUMLIST: return TYPE_NUMLIST;
         case TOK_TEXTLIST: return TYPE_TEXTLIST;
         case TOK_MAP: return TYPE_MAP;
+        case TOK_RESULT: return TYPE_RESULT;
         default:
             fprintf(stderr, "spearc error: internal error: invalid type token\n");
             exit(1);
@@ -1018,12 +1032,13 @@ static const char *ctype_name(ValueType type) {
         case TYPE_NUMLIST: return "SpearNumList *";
         case TYPE_TEXTLIST: return "SpearTextList *";
         case TYPE_MAP: return "SpearMap *";
+        case TYPE_RESULT: return "SpearResult *";
         default: return "void *";
     }
 }
 
 static bool is_type_token(TokenKind kind) {
-    return kind == TOK_NUM || kind == TOK_TEXT || kind == TOK_NUMLIST || kind == TOK_TEXTLIST || kind == TOK_MAP;
+    return kind == TOK_NUM || kind == TOK_TEXT || kind == TOK_NUMLIST || kind == TOK_TEXTLIST || kind == TOK_MAP || kind == TOK_RESULT;
 }
 
 static Token peek_token(Parser *parser) {
@@ -1387,6 +1402,7 @@ static Expr parse_num_expr(Parser *parser, int scope_id);
 static Expr parse_text_expr(Parser *parser, int scope_id);
 static Expr parse_list_expr(Parser *parser, int scope_id, ValueType expected_type);
 static Expr parse_map_expr(Parser *parser, int scope_id);
+static Expr parse_result_expr(Parser *parser, int scope_id);
 static Expr parse_value_expr(Parser *parser, int scope_id, ValueType type);
 static void parse_block(Parser *parser, int parent_scope_id, bool creates_scope);
 static bool starts_text_expr(Parser *parser);
@@ -1437,6 +1453,9 @@ static ValueType infer_expr_type(Parser *parser) {
     }
     if (token.kind == TOK_MAP && peek_token(parser).kind == TOK_LPAREN) {
         return TYPE_MAP;
+    }
+    if (token.kind == TOK_OK || token.kind == TOK_FAIL) {
+        return TYPE_RESULT;
     }
     if (token.kind == TOK_IDENT) {
         Token next = peek_token(parser);
@@ -1598,6 +1617,17 @@ static Expr parse_primary_num(Parser *parser, int scope_id) {
         Buffer code;
         buf_init(&code);
         buf_appendf(&code, "spear_map_has(%s, %s, %d, %d)", map.code, key.code, has_tok.line, has_tok.col);
+        return make_expr(TYPE_NUM, buf_take(&code));
+    }
+
+    if (match(parser, TOK_ISOK)) {
+        Token ok_tok = token;
+        expect(parser, TOK_LPAREN, "expected '(' after is_ok");
+        Expr result = parse_result_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        Buffer code;
+        buf_init(&code);
+        buf_appendf(&code, "spear_result_is_ok(%s, %d, %d)", result.code, ok_tok.line, ok_tok.col);
         return make_expr(TYPE_NUM, buf_take(&code));
     }
 
@@ -2301,6 +2331,32 @@ static Expr parse_text_expr(Parser *parser, int scope_id) {
         return make_expr(TYPE_TEXT, buf_take(&code));
     }
 
+    if (match(parser, TOK_UNWRAP)) {
+        Token unwrap_tok = token;
+        expect(parser, TOK_LPAREN, "expected '(' after unwrap");
+        Expr result = parse_result_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        Buffer code;
+        char *scope_name = make_scope_name(scope_id);
+        buf_init(&code);
+        buf_appendf(&code, "spear_result_unwrap(&%s, %s, %d, %d)", scope_name, result.code, unwrap_tok.line, unwrap_tok.col);
+        free(scope_name);
+        return make_expr(TYPE_TEXT, buf_take(&code));
+    }
+
+    if (match(parser, TOK_ERRORTEXT)) {
+        Token err_tok = token;
+        expect(parser, TOK_LPAREN, "expected '(' after error_text");
+        Expr result = parse_result_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        Buffer code;
+        char *scope_name = make_scope_name(scope_id);
+        buf_init(&code);
+        buf_appendf(&code, "spear_result_error_text(&%s, %s, %d, %d)", scope_name, result.code, err_tok.line, err_tok.col);
+        free(scope_name);
+        return make_expr(TYPE_TEXT, buf_take(&code));
+    }
+
     fatal_at(token.line, token.col, "expected text expression");
     return make_expr(TYPE_TEXT, xstrdup("\"\""));
 }
@@ -2391,11 +2447,52 @@ static Expr parse_map_expr(Parser *parser, int scope_id) {
     return make_expr(TYPE_MAP, xstrdup("NULL"));
 }
 
+static Expr parse_result_expr(Parser *parser, int scope_id) {
+    Token token = parser->lexer.current;
+    if (parser->lexer.current.kind == TOK_IDENT) {
+        char *name = token_text(token);
+        ValueType type = lookup_symbol(parser, name);
+        if (type != TYPE_RESULT) {
+            fatal_at(token.line, token.col, "expected result variable, got non-result '%s'", name);
+        }
+        advance(parser);
+        return make_expr(TYPE_RESULT, name);
+    }
+
+    if (match(parser, TOK_OK)) {
+        expect(parser, TOK_LPAREN, "expected '(' after ok");
+        Expr value = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        Buffer code;
+        char *scope_name = make_scope_name(scope_id);
+        buf_init(&code);
+        buf_appendf(&code, "spear_result_ok(&%s, %s)", scope_name, value.code);
+        free(scope_name);
+        return make_expr(TYPE_RESULT, buf_take(&code));
+    }
+
+    if (match(parser, TOK_FAIL)) {
+        expect(parser, TOK_LPAREN, "expected '(' after fail");
+        Expr message = parse_text_expr(parser, scope_id);
+        expect(parser, TOK_RPAREN, "expected ')'");
+        Buffer code;
+        char *scope_name = make_scope_name(scope_id);
+        buf_init(&code);
+        buf_appendf(&code, "spear_result_fail(&%s, %s)", scope_name, message.code);
+        free(scope_name);
+        return make_expr(TYPE_RESULT, buf_take(&code));
+    }
+
+    fatal_at(token.line, token.col, "expected result expression");
+    return make_expr(TYPE_RESULT, xstrdup("NULL"));
+}
+
 static Expr parse_value_expr(Parser *parser, int scope_id, ValueType type) {
     if (type == TYPE_NUM) return parse_num_expr(parser, scope_id);
     if (type == TYPE_TEXT) return parse_text_expr(parser, scope_id);
     if (type == TYPE_NUMLIST || type == TYPE_TEXTLIST) return parse_list_expr(parser, scope_id, type);
     if (type == TYPE_MAP) return parse_map_expr(parser, scope_id);
+    if (type == TYPE_RESULT) return parse_result_expr(parser, scope_id);
     fatal_at(parser->lexer.current.line, parser->lexer.current.col, "unsupported value type");
     return make_expr(TYPE_NUM, xstrdup("0"));
 }
@@ -2429,6 +2526,8 @@ static bool starts_text_expr(Parser *parser) {
         parser->lexer.current.kind == TOK_ALTATTR ||
         parser->lexer.current.kind == TOK_ARGAT ||
         parser->lexer.current.kind == TOK_GET ||
+        parser->lexer.current.kind == TOK_UNWRAP ||
+        parser->lexer.current.kind == TOK_ERRORTEXT ||
         parser->lexer.current.kind == TOK_NODECALL ||
         parser->lexer.current.kind == TOK_PYCALL ||
         parser->lexer.current.kind == TOK_ACTION) {
@@ -3274,6 +3373,13 @@ static const char *runtime_prelude =
 "    size_t cap;\n"
 "} SpearMap;\n"
 "\n"
+"typedef struct SpearResult {\n"
+"    SpearScope *owner;\n"
+"    int ok;\n"
+"    char *value;\n"
+"    char *error;\n"
+"} SpearResult;\n"
+"\n"
 "static void spear_numlist_push(SpearNumList *list, long long value);\n"
 "static void spear_textlist_push(SpearTextList *list, const char *value);\n"
 "\n"
@@ -3656,6 +3762,42 @@ static const char *runtime_prelude =
 "}\n"
 "\n"
 "static long long spear_map_count(SpearMap *map) { return (long long) map->len; }\n"
+"\n"
+"static SpearResult *spear_result_make(SpearScope *scope, int ok, const char *value, const char *error) {\n"
+"    SpearResult *result = (SpearResult *) spear_alloc(scope, sizeof(SpearResult));\n"
+"    result->owner = scope;\n"
+"    result->ok = ok;\n"
+"    result->value = spear_text_clone(scope, value ? value : \"\");\n"
+"    result->error = spear_text_clone(scope, error ? error : \"\");\n"
+"    return result;\n"
+"}\n"
+"\n"
+"static SpearResult *spear_result_ok(SpearScope *scope, const char *value) {\n"
+"    return spear_result_make(scope, 1, value, \"\");\n"
+"}\n"
+"\n"
+"static SpearResult *spear_result_fail(SpearScope *scope, const char *error) {\n"
+"    return spear_result_make(scope, 0, \"\", error);\n"
+"}\n"
+"\n"
+"static long long spear_result_is_ok(SpearResult *result, int line, int col) {\n"
+"    (void) line;\n"
+"    (void) col;\n"
+"    return result->ok ? 1 : 0;\n"
+"}\n"
+"\n"
+"static char *spear_result_unwrap(SpearScope *scope, SpearResult *result, int line, int col) {\n"
+"    if (!result->ok) {\n"
+"        spear_runtime_fail_at(line, col, result->error[0] ? result->error : \"result is an error\");\n"
+"    }\n"
+"    return spear_text_clone(scope, result->value);\n"
+"}\n"
+"\n"
+"static char *spear_result_error_text(SpearScope *scope, SpearResult *result, int line, int col) {\n"
+"    (void) line;\n"
+"    (void) col;\n"
+"    return spear_text_clone(scope, result->error);\n"
+"}\n"
 "\n"
 "static long long spear_numlist_count(SpearNumList *list) { return (long long) list->len; }\n"
 "static long long spear_textlist_count(SpearTextList *list) { return (long long) list->len; }\n"

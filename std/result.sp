@@ -3,7 +3,7 @@ import "json.sp";
 import "text.sp";
 
 package std;
-module result;
+module results;
 
 function text ok_result(text value_json) {
     return json_object2(

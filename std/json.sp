@@ -43,6 +43,18 @@ function text json_object5(text a, text b, text c, text d, text e) {
     return braces(join(join(join(join3(a, ",", b), join(",", c)), join(",", d)), join(",", e)));
 }
 
+function text json_object6(text a, text b, text c, text d, text e, text f) {
+    return braces(join(join(join(join(join3(a, ",", b), join(",", c)), join(",", d)), join(",", e)), join(",", f)));
+}
+
+function text json_object7(text a, text b, text c, text d, text e, text f, text g) {
+    return braces(join(join(join(join(join(join3(a, ",", b), join(",", c)), join(",", d)), join(",", e)), join(",", f)), join(",", g)));
+}
+
+function text json_object8(text a, text b, text c, text d, text e, text f, text g, text h) {
+    return braces(join(join(join(join(join(join(join3(a, ",", b), join(",", c)), join(",", d)), join(",", e)), join(",", f)), join(",", g)), join(",", h)));
+}
+
 function text json_array1(text a) {
     return brackets(a);
 }
@@ -53,6 +65,14 @@ function text json_array2(text a, text b) {
 
 function text json_array3(text a, text b, text c) {
     return brackets(join(join3(a, ",", b), join(",", c)));
+}
+
+function text json_array4(text a, text b, text c, text d) {
+    return brackets(join(join(join3(a, ",", b), join(",", c)), join(",", d)));
+}
+
+function text json_array5(text a, text b, text c, text d, text e) {
+    return brackets(join(join(join(join3(a, ",", b), join(",", c)), join(",", d)), join(",", e)));
 }
 
 function text json_array_numbers(numlist values) {

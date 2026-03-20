@@ -25,6 +25,10 @@ function text password_hash(text password, text salt, num rounds) {
     ));
 }
 
+function text password_hash_default(text password, text salt) {
+    return password_hash(password, salt, 120000);
+}
+
 function num password_verify(text password, text salt, num rounds, text expected_hash) {
     return same(python_json("spear_std", "pbkdf2_verify", json_object4(
         json_field("password", json_text(password)),
@@ -42,10 +46,21 @@ function result env_secret(text name) {
     return ok(value);
 }
 
+function text token_claims_expires_at(num expires_at) {
+    return json_object1(
+        json_field("exp", json_number(expires_at))
+    );
+}
+
 function result jwt_verify(text token, text key) {
-    text raw = python_json("spear_std", "jwt_verify_hs256", json_object2(
+    return jwt_verify_with_leeway(token, key, 0);
+}
+
+function result jwt_verify_with_leeway(text token, text key, num leeway) {
+    text raw = python_json("spear_std", "jwt_verify_hs256", json_object3(
         json_field("token", json_text(token)),
-        json_field("key", json_text(key))
+        json_field("key", json_text(key)),
+        json_field("leeway", json_number(leeway))
     ));
     if (same(json_get(raw, "ok"), "true")) {
         return ok(json_get(raw, "claims"));

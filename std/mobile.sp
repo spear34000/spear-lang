@@ -1,63 +1,44 @@
-import "text.sp";
+import "ui.sp";
 
 package std;
 module mobile;
 
-function text ui2(text a, text b) {
-    return join(a, b);
+function text mobile_title(text value) {
+    return ui_title(value);
 }
 
-function text ui3(text a, text b, text c) {
-    return join(join(a, b), c);
+function text mobile_text(text value) {
+    return ui_text(value);
 }
 
-function text ui4(text a, text b, text c, text d) {
-    return join(join(join(a, b), c), d);
+function text mobile_button(text label, text action_json) {
+    return ui_button(label, action_json);
 }
 
-function text android_title(text value) {
-    return join4("                Text(text = ", quote(value), ", style = MaterialTheme.typography.headlineLarge)\n", "");
+function text mobile_stat(text label, text value) {
+    return ui_stat(label, value);
 }
 
-function text android_body(text value) {
-    return join4("                Text(text = ", quote(value), ", style = MaterialTheme.typography.bodyLarge)\n", "");
+function text mobile_card(text title, text body_json) {
+    return ui_card(title, body_json);
 }
 
-function text android_button(text label) {
-    return join4("                Button(onClick = { }) { Text(text = ", quote(label), ") }\n", "");
+function text mobile_column2(text a, text b) {
+    return ui_column2(a, b);
 }
 
-function text android_card(text title, text body) {
-    sharp {
-        text start = "                Card(modifier = Modifier.fillMaxWidth()) {\n                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {\n";
-        text head = join4("                        Text(text = ", quote(title), ", style = MaterialTheme.typography.titleLarge)\n", "");
-        text inner = join(join(start, head), body);
-        return join(inner, "                    }\n                }\n");
-    }
+function text mobile_column3(text a, text b, text c) {
+    return ui_column3(a, b, c);
 }
 
-function text android_stat(text label, text value) {
-    sharp {
-        text top = join4("                        Text(text = ", quote(label), ", style = MaterialTheme.typography.labelMedium)\n", "");
-        text bottom = join4("                        Text(text = ", quote(value), ", style = MaterialTheme.typography.headlineSmall)\n", "");
-        return join(top, bottom);
-    }
+function text mobile_screen(text screen_name, text route, text title, text states_json, text body_json) {
+    return ui_screen_route(screen_name, route, title, states_json, body_json);
 }
 
-function text android_column(text body) {
-    sharp {
-        text start = "        Column(\n            modifier = Modifier.fillMaxSize().padding(24.dp),\n            verticalArrangement = Arrangement.spacedBy(16.dp)\n        ) {\n";
-        text inner = join(start, body);
-        return join(inner, "        }\n");
-    }
+function text mobile_android(text screen_name, text screen_json) {
+    return ui_android(screen_name, screen_json);
 }
 
-function text android_screen(text screen_name, text bg_color, text body) {
-    sharp {
-        text top = "import androidx.compose.foundation.layout.*\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.Composable\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.unit.dp\n\n";
-        text header = join4("@Composable\nfun ", screen_name, "() {\n", "");
-        text surface = join4("    Surface(modifier = Modifier.fillMaxSize(), color = Color(", bg_color, ")) {\n", "");
-        text full = join(join(join(top, header), surface), body);
-        return join(full, "    }\n}\n");
-    }
+function text mobile_desktop(text screen_name, text screen_json) {
+    return ui_desktop(screen_name, screen_json);
 }

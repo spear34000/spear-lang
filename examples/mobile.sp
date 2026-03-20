@@ -1,17 +1,22 @@
 app {
-    val screen = android_screen(
+    val screen = mobile_screen(
         "MainScreen",
-        "0xFFF4F1EA",
-        android_column(
-            ui4(
-                android_title("Spear Mobile"),
-                android_body("Write simple screen code in Spear, then export a Compose screen."),
-                android_card("Status", android_stat("Build speed", "Fast")),
-                android_button("Open app")
+        "/mobile",
+        "Spear Mobile",
+        ui_states1(
+            ui_state_text_value("status_text", "Fast")
+        ),
+        mobile_column3(
+            mobile_title("Spear Mobile"),
+            mobile_text("Write simple screen code in Spear, then export shared UI to Android Compose."),
+            mobile_card(
+                "Status",
+                mobile_stat("Build speed", "Fast")
             )
         )
     );
 
-    write("build/MainScreen.kt", screen);
-    show(screen);
+    write("build/MainScreen.kt", mobile_android("MainScreen", screen));
+    write("build/DesktopMain.kt", mobile_desktop("DesktopMain", screen));
+    show(mobile_android("MainScreen", screen));
 }

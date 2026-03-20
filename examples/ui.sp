@@ -1,41 +1,78 @@
 app {
-    val home = ui_screen(
+    val home = ui_screen_route(
+        "HomeScreen",
+        "/workspace",
         "Spear Workspace",
-        ui_states2(
-            ui_state_text_value("name", "Nova"),
-            ui_state_num("count", 3)
+        ui_states3(
+            ui_state_text_value("workspace_name", "Nova"),
+            ui_state_text_value("search_query", ""),
+            ui_state_num("open_tasks", 3)
         ),
         ui_column5(
-            ui_nav3(
-                ui_link("Home", "/"),
-                ui_link("Docs", "/docs"),
-                ui_link("Settings", "/settings")
-            ),
-            ui_title("Build product screens with meaning first."),
-            ui_notice("System", "Describe the screen as state, inputs, actions, and sections instead of raw tags.", "info"),
-            ui_row2(
-                ui_card(
-                    "Editor",
-                    ui_form3(
-                        ui_input("name", "Workspace name", "Type a name"),
-                        ui_button("Save", "save_workspace"),
-                        ui_link("Open docs", "/docs")
-                    )
+            ui_toolbar(
+                "Workspace",
+                ui_items2(
+                    ui_link("Back", "/"),
+                    ui_link("Docs", "/docs")
                 ),
-                ui_card(
-                    "Signals",
-                    ui_column2(
-                        ui_stat("Projects", "12"),
-                        ui_stat("Sync", "Healthy")
+                ui_items1(
+                    ui_button("Invite", ui_action_open_dialog("Invite team"))
+                )
+            ),
+            ui_tabs3(
+                ui_link("Overview", "/workspace"),
+                ui_link("Forms", "/workspace/forms"),
+                ui_link("Activity", "/workspace/activity")
+            ),
+            ui_section(
+                "Workspace",
+                ui_column3(
+                    ui_row2(
+                        ui_card(
+                            "Project Setup",
+                            ui_form_submit3(
+                                "workspace_form",
+                                ui_action_submit("save_workspace"),
+                                ui_input_required("workspace_name", "Workspace name", "Type a name", "text", "Shown in the sidebar and release notes."),
+                                ui_input_with_kind("search_query", "Search prompt", "Search docs or files", "search", "Connected to the quick search slot."),
+                                ui_button("Save changes", ui_action_submit("save_workspace"))
+                            )
+                        ),
+                        ui_card(
+                            "Signals",
+                            ui_column3(
+                                ui_stat("Projects", "12"),
+                                ui_stat("Sync", "Healthy"),
+                                ui_list2(
+                                    ui_item("Recent", ui_text("Schema locked for web, Android, and desktop outputs.")),
+                                    ui_item("Queue", ui_text("3 review tasks are ready for the next action slot."))
+                                )
+                            )
+                        )
+                    ),
+                    ui_dialog(
+                        "Invite team",
+                        ui_column2(
+                            ui_text("This overlay keeps action metadata structured without forcing runtime mutation yet."),
+                            ui_button("Close", ui_action_close_dialog("Invite team"))
+                        )
+                    ),
+                    ui_sheet(
+                        "Queue",
+                        ui_column2(
+                            ui_text("Sheets are modeled as overlays too, so web and Compose consume the same node shape."),
+                            ui_button("Open backlog", ui_go("/workspace/backlog"))
+                        )
                     )
                 )
             ),
+            ui_divider(),
             ui_section(
-                "Next",
+                "States",
                 ui_column3(
-                    ui_loading("State actions will attach here"),
-                    ui_empty("No tasks yet", "Use this state when a collection has no records."),
-                    ui_error("Action failed", "Use this state when a request or validation step fails.")
+                    ui_loading("Handlers attach to structured action slots here"),
+                    ui_empty("No tasks yet", "Use this when a collection has no records."),
+                    ui_error("Validation failed", "Use this when a request or input step fails.")
                 )
             )
         )
@@ -43,5 +80,6 @@ app {
 
     write("build/ui.html", ui_web(home));
     write("build/HomeScreen.kt", ui_android("HomeScreen", home));
+    write("build/DesktopScreen.kt", ui_desktop("DesktopScreen", home));
     show(ui_web(home));
 }

@@ -32,11 +32,9 @@ copy /Y build\spear.exe build\dist\spear.exe >NUL
 copy /Y build\spearc.exe build\dist\spearc.exe >NUL
 copy /Y build\spear-setup.exe build\dist\spear-setup.exe >NUL
 
+xcopy /Y runtime\*.py build\dist\runtime >NUL
 copy /Y runtime\bridge_node.mjs build\dist\runtime\bridge_node.mjs >NUL
-copy /Y runtime\bridge_python.py build\dist\runtime\bridge_python.py >NUL
 copy /Y runtime\demo_node.cjs build\dist\runtime\demo_node.cjs >NUL
-copy /Y runtime\demo_python.py build\dist\runtime\demo_python.py >NUL
-copy /Y runtime\spear_std.py build\dist\runtime\spear_std.py >NUL
 copy /Y runtime\serve_static.ps1 build\dist\runtime\serve_static.ps1 >NUL
 
 xcopy /E /I /Y std build\dist\std >NUL

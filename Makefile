@@ -17,6 +17,9 @@ setup: spear src/spear_setup.c
 example: spear
 	./build/spear.exe examples/hello.sp
 
+audit:
+	powershell -ExecutionPolicy Bypass -File scripts\\audit_runtime.ps1
+
 check: spear
 	./build/spear.exe check examples/hello.sp
 	./build/spear.exe check examples/bridge.sp

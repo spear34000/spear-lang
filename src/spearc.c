@@ -394,6 +394,7 @@ static char *parse_text_children(Parser *parser, int scope_id);
 #include "spearc_expr_text.h"
 #include "spearc_expr_value.h"
 #include "spearc_expr_infer.h"
+#include "spearc_block.h"
 
 static bool parse_statement(Parser *parser, int scope_id) {
     if (match(parser, TOK_CLASS)) {
@@ -426,41 +427,6 @@ static bool parse_statement(Parser *parser, int scope_id) {
 
     fatal_at(parser->lexer.current.line, parser->lexer.current.col, "unexpected statement");
     return false;
-}
-
-static void parse_block(Parser *parser, int parent_scope_id, bool creates_scope) {
-    expect(parser, TOK_LBRACE, "expected '{'");
-
-    int scope_id = parent_scope_id;
-    emit_line(parser, "{");
-    parser->depth++;
-    if (creates_scope) {
-        scope_id = ++parser->scope_counter;
-        parser->active_scope_ids[parser->active_scope_count++] = scope_id;
-        parser->active_scope_loop_depths[parser->active_scope_count - 1] = parser->loop_depth;
-        char *scope_name = make_scope_name(scope_id);
-        char *parent_name = make_scope_name(parent_scope_id);
-        emit_line(parser, "SpearScope %s = spear_scope_enter(&%s);", scope_name, parent_name);
-        free(scope_name);
-        free(parent_name);
-    }
-
-    int symbol_depth = parser->depth;
-    bool terminated = false;
-    while (parser->lexer.current.kind != TOK_RBRACE && parser->lexer.current.kind != TOK_EOF) {
-        parse_statement_with_recovery(parser, scope_id, &terminated);
-    }
-    expect(parser, TOK_RBRACE, "expected '}'");
-
-    if (creates_scope) {
-        char *scope_name = make_scope_name(scope_id);
-        emit_line(parser, "spear_scope_leave(&%s);", scope_name);
-        free(scope_name);
-        parser->active_scope_count--;
-    }
-    pop_symbols(parser, symbol_depth);
-    parser->depth--;
-    emit_line(parser, "}");
 }
 
 static const char *runtime_prelude =

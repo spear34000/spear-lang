@@ -25,6 +25,7 @@ check: spear
 	./build/spear.exe check examples/security.sp
 	./build/spear.exe check examples/http_native.sp
 	./build/spear.exe check examples/native_security.sp
+	./build/spear.exe check examples/native_runtime.sp
 	./build/spear.exe check examples/mobile.sp
 	./build/spear.exe check examples/ui.sp
 	./build/spear.exe check examples/ui_web_native.sp

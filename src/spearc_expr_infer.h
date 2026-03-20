@@ -31,6 +31,14 @@ static ValueType infer_expr_type(Parser *parser) {
     if (token.kind == TOK_TEXT && peek_token(parser).kind == TOK_LPAREN) {
         return TYPE_TEXT;
     }
+    if (token.kind == TOK_SHARP) {
+        Lexer copy = parser->lexer;
+        Token next = lexer_next(&copy);
+        if (is_type_token(next.kind)) {
+            return token_to_type(next.kind);
+        }
+        fatal_at(token.line, token.col, "cannot infer sharp expression type; write 'sharp text { ... }' or use an explicit variable type");
+    }
     if (token.kind == TOK_NUMBER || token.kind == TOK_SIZE || token.kind == TOK_SAME || token.kind == TOK_COUNT || token.kind == TOK_ARGCOUNT) {
         return TYPE_NUM;
     }

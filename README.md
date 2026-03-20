@@ -100,6 +100,8 @@ function number add(number left, number right) {
 **English**  
 `sharp { ... }` creates a temporary memory region. Text created inside the block is released together when the block ends.
 
+`sharp text { ... }`, `sharp map { ... }`, and `sharp numbers { ... }` can also be used as value expressions. Use `keep ...;` inside the block to safely move the final value out of the temporary region.
+
 **한국어**  
 `sharp { ... }`는 임시 메모리 영역을 만듭니다. 블록 안에서 만든 텍스트는 블록이 끝날 때 함께 정리됩니다.
 
@@ -108,6 +110,13 @@ sharp {
     string label = join("sharp-", "text");
     print(label);
 }
+```
+
+```sp
+value label = sharp text {
+    value prefix = "sharp-";
+    keep join(prefix, "text");
+};
 ```
 
 ## Standard Library / 표준 라이브러리

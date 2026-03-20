@@ -1,5 +1,8 @@
 static Expr parse_primary_num(Parser *parser, int scope_id) {
     Token token = parser->lexer.current;
+    if (parser->lexer.current.kind == TOK_SHARP) {
+        return parse_sharp_expr(parser, scope_id, TYPE_NUM);
+    }
     if (match(parser, TOK_NUMBER)) {
         Buffer code;
         buf_init(&code);

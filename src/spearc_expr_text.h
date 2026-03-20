@@ -42,6 +42,10 @@ static char *parse_text_children(Parser *parser, int scope_id) {
 static Expr parse_text_expr(Parser *parser, int scope_id) {
     Token token = parser->lexer.current;
 
+    if (parser->lexer.current.kind == TOK_SHARP) {
+        return parse_sharp_expr(parser, scope_id, TYPE_TEXT);
+    }
+
     if (parser->lexer.current.kind == TOK_EACH) {
         Token each_tok = parser->lexer.current;
         advance(parser);
@@ -630,7 +634,8 @@ static Expr parse_text_expr(Parser *parser, int scope_id) {
 }
 
 static bool starts_text_expr(Parser *parser) {
-    if (parser->lexer.current.kind == TOK_EACH ||
+    if (parser->lexer.current.kind == TOK_SHARP ||
+        parser->lexer.current.kind == TOK_EACH ||
         parser->lexer.current.kind == TOK_IF ||
         (parser->lexer.current.kind == TOK_TEXT && peek_token(parser).kind == TOK_LPAREN) ||
         parser->lexer.current.kind == TOK_STRING ||

@@ -119,6 +119,7 @@ typedef enum {
     TOK_SRCATTR,
     TOK_ALTATTR,
     TOK_ASK,
+    TOK_KEEP,
     TOK_RUN
 } TokenKind;
 
@@ -387,6 +388,7 @@ static void parse_block(Parser *parser, int parent_scope_id, bool creates_scope)
 static bool starts_text_expr(Parser *parser);
 static bool at_returns_text(Parser *parser);
 static char *parse_text_children(Parser *parser, int scope_id);
+static Expr parse_sharp_expr(Parser *parser, int scope_id, ValueType expected_type);
 #include "spearc_statement_core.h"
 #include "spearc_statement_control.h"
 #include "spearc_statement_tail.h"
@@ -394,6 +396,7 @@ static char *parse_text_children(Parser *parser, int scope_id);
 #include "spearc_expr_text.h"
 #include "spearc_expr_value.h"
 #include "spearc_expr_infer.h"
+#include "spearc_expr_sharp.h"
 #include "spearc_block.h"
 
 static bool parse_statement(Parser *parser, int scope_id) {
@@ -3765,6 +3768,11 @@ static const char *runtime_prelude =
 "    return list;\n"
 "}\n"
 "\n"
+"static SpearNumList *spear_numlist_clone(SpearScope *scope, SpearNumList *list) {\n"
+"    if (!list) return NULL;\n"
+"    return spear_numlist_make(scope, list->items, list->len);\n"
+"}\n"
+"\n"
 "static SpearTextList *spear_textlist_new(SpearScope *scope) {\n"
 "    SpearTextList *list = (SpearTextList *) calloc(1, sizeof(SpearTextList));\n"
 "    if (!list) { spear_runtime_fail(\"out of memory\"); }\n"
@@ -3777,6 +3785,13 @@ static const char *runtime_prelude =
 "    SpearTextList *list = spear_textlist_new(scope);\n"
 "    for (size_t i = 0; i < count; i++) spear_textlist_push(list, items[i]);\n"
 "    return list;\n"
+"}\n"
+"\n"
+"static SpearTextList *spear_textlist_clone(SpearScope *scope, SpearTextList *list) {\n"
+"    if (!list) return NULL;\n"
+"    SpearTextList *copy = spear_textlist_new(scope);\n"
+"    for (size_t i = 0; i < list->len; i++) spear_textlist_push(copy, list->items[i]);\n"
+"    return copy;\n"
 "}\n"
 "\n"
 "static void spear_numlist_push(SpearNumList *list, long long value) {\n"
@@ -3841,6 +3856,13 @@ static const char *runtime_prelude =
 "    map->keys[map->len] = spear_text_clone(map->owner, key);\n"
 "    map->values[map->len] = spear_text_clone(map->owner, value);\n"
 "    map->len++;\n"
+"}\n"
+"\n"
+"static SpearMap *spear_map_clone(SpearScope *scope, SpearMap *map) {\n"
+"    if (!map) return NULL;\n"
+"    SpearMap *copy = spear_map_new(scope);\n"
+"    for (size_t i = 0; i < map->len; i++) spear_map_set(copy, map->keys[i], map->values[i]);\n"
+"    return copy;\n"
 "}\n"
 "\n"
 "static long long spear_map_has(SpearMap *map, const char *key, int line, int col) {\n"

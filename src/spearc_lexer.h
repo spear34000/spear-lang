@@ -85,6 +85,7 @@ static void lexer_skip_ws(Lexer *lexer) {
 static TokenKind keyword_kind(const char *text, size_t len) {
     if (len == 5 && strncmp(text, "spear", len) == 0) return TOK_SPEAR;
     if (len == 5 && strncmp(text, "sharp", len) == 0) return TOK_SHARP;
+    if (len == 4 && strncmp(text, "keep", len) == 0) return TOK_KEEP;
     if (len == 3 && strncmp(text, "num", len) == 0) return TOK_NUM;
     if (len == 6 && strncmp(text, "number", len) == 0) return TOK_NUM;
     if (len == 4 && strncmp(text, "text", len) == 0) return TOK_TEXT;

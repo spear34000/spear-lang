@@ -1,5 +1,8 @@
 static Expr parse_list_expr(Parser *parser, int scope_id, ValueType expected_type) {
     Token token = parser->lexer.current;
+    if (parser->lexer.current.kind == TOK_SHARP) {
+        return parse_sharp_expr(parser, scope_id, expected_type);
+    }
     if (parser->lexer.current.kind == TOK_IDENT) {
         match(parser, TOK_IDENT);
         char *name = token_text(token);
@@ -59,6 +62,9 @@ static Expr parse_list_expr(Parser *parser, int scope_id, ValueType expected_typ
 
 static Expr parse_map_expr(Parser *parser, int scope_id) {
     Token token = parser->lexer.current;
+    if (parser->lexer.current.kind == TOK_SHARP) {
+        return parse_sharp_expr(parser, scope_id, TYPE_MAP);
+    }
     if (parser->lexer.current.kind == TOK_IDENT) {
         char *name = token_text(token);
         ValueType type = lookup_symbol(parser, name);
@@ -86,6 +92,9 @@ static Expr parse_map_expr(Parser *parser, int scope_id) {
 
 static Expr parse_result_expr(Parser *parser, int scope_id) {
     Token token = parser->lexer.current;
+    if (parser->lexer.current.kind == TOK_SHARP) {
+        return parse_sharp_expr(parser, scope_id, TYPE_RESULT);
+    }
     if (parser->lexer.current.kind == TOK_IDENT) {
         Token next = peek_token(parser);
         if (next.kind == TOK_LPAREN) {
@@ -159,6 +168,7 @@ static Expr parse_result_expr(Parser *parser, int scope_id) {
 }
 
 static Expr parse_value_expr(Parser *parser, int scope_id, ValueType type) {
+    if (parser->lexer.current.kind == TOK_SHARP) return parse_sharp_expr(parser, scope_id, type);
     if (type == TYPE_NUM) return parse_num_expr(parser, scope_id);
     if (type == TYPE_TEXT) return parse_text_expr(parser, scope_id);
     if (type == TYPE_NUMLIST || type == TYPE_TEXTLIST) return parse_list_expr(parser, scope_id, type);

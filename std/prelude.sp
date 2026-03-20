@@ -19,12 +19,17 @@ import "vector.sp";
 import "matrix.sp";
 import "tensor.sp";
 import "crypto.sp";
+import "security.sp";
+import "safe_fs.sp";
+import "http.sp";
 import "sqlite.sp";
 import "logger.sp";
 import "config.sp";
 import "test.sp";
 import "bridge.sp";
 import "web.sp";
+import "mobile.sp";
+import "ui.sp";
 
 package std;
 module prelude;

@@ -35,6 +35,14 @@ function text json_object3(text a, text b, text c) {
     return braces(join(join3(a, ",", b), join(",", c)));
 }
 
+function text json_object4(text a, text b, text c, text d) {
+    return braces(join(join(join3(a, ",", b), join(",", c)), join(",", d)));
+}
+
+function text json_object5(text a, text b, text c, text d, text e) {
+    return braces(join(join(join(join3(a, ",", b), join(",", c)), join(",", d)), join(",", e)));
+}
+
 function text json_array1(text a) {
     return brackets(a);
 }

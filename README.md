@@ -31,6 +31,7 @@ run {
 - `const`: constant value
 - `value`: inferred read-only value
 - `variable`: inferred mutable value
+- `fn`, `val`, `mut`, `str`, `nums`, `texts`, `show`, `app`: short aliases for faster writing
 - `number`, `string`, `numbers`, `strings`: beginner-friendly type names
 - `map`: native text map for keyed state
 - `result`: native text result for success/error flow
@@ -142,11 +143,16 @@ Public entrypoints / 공개 진입점:
 - `std/matrix.sp`
 - `std/tensor.sp`
 - `std/crypto.sp`
+- `std/security.sp`
+- `std/safe_fs.sp`
+- `std/http.sp`
 - `std/sqlite.sp`
 - `std/logger.sp`
 - `std/config.sp`
 - `std/test.sp`
 - `std/web.sp`
+- `std/mobile.sp`
+- `std/ui.sp`
 
 Direct import / 직접 import:
 
@@ -185,6 +191,9 @@ Examples / 예제:
 - `examples/web.sp`: editorial landing page example
 - `examples/charts.sp`: chart-first review board example
 - `examples/platform.sp`: standard platform example for JSON, files, HTTP, SQLite, stats, and crypto
+- `examples/security.sp`: security-first example for tokens, password hashing, secret env, and rooted file access
+- `examples/mobile.sp`: Android Compose screen output example
+- `examples/ui.sp`: single screen model rendered to web HTML and Android Compose
 - `examples/map_demo.sp`: native map state example
 - `examples/tool.sp`: CLI args plus map state example
 - `examples/server.sp`: minimal HTML server example

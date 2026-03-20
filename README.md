@@ -75,6 +75,20 @@ run {
 ```
 
 ```sp
+function result load_status(string mode) {
+    if (same(mode, "ready")) {
+        return ok("online");
+    }
+    return fail("offline");
+}
+
+run {
+    result current = load_status("ready");
+    print(unwrap(current));
+}
+```
+
+```sp
 function number add(number left, number right) {
     return left + right;
 }

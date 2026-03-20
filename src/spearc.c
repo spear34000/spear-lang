@@ -1317,10 +1317,10 @@ static void collect_functions(Parser *parser, const char *source) {
         }
         if (token.kind == TOK_SPEAR) {
             is_entry = true;
-        } else if (token.kind == TOK_NUM || token.kind == TOK_TEXT || token.kind == TOK_NUMLIST || token.kind == TOK_TEXTLIST || token.kind == TOK_VIEW) {
+        } else if (token.kind == TOK_NUM || token.kind == TOK_TEXT || token.kind == TOK_NUMLIST || token.kind == TOK_TEXTLIST || token.kind == TOK_MAP || token.kind == TOK_RESULT || token.kind == TOK_VIEW) {
             return_type = token.kind == TOK_VIEW ? TYPE_TEXT : token_to_type(token.kind);
         } else {
-            fatal_at(token.line, token.col, "top-level definition must start with function, run, spear, num, text, numlist, textlist, or view");
+            fatal_at(token.line, token.col, "top-level definition must start with function, run, spear, num, text, numlist, textlist, map, result, or view");
         }
 
         Token name_tok = lexer_next(&lexer);
@@ -2450,6 +2450,40 @@ static Expr parse_map_expr(Parser *parser, int scope_id) {
 static Expr parse_result_expr(Parser *parser, int scope_id) {
     Token token = parser->lexer.current;
     if (parser->lexer.current.kind == TOK_IDENT) {
+        Token next = peek_token(parser);
+        if (next.kind == TOK_LPAREN) {
+            char *fname = token_text(token);
+            FunctionInfo *fn = find_function(parser, fname);
+            if (!fn) {
+                fatal_at(token.line, token.col, "unknown function '%s'", fname);
+            }
+            if (fn->return_type != TYPE_RESULT) {
+                fatal_at(token.line, token.col, "function '%s' does not return result", fname);
+            }
+            mark_function_used(fn);
+            advance(parser);
+            expect(parser, TOK_LPAREN, "expected '('");
+            Buffer args;
+            buf_init(&args);
+            char *scope_name = make_scope_name(scope_id);
+            buf_appendf(&args, "&%s", scope_name);
+            free(scope_name);
+            for (size_t i = 0; i < fn->param_count; i++) {
+                if (i > 0) {
+                    expect(parser, TOK_COMMA, "expected ','");
+                }
+                Expr arg = parse_value_expr(parser, scope_id, fn->params[i].type);
+                buf_appendf(&args, ", %s", arg.code);
+            }
+            expect(parser, TOK_RPAREN, "expected ')'");
+            Buffer code;
+            buf_init(&code);
+            buf_appendf(&code, "%s(%s)", fn->c_name, args.data ? args.data : "");
+            return make_expr(TYPE_RESULT, buf_take(&code));
+        }
+    }
+
+    if (parser->lexer.current.kind == TOK_IDENT) {
         char *name = token_text(token);
         ValueType type = lookup_symbol(parser, name);
         if (type != TYPE_RESULT) {
@@ -2913,8 +2947,11 @@ static bool parse_statement(Parser *parser, int scope_id) {
         } else if (parser->current_return_type == TYPE_TEXT) {
             value = parse_text_expr(parser, scope_id);
             emit_line(parser, "_spear_result_text = spear_text_clone(ret_scope ? ret_scope : &_scope_0, %s);", value.code);
+        } else if (parser->current_return_type == TYPE_RESULT) {
+            value = parse_result_expr(parser, scope_id);
+            emit_line(parser, "_spear_result_result = spear_result_clone(ret_scope ? ret_scope : &_scope_0, %s);", value.code);
         } else {
-            fatal_at(parser->lexer.current.line, parser->lexer.current.col, "only num/text function returns are supported");
+            fatal_at(parser->lexer.current.line, parser->lexer.current.col, "only num/text/result function returns are supported");
         }
         expect(parser, TOK_SEMI, "expected ';'");
         for (int i = parser->active_scope_count - 1; i >= 0; i--) {
@@ -3780,6 +3817,10 @@ static const char *runtime_prelude =
 "    return spear_result_make(scope, 0, \"\", error);\n"
 "}\n"
 "\n"
+"static SpearResult *spear_result_clone(SpearScope *scope, SpearResult *result) {\n"
+"    return spear_result_make(scope, result->ok, result->value, result->error);\n"
+"}\n"
+"\n"
 "static long long spear_result_is_ok(SpearResult *result, int line, int col) {\n"
 "    (void) line;\n"
 "    (void) col;\n"
@@ -4394,8 +4435,8 @@ static void parse_function_definition(Parser *parser) {
         is_entry = true;
     } else if (is_type_token(parser->lexer.current.kind) || parser->lexer.current.kind == TOK_VIEW) {
         return_type = parser->lexer.current.kind == TOK_VIEW ? TYPE_TEXT : token_to_type(parser->lexer.current.kind);
-        if (return_type != TYPE_NUM && return_type != TYPE_TEXT) {
-            fatal_at(parser->lexer.current.line, parser->lexer.current.col, "top-level functions may return only num or text");
+        if (return_type != TYPE_NUM && return_type != TYPE_TEXT && return_type != TYPE_RESULT) {
+            fatal_at(parser->lexer.current.line, parser->lexer.current.col, "top-level functions may return only num, text, or result");
         }
         advance(parser);
     } else {
@@ -4452,8 +4493,10 @@ static void parse_function_definition(Parser *parser) {
     }
     if (return_type == TYPE_NUM || is_entry) {
         emit_line(parser, "long long _spear_result_num = 0;");
-    } else {
+    } else if (return_type == TYPE_TEXT) {
         emit_line(parser, "char *_spear_result_text = spear_text_clone(&_scope_0, \"\");");
+    } else {
+        emit_line(parser, "SpearResult *_spear_result_result = spear_result_fail(ret_scope ? ret_scope : &_scope_0, \"result was not set\");");
     }
 
     for (size_t i = 0; i < fn->param_count; i++) {
@@ -4472,8 +4515,10 @@ static void parse_function_definition(Parser *parser) {
     emit_line(parser, "spear_scope_leave(&_scope_0);");
     if (is_entry || return_type == TYPE_NUM) {
         emit_line(parser, "return _spear_result_num;");
-    } else {
+    } else if (return_type == TYPE_TEXT) {
         emit_line(parser, "return _spear_result_text;");
+    } else {
+        emit_line(parser, "return _spear_result_result;");
     }
     parser->depth--;
     emit_line(parser, "}");

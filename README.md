@@ -312,6 +312,8 @@ The `vscode-spear/` folder contains syntax highlighting, snippets, diagnostics, 
 
 - `src/`: compiler and launcher sources
 - `runtime/`: bundled runtime tools, native helpers, and optional bridge scripts
+  - Core std features now run native-first.
+  - Python and Node are only needed when you explicitly use `pycall(...)` or `nodecall(...)`.
 - `examples/`: sample programs
 - `std/`: bundled standard library
 - `build/`: generated binaries and temporary output

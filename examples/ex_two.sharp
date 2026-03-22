@@ -1,16 +1,6 @@
-import "interop/axios.sharp";
-
-function result fetch_text(string url) {
-    return ok(get_text(url));
-}
+import "std/interop.sharp";
 
 run {
-    result current = fetch_text("https://example.com");
-
-    if (is_ok(current)) {
-        print("success");
-        print(unwrap(current));
-    } else {
-        print(error_text(current));
-    }
+    value module_name = npm_module("lodash");
+    print(module_name);
 }

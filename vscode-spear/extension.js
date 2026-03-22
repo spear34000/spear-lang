@@ -81,28 +81,37 @@ function compilerPath(document) {
     return configured;
   }
 
-  const folder = vscode.workspace.getWorkspaceFolder(document.uri);
-  if (folder) {
-    const workspaceCompiler = path.join(folder.uri.fsPath, "build", "spearc.exe");
-    if (fs.existsSync(workspaceCompiler)) {
-      return workspaceCompiler;
+  const localAppData = process.env.LOCALAPPDATA || "";
+  if (localAppData) {
+    for (const candidate of [
+      path.join(localAppData, "Programs", "Sharp", "bin", "sharpc.exe"),
+      path.join(localAppData, "Programs", "Sharp", "bin", "spearc.exe"),
+      path.join(localAppData, "Programs", "Spear", "bin", "spearc.exe"),
+    ]) {
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
     }
   }
 
-  const localAppData = process.env.LOCALAPPDATA || "";
-  if (localAppData) {
-    const installedCompiler = path.join(localAppData, "Programs", "Spear", "bin", "spearc.exe");
-    if (fs.existsSync(installedCompiler)) {
-      return installedCompiler;
+  const folder = vscode.workspace.getWorkspaceFolder(document.uri);
+  if (folder) {
+    for (const name of ["sharpc.exe", "spearc.exe"]) {
+      const workspaceCompiler = path.join(folder.uri.fsPath, "build", name);
+      if (fs.existsSync(workspaceCompiler)) {
+        return workspaceCompiler;
+      }
     }
   }
 
   try {
-    const where = cp.spawnSync("where", ["spearc.exe"], { encoding: "utf8" });
-    if (where.status === 0) {
-      const first = String(where.stdout || "").split(/\r?\n/).map((line) => line.trim()).find(Boolean);
-      if (first && fs.existsSync(first)) {
-        return first;
+    for (const name of ["sharpc.exe", "spearc.exe"]) {
+      const where = cp.spawnSync("where", [name], { encoding: "utf8" });
+      if (where.status === 0) {
+        const first = String(where.stdout || "").split(/\r?\n/).map((line) => line.trim()).find(Boolean);
+        if (first && fs.existsSync(first)) {
+          return first;
+        }
       }
     }
   } catch {}

@@ -2,7 +2,7 @@
   "name": "sharp-language",
   "displayName": "Sharp Language",
   "description": "Syntax highlighting for the Sharp programming language",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "local",
   "icon": "assets/spear-logo.png",
   "main": "./extension.js",

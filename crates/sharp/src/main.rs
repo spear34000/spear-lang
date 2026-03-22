@@ -158,11 +158,7 @@ fn add_dependency(lang: Lang, ecosystem: &str, package: &str, raw_root: Option<&
     let manifest = resolve_manifest_path(&project_root);
     let vendor_root = project_root.join(".sharp").join("vendor");
     let wrappers_dir = project_root.join("interop");
-    let project_std_dir = project_root.join("std");
     ensure_dir(&wrappers_dir)?;
-    ensure_dir(&project_std_dir)?;
-    write_file(&project_std_dir.join("interop.sharp"), "import \"../../std/interop.sharp\";\n\npackage app;\nmodule interop_proxy;\n")?;
-    write_file(&project_std_dir.join("json.sharp"), "import \"../../std/json.sharp\";\n\npackage app;\nmodule json_proxy;\n")?;
     let module_name = sanitize_module_name(package);
     let wrapper_path = wrappers_dir.join(format!("{module_name}.sharp"));
     let example_path = wrappers_dir.join(format!("{module_name}_example.sharp"));

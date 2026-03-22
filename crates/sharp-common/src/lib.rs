@@ -167,9 +167,43 @@ pub fn interop_node_shim_name(package: &str) -> String {
     format!("{}_sharp.cjs", sanitize_module_name(package))
 }
 
+pub fn render_interop_example(package: &str, module_name: &str) -> String {
+    if package.eq_ignore_ascii_case("requests") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(status_code(\"https://example.com\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("dayjs") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(format_now(\"YYYY-MM-DD\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("axios") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(status_code(\"https://example.com\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("numpy") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(array_sum(\"[1,2,3]\"));\n    print(mean(\"[1,2,3]\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("pandas") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(read_csv_head(\"data.csv\", 5));\n}}\n"
+        );
+    }
+    format!(
+        "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(\"interop ready\");\n}}\n"
+    )
+}
+
 pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str, target: &str) -> String {
     let imports = if ecosystem.eq_ignore_ascii_case("pip")
-        && (package.eq_ignore_ascii_case("requests") || package.eq_ignore_ascii_case("demo_python"))
+        && (package.eq_ignore_ascii_case("requests")
+            || package.eq_ignore_ascii_case("numpy")
+            || package.eq_ignore_ascii_case("pandas")
+            || package.eq_ignore_ascii_case("demo_python"))
         || ecosystem.eq_ignore_ascii_case("npm")
             && (package.eq_ignore_ascii_case("dayjs")
                 || package.eq_ignore_ascii_case("axios")
@@ -196,6 +230,10 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str,
     };
     let preset = if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("requests") {
         "function text get_text(text url) {\n    return call(\"get_text\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text get_json(text url) {\n    return call(\"get_json\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text post_json(text url, text body_json) {\n    return call(\"post_json\", json_object2(json_field(\"url\", json_text(url)), json_field(\"body\", json_parse(body_json))));\n}\n\nfunction number status_code(text url) {\n    return num(call(\"status_code\", json_object1(json_field(\"url\", json_text(url)))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("numpy") {
+        "function number array_sum(text numbers_json) {\n    return num(call(\"array_sum\", json_object1(json_field(\"values\", json_parse(numbers_json)))));\n}\n\nfunction number mean(text numbers_json) {\n    return num(call(\"mean\", json_object1(json_field(\"values\", json_parse(numbers_json)))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("pandas") {
+        "function text read_csv_head(text path, number rows) {\n    return call(\"read_csv_head\", json_object2(json_field(\"path\", json_text(path)), json_field(\"rows\", json_number(rows))));\n}\n\nfunction text columns(text path) {\n    return call(\"columns\", json_object1(json_field(\"path\", json_text(path))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("dayjs") {
         "function text format_now(text pattern) {\n    return call(\"format_now\", json_object1(json_field(\"pattern\", json_text(pattern))));\n}\n\nfunction text add_days(text iso_value, number days, text pattern) {\n    return call(\"add_days\", json_object3(json_field(\"value\", json_text(iso_value)), json_field(\"days\", json_number(days)), json_field(\"pattern\", json_text(pattern))));\n}\n\nfunction text from_iso(text iso_value, text pattern) {\n    return call(\"from_iso\", json_object2(json_field(\"value\", json_text(iso_value)), json_field(\"pattern\", json_text(pattern))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("axios") {
@@ -216,6 +254,16 @@ pub fn render_python_shim(package: &str) -> Option<String> {
     if package.eq_ignore_ascii_case("requests") {
         return Some(
             "import json\nimport requests\n\n\ndef get_text(payload):\n    url = payload.get(\"url\", \"\")\n    return requests.get(url, timeout=10).text\n\n\ndef get_json(payload):\n    url = payload.get(\"url\", \"\")\n    return json.dumps(requests.get(url, timeout=10).json())\n\n\ndef post_json(payload):\n    url = payload.get(\"url\", \"\")\n    body = payload.get(\"body\", {})\n    return json.dumps(requests.post(url, json=body, timeout=10).json())\n\n\ndef status_code(payload):\n    url = payload.get(\"url\", \"\")\n    return requests.get(url, timeout=10).status_code\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("numpy") {
+        return Some(
+            "import numpy as np\n\n\ndef array_sum(payload):\n    values = payload.get(\"values\", [])\n    return float(np.sum(np.array(values, dtype=float)))\n\n\ndef mean(payload):\n    values = payload.get(\"values\", [])\n    return float(np.mean(np.array(values, dtype=float)))\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("pandas") {
+        return Some(
+            "import json\nimport pandas as pd\n\n\ndef read_csv_head(payload):\n    path = payload.get(\"path\", \"\")\n    rows = int(payload.get(\"rows\", 5))\n    frame = pd.read_csv(path)\n    return frame.head(rows).to_json(orient=\"records\")\n\n\ndef columns(payload):\n    path = payload.get(\"path\", \"\")\n    frame = pd.read_csv(path)\n    return json.dumps(list(frame.columns))\n".to_string(),
         );
     }
     if package.eq_ignore_ascii_case("demo_python") {

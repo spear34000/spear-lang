@@ -15,6 +15,7 @@ When you add a package, Sharp updates `sharp.toml` and creates:
 - `.sharp/vendor/...`
 - `.sharp/shims/...`
 - `interop/<package>.sp`
+- `interop/<package>_example.sp`
 - `std/interop.sp`
 - `std/json.sp`
 
@@ -59,6 +60,54 @@ Generated helpers:
 - `get_json(url)`
 - `post_json(url, body_json)`
 - `status_code(url)`
+
+## Numpy Preset
+
+After:
+
+```bash
+sharp add pip numpy
+```
+
+you can use:
+
+```sp
+import "interop/numpy.sp";
+
+run {
+    print(array_sum("[1,2,3]"));
+    print(mean("[1,2,3]"));
+}
+```
+
+Generated helpers:
+
+- `array_sum(numbers_json)`
+- `mean(numbers_json)`
+
+## Pandas Preset
+
+After:
+
+```bash
+sharp add pip pandas
+```
+
+you can use:
+
+```sp
+import "interop/pandas.sp";
+
+run {
+    print(read_csv_head("data.csv", 5));
+    print(columns("data.csv"));
+}
+```
+
+Generated helpers:
+
+- `read_csv_head(path, rows)`
+- `columns(path)`
 
 ## Dayjs Preset
 
@@ -125,6 +174,8 @@ my-app/
     requests.sp
     dayjs.sp
     axios.sp
+    requests_example.sp
+    numpy_example.sp
   std/
     interop.sp
     json.sp

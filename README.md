@@ -199,6 +199,10 @@ Common generated helpers:
 - `requests.get_json(url)`
 - `requests.post_json(url, body_json)`
 - `requests.status_code(url)`
+- `numpy.array_sum(numbers_json)`
+- `numpy.mean(numbers_json)`
+- `pandas.read_csv_head(path, rows)`
+- `pandas.columns(path)`
 - `dayjs.format_now(pattern)`
 - `dayjs.add_days(iso, days, pattern)`
 - `dayjs.from_iso(iso, pattern)`
@@ -206,6 +210,8 @@ Common generated helpers:
 - `axios.get_json(url)`
 - `axios.post_json(url, body_json)`
 - `axios.status_code(url)`
+
+`sharp add` also generates `interop/<package>_example.sp` so a new package comes with a ready-to-run sample file.
 
 ## Diagnostics
 

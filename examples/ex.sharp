@@ -1,0 +1,6 @@
+import "interop/requests.sharp";
+
+run {
+    print(get_text("https://example.com"));
+    print(status_code("https://example.com"));
+}

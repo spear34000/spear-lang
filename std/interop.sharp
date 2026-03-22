@@ -1,4 +1,4 @@
-﻿import "bridge.sharp";
+import "bridge.sharp";
 
 package std;
 module interop;
@@ -26,4 +26,3 @@ function text js_call(text module_name, text fn_name, text payload) {
 function text js_empty(text module_name, text fn_name) {
     return js_call(module_name, fn_name, "{}");
 }
-

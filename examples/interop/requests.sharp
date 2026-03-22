@@ -1,0 +1,30 @@
+import "../../std/interop.sharp";
+import "../../std/json.sharp";
+
+function text module_handle() {
+    return pip_module("requests_sharp");
+}
+
+function text call(text fn_name, text payload) {
+    return py_call(module_handle(), fn_name, payload);
+}
+
+function text call0(text fn_name) {
+    return py_empty(module_handle(), fn_name);
+}
+
+function text get_text(text url) {
+    return call("get_text", json_object1(json_field("url", json_text(url))));
+}
+
+function text get_json(text url) {
+    return call("get_json", json_object1(json_field("url", json_text(url))));
+}
+
+function text post_json(text url, text body_json) {
+    return call("post_json", json_object2(json_field("url", json_text(url)), json_field("body", json_parse(body_json))));
+}
+
+function text status_code(text url) {
+    return call("status_code", json_object1(json_field("url", json_text(url))));
+}

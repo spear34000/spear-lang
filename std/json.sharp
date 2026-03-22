@@ -1,4 +1,4 @@
-﻿import "bridge.sharp";
+import "bridge.sharp";
 import "text.sharp";
 
 package std;
@@ -115,4 +115,3 @@ function text json_get(text body, text key) {
 function text json_keys(text body) {
     return python_json("spear_std", "json_keys", json_object1(json_field("text", json_text(body))));
 }
-

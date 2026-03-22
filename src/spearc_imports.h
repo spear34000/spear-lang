@@ -121,17 +121,26 @@ static void resolve_import_path(char *out, size_t cap, const char *base, const c
     char clean_leaf[2048];
     char candidate[2048];
     char legacy_candidate[2048];
+    char normalized[2048];
     normalize_import_leaf(clean_leaf, sizeof(clean_leaf), leaf);
     join_fs_path(candidate, sizeof(candidate), base, clean_leaf);
     if (file_exists(candidate)) {
-        checked_snprintf(out, cap, "%s", candidate);
+        if (_fullpath(normalized, candidate, sizeof(normalized))) {
+            checked_snprintf(out, cap, "%s", normalized);
+        } else {
+            checked_snprintf(out, cap, "%s", candidate);
+        }
         return;
     }
     if (strlen(clean_leaf) > 6 && strcmp(clean_leaf + strlen(clean_leaf) - 6, ".sharp") == 0) {
         checked_snprintf(legacy_candidate, sizeof(legacy_candidate), "%.*s.sp", (int) (strlen(clean_leaf) - 6), clean_leaf);
         join_fs_path(candidate, sizeof(candidate), base, legacy_candidate);
         if (file_exists(candidate)) {
-            checked_snprintf(out, cap, "%s", candidate);
+            if (_fullpath(normalized, candidate, sizeof(normalized))) {
+                checked_snprintf(out, cap, "%s", normalized);
+            } else {
+                checked_snprintf(out, cap, "%s", candidate);
+            }
             return;
         }
     }
@@ -140,21 +149,33 @@ static void resolve_import_path(char *out, size_t cap, const char *base, const c
         (strncmp(clean_leaf, "std/", 4) == 0 || strncmp(clean_leaf, "std\\", 4) == 0)) {
         checked_snprintf(candidate, sizeof(candidate), "%s\\%s", g_tool_dir, clean_leaf);
         if (file_exists(candidate)) {
-            checked_snprintf(out, cap, "%s", candidate);
+            if (_fullpath(normalized, candidate, sizeof(normalized))) {
+                checked_snprintf(out, cap, "%s", normalized);
+            } else {
+                checked_snprintf(out, cap, "%s", candidate);
+            }
             return;
         }
         if (strlen(clean_leaf) > 6 && strcmp(clean_leaf + strlen(clean_leaf) - 6, ".sharp") == 0) {
             checked_snprintf(legacy_candidate, sizeof(legacy_candidate), "%.*s.sp", (int) (strlen(clean_leaf) - 6), clean_leaf);
             checked_snprintf(candidate, sizeof(candidate), "%s\\%s", g_tool_dir, legacy_candidate);
             if (file_exists(candidate)) {
-                checked_snprintf(out, cap, "%s", candidate);
+                if (_fullpath(normalized, candidate, sizeof(normalized))) {
+                    checked_snprintf(out, cap, "%s", normalized);
+                } else {
+                    checked_snprintf(out, cap, "%s", candidate);
+                }
                 return;
             }
         }
     }
 
     join_fs_path(candidate, sizeof(candidate), base, clean_leaf);
-    checked_snprintf(out, cap, "%s", candidate);
+    if (_fullpath(normalized, candidate, sizeof(normalized))) {
+        checked_snprintf(out, cap, "%s", normalized);
+    } else {
+        checked_snprintf(out, cap, "%s", candidate);
+    }
 }
 
 static void executable_dir(const char *argv0, char *out, size_t cap) {

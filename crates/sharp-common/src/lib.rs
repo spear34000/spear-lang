@@ -171,7 +171,9 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str,
     let imports = if ecosystem.eq_ignore_ascii_case("pip")
         && (package.eq_ignore_ascii_case("requests") || package.eq_ignore_ascii_case("demo_python"))
         || ecosystem.eq_ignore_ascii_case("npm")
-            && (package.eq_ignore_ascii_case("dayjs") || package.eq_ignore_ascii_case("./demo_node.cjs"))
+            && (package.eq_ignore_ascii_case("dayjs")
+                || package.eq_ignore_ascii_case("axios")
+                || package.eq_ignore_ascii_case("./demo_node.cjs"))
     {
         "import \"std/interop.sp\";\nimport \"std/json.sp\";"
     } else {
@@ -193,9 +195,11 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str,
         "    return js_empty(module_handle(), fn_name);"
     };
     let preset = if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("requests") {
-        "function text get_text(text url) {\n    return call(\"get_text\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text get_json(text url) {\n    return call(\"get_json\", json_object1(json_field(\"url\", json_text(url))));\n}\n"
+        "function text get_text(text url) {\n    return call(\"get_text\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text get_json(text url) {\n    return call(\"get_json\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text post_json(text url, text body_json) {\n    return call(\"post_json\", json_object2(json_field(\"url\", json_text(url)), json_field(\"body\", json_parse(body_json))));\n}\n\nfunction number status_code(text url) {\n    return num(call(\"status_code\", json_object1(json_field(\"url\", json_text(url)))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("dayjs") {
-        "function text format_now(text pattern) {\n    return call(\"format_now\", json_object1(json_field(\"pattern\", json_text(pattern))));\n}\n"
+        "function text format_now(text pattern) {\n    return call(\"format_now\", json_object1(json_field(\"pattern\", json_text(pattern))));\n}\n\nfunction text add_days(text iso_value, number days, text pattern) {\n    return call(\"add_days\", json_object3(json_field(\"value\", json_text(iso_value)), json_field(\"days\", json_number(days)), json_field(\"pattern\", json_text(pattern))));\n}\n\nfunction text from_iso(text iso_value, text pattern) {\n    return call(\"from_iso\", json_object2(json_field(\"value\", json_text(iso_value)), json_field(\"pattern\", json_text(pattern))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("axios") {
+        "function text get_text(text url) {\n    return call(\"get_text\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text get_json(text url) {\n    return call(\"get_json\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text post_json(text url, text body_json) {\n    return call(\"post_json\", json_object2(json_field(\"url\", json_text(url)), json_field(\"body\", json_parse(body_json))));\n}\n\nfunction number status_code(text url) {\n    return num(call(\"status_code\", json_object1(json_field(\"url\", json_text(url)))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("demo_python") {
         "function text render(text name) {\n    return call(\"render\", json_object1(json_field(\"name\", json_text(name))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("./demo_node.cjs") {
@@ -211,7 +215,7 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str,
 pub fn render_python_shim(package: &str) -> Option<String> {
     if package.eq_ignore_ascii_case("requests") {
         return Some(
-            "import requests\n\n\ndef get_text(payload):\n    url = payload.get(\"url\", \"\")\n    return requests.get(url, timeout=10).text\n\n\ndef get_json(payload):\n    url = payload.get(\"url\", \"\")\n    return requests.get(url, timeout=10).json()\n".to_string(),
+            "import json\nimport requests\n\n\ndef get_text(payload):\n    url = payload.get(\"url\", \"\")\n    return requests.get(url, timeout=10).text\n\n\ndef get_json(payload):\n    url = payload.get(\"url\", \"\")\n    return json.dumps(requests.get(url, timeout=10).json())\n\n\ndef post_json(payload):\n    url = payload.get(\"url\", \"\")\n    body = payload.get(\"body\", {})\n    return json.dumps(requests.post(url, json=body, timeout=10).json())\n\n\ndef status_code(payload):\n    url = payload.get(\"url\", \"\")\n    return requests.get(url, timeout=10).status_code\n".to_string(),
         );
     }
     if package.eq_ignore_ascii_case("demo_python") {
@@ -225,7 +229,12 @@ pub fn render_python_shim(package: &str) -> Option<String> {
 pub fn render_node_shim(package: &str) -> Option<String> {
     if package.eq_ignore_ascii_case("dayjs") {
         return Some(
-            "const dayjs = require(\"dayjs\");\n\nexports.format_now = function formatNow(payload) {\n  const pattern = payload?.pattern || \"YYYY-MM-DD\";\n  return dayjs().format(pattern);\n};\n".to_string(),
+            "const dayjs = require(\"dayjs\");\n\nexports.format_now = function formatNow(payload) {\n  const pattern = payload?.pattern || \"YYYY-MM-DD\";\n  return dayjs().format(pattern);\n};\n\nexports.add_days = function addDays(payload) {\n  const value = payload?.value || dayjs().toISOString();\n  const days = Number(payload?.days || 0);\n  const pattern = payload?.pattern || \"YYYY-MM-DD\";\n  return dayjs(value).add(days, \"day\").format(pattern);\n};\n\nexports.from_iso = function fromIso(payload) {\n  const value = payload?.value || dayjs().toISOString();\n  const pattern = payload?.pattern || \"YYYY-MM-DD\";\n  return dayjs(value).format(pattern);\n};\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("axios") {
+        return Some(
+            "const axios = require(\"axios\");\n\nexports.get_text = async function getText(payload) {\n  const url = payload?.url || \"\";\n  const response = await axios.get(url, { timeout: 10000, responseType: \"text\", validateStatus: () => true });\n  return typeof response.data === \"string\" ? response.data : JSON.stringify(response.data);\n};\n\nexports.get_json = async function getJson(payload) {\n  const url = payload?.url || \"\";\n  const response = await axios.get(url, { timeout: 10000, validateStatus: () => true });\n  return JSON.stringify(response.data);\n};\n\nexports.post_json = async function postJson(payload) {\n  const url = payload?.url || \"\";\n  const body = payload?.body || {};\n  const response = await axios.post(url, body, { timeout: 10000, validateStatus: () => true });\n  return JSON.stringify(response.data);\n};\n\nexports.status_code = async function statusCode(payload) {\n  const url = payload?.url || \"\";\n  const response = await axios.get(url, { timeout: 10000, validateStatus: () => true });\n  return response.status;\n};\n".to_string(),
         );
     }
     if package.eq_ignore_ascii_case("./demo_node.cjs") {

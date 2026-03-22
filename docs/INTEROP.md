@@ -11,12 +11,18 @@ sharp add pip plotly
 sharp add pip pillow
 sharp add pip openai
 sharp add pip fastapi
+sharp add pip langchain
+sharp add pip transformers
+sharp add pip discord.py
 sharp add npm dayjs
 sharp add npm axios
 sharp add npm react
 sharp add npm three
 sharp add npm express
 sharp add npm next
+sharp add npm tailwindcss
+sharp add npm zustand
+sharp add npm discord.js
 ```
 
 When you add a package, Sharp updates `sharp.toml` and creates:
@@ -233,6 +239,45 @@ Generated helpers:
 - `app_module(name)`
 - `route_module(name, path)`
 
+## LangChain Preset
+
+After:
+
+```bash
+sharp add pip langchain
+```
+
+Generated helpers:
+
+- `prompt_template(template)`
+- `chain_module(model_name)`
+
+## Transformers Preset
+
+After:
+
+```bash
+sharp add pip transformers
+```
+
+Generated helpers:
+
+- `sentiment_pipeline(model_name, text_value)`
+- `text_generator(model_name)`
+
+## Discord.py Preset
+
+After:
+
+```bash
+sharp add pip discord.py
+```
+
+Generated helpers:
+
+- `bot_module(name)`
+- `command_module(name)`
+
 ## Dayjs Preset
 
 After:
@@ -309,6 +354,32 @@ Generated helpers:
 - `component(name, title, body)`
 - `page(name, title, body)`
 
+## Tailwind Preset
+
+After:
+
+```bash
+sharp add npm tailwindcss
+```
+
+Generated helpers:
+
+- `config_module(content_glob)`
+- `utility_block(classes)`
+
+## Zustand Preset
+
+After:
+
+```bash
+sharp add npm zustand
+```
+
+Generated helpers:
+
+- `store_module(name)`
+- `slice_module(name)`
+
 ## Express Preset
 
 After:
@@ -355,6 +426,19 @@ Generated helpers:
 - `scene_module(name)`
 - `spinning_cube(name)`
 
+## Discord.js Preset
+
+After:
+
+```bash
+sharp add npm discord.js
+```
+
+Generated helpers:
+
+- `bot_module(name)`
+- `command_module(name)`
+
 ## Next Preset
 
 After:
@@ -393,12 +477,18 @@ my-app/
     pillow.sp
     openai.sp
     fastapi.sp
+    langchain.sp
+    transformers.sp
+    discord_py.sp
     dayjs.sp
     axios.sp
     react.sp
     three.sp
     express.sp
     next.sp
+    tailwindcss.sp
+    zustand.sp
+    discord_js.sp
     requests_example.sp
     numpy_example.sp
   std/

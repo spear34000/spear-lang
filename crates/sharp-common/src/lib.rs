@@ -218,9 +218,34 @@ pub fn render_interop_example(package: &str, module_name: &str) -> String {
             "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(app_module(\"SharpApi\"));\n}}\n"
         );
     }
+    if package.eq_ignore_ascii_case("langchain") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(prompt_template(\"Say hello to {{name}}.\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("transformers") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(sentiment_pipeline(\"distilbert-base-uncased-finetuned-sst-2-english\", \"Sharp is fast.\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("discord.py") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(bot_module(\"SharpBot\"));\n}}\n"
+        );
+    }
     if package.eq_ignore_ascii_case("react") {
         return format!(
             "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(component(\"HeroCard\", \"Sharp\", \"Rust-backed interop wrappers\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("tailwindcss") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(config_module(\"./src/**/*.{{js,ts,jsx,tsx}}\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("zustand") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(store_module(\"useAppStore\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("express") {
@@ -231,6 +256,11 @@ pub fn render_interop_example(package: &str, module_name: &str) -> String {
     if package.eq_ignore_ascii_case("three") {
         return format!(
             "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(spinning_cube(\"SharpScene\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("discord.js") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(bot_module(\"SharpBot\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("next") {
@@ -253,14 +283,20 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str,
             || package.eq_ignore_ascii_case("pillow")
             || package.eq_ignore_ascii_case("openai")
             || package.eq_ignore_ascii_case("fastapi")
+            || package.eq_ignore_ascii_case("langchain")
+            || package.eq_ignore_ascii_case("transformers")
+            || package.eq_ignore_ascii_case("discord.py")
             || package.eq_ignore_ascii_case("demo_python"))
         || ecosystem.eq_ignore_ascii_case("npm")
             && (package.eq_ignore_ascii_case("dayjs")
                 || package.eq_ignore_ascii_case("axios")
                 || package.eq_ignore_ascii_case("react")
+                || package.eq_ignore_ascii_case("tailwindcss")
+                || package.eq_ignore_ascii_case("zustand")
                 || package.eq_ignore_ascii_case("express")
                 || package.eq_ignore_ascii_case("next")
                 || package.eq_ignore_ascii_case("three")
+                || package.eq_ignore_ascii_case("discord.js")
                 || package.eq_ignore_ascii_case("./demo_node.cjs"))
     {
         "import \"std/interop.sp\";\nimport \"std/json.sp\";"
@@ -298,18 +334,30 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str,
         "function text chat_text(text model, text prompt) {\n    return call(\"chat_text\", json_object2(json_field(\"model\", json_text(model)), json_field(\"prompt\", json_text(prompt))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("fastapi") {
         "function text app_module(text name) {\n    return call(\"app_module\", json_object1(json_field(\"name\", json_text(name))));\n}\n\nfunction text route_module(text name, text path) {\n    return call(\"route_module\", json_object2(json_field(\"name\", json_text(name)), json_field(\"path\", json_text(path))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("langchain") {
+        "function text prompt_template(text template) {\n    return call(\"prompt_template\", json_object1(json_field(\"template\", json_text(template))));\n}\n\nfunction text chain_module(text model_name) {\n    return call(\"chain_module\", json_object1(json_field(\"model\", json_text(model_name))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("transformers") {
+        "function text sentiment_pipeline(text model_name, text text_value) {\n    return call(\"sentiment_pipeline\", json_object2(json_field(\"model\", json_text(model_name)), json_field(\"text\", json_text(text_value))));\n}\n\nfunction text text_generator(text model_name) {\n    return call(\"text_generator\", json_object1(json_field(\"model\", json_text(model_name))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("discord.py") {
+        "function text bot_module(text name) {\n    return call(\"bot_module\", json_object1(json_field(\"name\", json_text(name))));\n}\n\nfunction text command_module(text name) {\n    return call(\"command_module\", json_object1(json_field(\"name\", json_text(name))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("dayjs") {
         "function text format_now(text pattern) {\n    return call(\"format_now\", json_object1(json_field(\"pattern\", json_text(pattern))));\n}\n\nfunction text add_days(text iso_value, number days, text pattern) {\n    return call(\"add_days\", json_object3(json_field(\"value\", json_text(iso_value)), json_field(\"days\", json_number(days)), json_field(\"pattern\", json_text(pattern))));\n}\n\nfunction text from_iso(text iso_value, text pattern) {\n    return call(\"from_iso\", json_object2(json_field(\"value\", json_text(iso_value)), json_field(\"pattern\", json_text(pattern))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("axios") {
         "function text get_text(text url) {\n    return call(\"get_text\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text get_json(text url) {\n    return call(\"get_json\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text post_json(text url, text body_json) {\n    return call(\"post_json\", json_object2(json_field(\"url\", json_text(url)), json_field(\"body\", json_parse(body_json))));\n}\n\nfunction number status_code(text url) {\n    return num(call(\"status_code\", json_object1(json_field(\"url\", json_text(url)))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("react") {
         "function text component(text name, text title, text body) {\n    return call(\"component\", json_object3(json_field(\"name\", json_text(name)), json_field(\"title\", json_text(title)), json_field(\"body\", json_text(body))));\n}\n\nfunction text page(text name, text title, text body) {\n    return call(\"page\", json_object3(json_field(\"name\", json_text(name)), json_field(\"title\", json_text(title)), json_field(\"body\", json_text(body))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("tailwindcss") {
+        "function text config_module(text content_glob) {\n    return call(\"config_module\", json_object1(json_field(\"content\", json_text(content_glob))));\n}\n\nfunction text utility_block(text classes) {\n    return call(\"utility_block\", json_object1(json_field(\"classes\", json_text(classes))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("zustand") {
+        "function text store_module(text name) {\n    return call(\"store_module\", json_object1(json_field(\"name\", json_text(name))));\n}\n\nfunction text slice_module(text name) {\n    return call(\"slice_module\", json_object1(json_field(\"name\", json_text(name))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("express") {
         "function text server_module(text name) {\n    return call(\"server_module\", json_object1(json_field(\"name\", json_text(name))));\n}\n\nfunction text route_module(text name, text path) {\n    return call(\"route_module\", json_object2(json_field(\"name\", json_text(name)), json_field(\"path\", json_text(path))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("next") {
         "function text page_module(text name, text title, text body) {\n    return call(\"page_module\", json_object3(json_field(\"name\", json_text(name)), json_field(\"title\", json_text(title)), json_field(\"body\", json_text(body))));\n}\n\nfunction text api_route(text name) {\n    return call(\"api_route\", json_object1(json_field(\"name\", json_text(name))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("three") {
         "function text scene_module(text name) {\n    return call(\"scene_module\", json_object1(json_field(\"name\", json_text(name))));\n}\n\nfunction text spinning_cube(text name) {\n    return call(\"spinning_cube\", json_object1(json_field(\"name\", json_text(name))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("discord.js") {
+        "function text bot_module(text name) {\n    return call(\"bot_module\", json_object1(json_field(\"name\", json_text(name))));\n}\n\nfunction text command_module(text name) {\n    return call(\"command_module\", json_object1(json_field(\"name\", json_text(name))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("demo_python") {
         "function text render(text name) {\n    return call(\"render\", json_object1(json_field(\"name\", json_text(name))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("./demo_node.cjs") {
@@ -363,6 +411,21 @@ pub fn render_python_shim(package: &str) -> Option<String> {
             "def app_module(payload):\n    name = payload.get(\"name\", \"SharpApi\")\n    return f\"from fastapi import FastAPI\\n\\napp = FastAPI(title=\\\"{name}\\\")\\n\\n@app.get(\\\"/health\\\")\\ndef health():\\n    return {{\\\"status\\\": \\\"ok\\\", \\\"service\\\": \\\"{name}\\\"}}\\n\"\n\n\ndef route_module(payload):\n    name = payload.get(\"name\", \"items\")\n    path = payload.get(\"path\", \"/items\")\n    return f\"from fastapi import APIRouter\\n\\nrouter = APIRouter()\\n\\n@router.get(\\\"{path}\\\")\\ndef {name}():\\n    return {{\\\"route\\\": \\\"{name}\\\", \\\"ok\\\": True}}\\n\"\n".to_string(),
         );
     }
+    if package.eq_ignore_ascii_case("langchain") {
+        return Some(
+            "def prompt_template(payload):\n    template = payload.get(\"template\", \"\")\n    return f\"from langchain_core.prompts import ChatPromptTemplate\\n\\nprompt = ChatPromptTemplate.from_template({template!r})\\n\"\n\n\ndef chain_module(payload):\n    model = payload.get(\"model\", \"gpt-4o-mini\")\n    return f\"from langchain_openai import ChatOpenAI\\n\\nllm = ChatOpenAI(model={model!r})\\n\"\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("transformers") {
+        return Some(
+            "def sentiment_pipeline(payload):\n    model = payload.get(\"model\", \"distilbert-base-uncased-finetuned-sst-2-english\")\n    text = payload.get(\"text\", \"Sharp is great.\")\n    return f\"from transformers import pipeline\\n\\nclassifier = pipeline('sentiment-analysis', model={model!r})\\nresult = classifier({text!r})\\n\"\n\n\ndef text_generator(payload):\n    model = payload.get(\"model\", \"gpt2\")\n    return f\"from transformers import pipeline\\n\\ngenerator = pipeline('text-generation', model={model!r})\\n\"\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("discord.py") {
+        return Some(
+            "def bot_module(payload):\n    name = payload.get(\"name\", \"SharpBot\")\n    return f\"import discord\\nfrom discord.ext import commands\\n\\nbot = commands.Bot(command_prefix='!', intents=discord.Intents.default())\\n\\n@bot.event\\nasync def on_ready():\\n    print({name!r}, 'ready')\\n\"\n\n\ndef command_module(payload):\n    name = payload.get(\"name\", \"ping\")\n    return f\"@bot.command(name={name!r})\\nasync def {name}(ctx):\\n    await ctx.send('pong')\\n\"\n".to_string(),
+        );
+    }
     if package.eq_ignore_ascii_case("demo_python") {
         return Some(
             "import demo_python\n\n\ndef render(payload):\n    return demo_python.render(payload)\n".to_string(),
@@ -387,6 +450,16 @@ pub fn render_node_shim(package: &str) -> Option<String> {
             "const React = require(\"react\");\nconst ReactDOMServer = require(\"react-dom/server\");\n\nexports.component = function component(payload) {\n  const name = payload?.name || \"SharpCard\";\n  const title = payload?.title || \"Sharp\";\n  const body = payload?.body || \"Interop component\";\n  return `export function ${name}() {\\n  return (\\n    <section className=\\\"${name}\\\">\\n      <h2>${title}</h2>\\n      <p>${body}</p>\\n    </section>\\n  );\\n}\\n`;\n};\n\nexports.page = function page(payload) {\n  const title = payload?.title || \"Sharp\";\n  const body = payload?.body || \"Interop page\";\n  const view = React.createElement(\"main\", null,\n    React.createElement(\"h1\", null, title),\n    React.createElement(\"p\", null, body)\n  );\n  return ReactDOMServer.renderToStaticMarkup(view);\n};\n".to_string(),
         );
     }
+    if package.eq_ignore_ascii_case("tailwindcss") {
+        return Some(
+            "exports.config_module = function configModule(payload) {\n  const content = payload?.content || \"./src/**/*.{js,ts,jsx,tsx}\";\n  return `module.exports = {\\n  content: [${JSON.stringify(content)}],\\n  theme: { extend: {} },\\n  plugins: [],\\n};\\n`;\n};\n\nexports.utility_block = function utilityBlock(payload) {\n  const classes = payload?.classes || \"px-6 py-4 rounded-2xl bg-slate-950 text-white\";\n  return `<div class=\\\"${classes}\\\">Sharp</div>`;\n};\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("zustand") {
+        return Some(
+            "exports.store_module = function storeModule(payload) {\n  const name = payload?.name || \"useAppStore\";\n  return `import { create } from \\\"zustand\\\";\\n\\nexport const ${name} = create((set) => ({\\n  count: 0,\\n  inc: () => set((state) => ({ count: state.count + 1 })),\\n}));\\n`;\n};\n\nexports.slice_module = function sliceModule(payload) {\n  const name = payload?.name || \"counterSlice\";\n  return `export const ${name} = (set) => ({\\n  count: 0,\\n  inc: () => set((state) => ({ count: state.count + 1 })),\\n});\\n`;\n};\n".to_string(),
+        );
+    }
     if package.eq_ignore_ascii_case("express") {
         return Some(
             "exports.server_module = function serverModule(payload) {\n  const name = payload?.name || \"sharpServer\";\n  return `const express = require(\\\"express\\\");\\nconst app = express();\\n\\napp.get(\\\"/health\\\", (req, res) => {\\n  res.json({ status: \\\"ok\\\", service: \\\"${name}\\\" });\\n});\\n\\napp.listen(3000, () => {\\n  console.log(\\\"${name} listening on :3000\\\");\\n});\\n`;\n};\n\nexports.route_module = function routeModule(payload) {\n  const name = payload?.name || \"items\";\n  const path = payload?.path || \"/items\";\n  return `router.get(\\\"${path}\\\", (req, res) => {\\n  res.json({ route: \\\"${name}\\\", ok: true });\\n});\\n`;\n};\n".to_string(),
@@ -400,6 +473,11 @@ pub fn render_node_shim(package: &str) -> Option<String> {
     if package.eq_ignore_ascii_case("three") {
         return Some(
             "exports.scene_module = function sceneModule(payload) {\n  const name = payload?.name || \"SharpScene\";\n  return `import * as THREE from \"three\";\\n\\nexport function ${name}(canvas) {\\n  const scene = new THREE.Scene();\\n  const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);\\n  const renderer = new THREE.WebGLRenderer({ canvas });\\n  const geometry = new THREE.BoxGeometry();\\n  const material = new THREE.MeshNormalMaterial();\\n  const cube = new THREE.Mesh(geometry, material);\\n  scene.add(cube);\\n  camera.position.z = 3;\\n  function frame() {\\n    cube.rotation.x += 0.01;\\n    cube.rotation.y += 0.02;\\n    renderer.render(scene, camera);\\n    requestAnimationFrame(frame);\\n  }\\n  frame();\\n}\\n`;\n};\n\nexports.spinning_cube = function spinningCube(payload) {\n  const name = payload?.name || \"SharpScene\";\n  return exports.scene_module({ name });\n};\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("discord.js") {
+        return Some(
+            "exports.bot_module = function botModule(payload) {\n  const name = payload?.name || \"SharpBot\";\n  return `const { Client, GatewayIntentBits } = require(\\\"discord.js\\\");\\nconst client = new Client({ intents: [GatewayIntentBits.Guilds] });\\n\\nclient.once(\\\"ready\\\", () => {\\n  console.log(${JSON.stringify(name)}, \\\"ready\\\");\\n});\\n`;\n};\n\nexports.command_module = function commandModule(payload) {\n  const name = payload?.name || \"ping\";\n  return `module.exports = {\\n  data: { name: ${JSON.stringify(name)}, description: \\\"Sharp command\\\" },\\n  async execute(interaction) {\\n    await interaction.reply(\\\"pong\\\");\\n  },\\n};\\n`;\n};\n".to_string(),
         );
     }
     if package.eq_ignore_ascii_case("./demo_node.cjs") {

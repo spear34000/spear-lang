@@ -192,12 +192,18 @@ sharp add pip plotly
 sharp add pip pillow
 sharp add pip openai
 sharp add pip fastapi
+sharp add pip langchain
+sharp add pip transformers
+sharp add pip discord.py
 sharp add npm dayjs
 sharp add npm axios
 sharp add npm react
 sharp add npm three
 sharp add npm express
 sharp add npm next
+sharp add npm tailwindcss
+sharp add npm zustand
+sharp add npm discord.js
 ```
 
 For details, see [`docs/INTEROP.md`](docs/INTEROP.md).
@@ -221,6 +227,12 @@ Common generated helpers:
 - `openai.chat_text(model, prompt)`
 - `fastapi.app_module(name)`
 - `fastapi.route_module(name, path)`
+- `langchain.prompt_template(template)`
+- `langchain.chain_module(model_name)`
+- `transformers.sentiment_pipeline(model_name, text_value)`
+- `transformers.text_generator(model_name)`
+- `discord.py.bot_module(name)`
+- `discord.py.command_module(name)`
 - `dayjs.format_now(pattern)`
 - `dayjs.add_days(iso, days, pattern)`
 - `dayjs.from_iso(iso, pattern)`
@@ -230,12 +242,18 @@ Common generated helpers:
 - `axios.status_code(url)`
 - `react.component(name, title, body)`
 - `react.page(name, title, body)`
+- `tailwindcss.config_module(content_glob)`
+- `tailwindcss.utility_block(classes)`
+- `zustand.store_module(name)`
+- `zustand.slice_module(name)`
 - `three.scene_module(name)`
 - `three.spinning_cube(name)`
 - `express.server_module(name)`
 - `express.route_module(name, path)`
 - `next.page_module(name, title, body)`
 - `next.api_route(name)`
+- `discord.js.bot_module(name)`
+- `discord.js.command_module(name)`
 
 `sharp add` also generates `interop/<package>_example.sp` so a new package comes with a ready-to-run sample file.
 

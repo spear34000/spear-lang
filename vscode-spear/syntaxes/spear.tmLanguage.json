@@ -1,6 +1,6 @@
 {
   "scopeName": "source.spear",
-  "name": "Spear",
+  "name": "Sharp",
   "patterns": [
     { "include": "#comments" },
     { "include": "#imports" },

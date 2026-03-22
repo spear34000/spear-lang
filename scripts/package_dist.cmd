@@ -28,6 +28,9 @@ mkdir build\dist\vscode-spear\snippets
 mkdir build\dist\vscode-spear\syntaxes
 mkdir build\dist\vscode-spear\themes
 
+copy /Y build\sharp.exe build\dist\sharp.exe >NUL
+copy /Y build\sharpc.exe build\dist\sharpc.exe >NUL
+copy /Y build\sharp-setup.exe build\dist\sharp-setup.exe >NUL
 copy /Y build\spear.exe build\dist\spear.exe >NUL
 copy /Y build\spearc.exe build\dist\spearc.exe >NUL
 copy /Y build\spear-setup.exe build\dist\spear-setup.exe >NUL

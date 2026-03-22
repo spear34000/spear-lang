@@ -1,26 +1,26 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package
-    Name="Spear"
-    Manufacturer="Spear Project"
+    Name="Sharp"
+    Manufacturer="Sharp Project"
     Version="0.1.0"
     UpgradeCode="D7F0C0E2-3B31-4B08-949D-365D49D9F0B2"
     Language="1033"
     Scope="perUser"
     InstallerVersion="500"
     Compressed="yes">
-    <SummaryInformation Description="Spear Installer" Manufacturer="Spear Project" />
-    <MajorUpgrade DowngradeErrorMessage="A newer version of Spear is already installed." />
+    <SummaryInformation Description="Sharp Installer" Manufacturer="Sharp Project" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Sharp is already installed." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
-    <Icon Id="SpearIcon" SourceFile="installer\spear.ico" />
-    <Property Id="ARPPRODUCTICON" Value="SpearIcon" />
-    <Property Id="ARPHELPLINK" Value="https://github.com/example/spear" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/example/spear" />
-    <Property Id="ARPCONTACT" Value="Spear Project" />
+    <Icon Id="SharpIcon" SourceFile="installer\spear.ico" />
+    <Property Id="ARPPRODUCTICON" Value="SharpIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/example/sharp" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/example/sharp" />
+    <Property Id="ARPCONTACT" Value="Sharp Project" />
 
     <StandardDirectory Id="LocalAppDataFolder">
       <Directory Id="ProgramsFolder" Name="Programs">
-        <Directory Id="INSTALLFOLDER" Name="Spear">
+        <Directory Id="INSTALLFOLDER" Name="Sharp">
           <Directory Id="RuntimeFolder" Name="runtime" />
           <Directory Id="StdFolder" Name="std">
             <Directory Id="StdMathFolder" Name="math" />
@@ -43,10 +43,13 @@
     </StandardDirectory>
 
     <StandardDirectory Id="ProgramMenuFolder">
-      <Directory Id="ApplicationProgramsFolder" Name="Spear" />
+      <Directory Id="ApplicationProgramsFolder" Name="Sharp" />
     </StandardDirectory>
 
-    <Feature Id="MainFeature" Title="Spear" Level="1">
+    <Feature Id="MainFeature" Title="Sharp" Level="1">
+      <ComponentRef Id="CmpSharpExe" />
+      <ComponentRef Id="CmpSharpcExe" />
+      <ComponentRef Id="CmpSharpSetupExe" />
       <ComponentRef Id="CmpSpearExe" />
       <ComponentRef Id="CmpSpearcExe" />
       <ComponentRef Id="CmpSetupExe" />
@@ -92,6 +95,18 @@
       <ComponentRef Id="CmpVsTheme" />
       <ComponentRef Id="CmpStartMenuShortcut" />
     </Feature>
+
+    <Component Id="CmpSharpExe" Directory="INSTALLFOLDER" Guid="*">
+      <File Id="FileSharpExe" Source="$(var.SourceDir)\sharp.exe" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpSharpcExe" Directory="INSTALLFOLDER" Guid="*">
+      <File Id="FileSharpcExe" Source="$(var.SourceDir)\sharpc.exe" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpSharpSetupExe" Directory="INSTALLFOLDER" Guid="*">
+      <File Id="FileSharpSetupExe" Source="$(var.SourceDir)\sharp-setup.exe" KeyPath="yes" />
+    </Component>
 
     <Component Id="CmpSpearExe" Directory="INSTALLFOLDER" Guid="*">
       <File Id="FileSpearExe" Source="$(var.SourceDir)\spear.exe" KeyPath="yes" />
@@ -268,12 +283,12 @@
     <Component Id="CmpStartMenuShortcut" Directory="ApplicationProgramsFolder" Guid="*">
       <Shortcut
         Id="SpearShortcut"
-        Name="Spear"
-        Description="Launch the Spear setup wizard"
-        Target="[INSTALLFOLDER]spear-setup.exe"
+        Name="Sharp"
+        Description="Launch the Sharp setup wizard"
+        Target="[INSTALLFOLDER]sharp-setup.exe"
         WorkingDirectory="INSTALLFOLDER" />
       <RemoveFolder Id="RemoveApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
-      <RegistryValue Root="HKCU" Key="Software\Spear" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      <RegistryValue Root="HKCU" Key="Software\Sharp" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
     </Component>
   </Package>
 </Wix>

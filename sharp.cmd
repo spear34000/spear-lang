@@ -6,13 +6,13 @@ if exist "%~dp0build\sharp.exe" (
     exit /b %errorlevel%
 )
 
-if exist "%~dp0build\spear.exe" (
-    "%~dp0build\spear.exe" %*
+if exist "%LOCALAPPDATA%\Programs\Sharp\bin\sharp.exe" (
+    "%LOCALAPPDATA%\Programs\Sharp\bin\sharp.exe" %*
     exit /b %errorlevel%
 )
 
-if exist "%LOCALAPPDATA%\Programs\Sharp\bin\sharp.exe" (
-    "%LOCALAPPDATA%\Programs\Sharp\bin\sharp.exe" %*
+if exist "%~dp0build\spear.exe" (
+    "%~dp0build\spear.exe" %*
     exit /b %errorlevel%
 )
 

@@ -20,8 +20,13 @@ static void load_lang_from_dir(const char *dir) {
     FILE *fp;
     if (strlen(dir) + 16 >= sizeof(path)) return;
     strcpy(path, dir);
-    strcat(path, "\\spear-lang.txt");
+    strcat(path, "\\sharp-lang.txt");
     fp = fopen(path, "rb");
+    if (!fp) {
+        strcpy(path, dir);
+        strcat(path, "\\spear-lang.txt");
+        fp = fopen(path, "rb");
+    }
     if (!fp) {
         strcpy(parent, dir);
         slash = strrchr(parent, '\\');
@@ -30,9 +35,14 @@ static void load_lang_from_dir(const char *dir) {
         *slash = '\0';
         if (strlen(parent) + 16 >= sizeof(path)) return;
         strcpy(path, parent);
-        strcat(path, "\\spear-lang.txt");
+        strcat(path, "\\sharp-lang.txt");
         fp = fopen(path, "rb");
-        if (!fp) return;
+        if (!fp) {
+            strcpy(path, parent);
+            strcat(path, "\\spear-lang.txt");
+            fp = fopen(path, "rb");
+            if (!fp) return;
+        }
     }
     if (fgets(g_lang, sizeof(g_lang), fp)) {
         if ((unsigned char) g_lang[0] == 0xEF && (unsigned char) g_lang[1] == 0xBB && (unsigned char) g_lang[2] == 0xBF) {
@@ -53,24 +63,24 @@ static void load_lang_from_dir(const char *dir) {
 
 static const char *cli_text(const char *key) {
     if (strcmp(key, "error_prefix") == 0) {
-        return lang_is("ko") ? "spear 오류" : "spear error";
+        return lang_is("ko") ? "sharp 오류" : "sharp error";
     }
     if (strcmp(key, "usage") == 0) {
         return lang_is("ko")
-            ? "사용법:\n  spear\n  spear file.sp\n  spear <folder>\n  spear build [file.sp|folder]\n  spear serve [file.sp|folder]\n  spear check [file.sp|folder]\n  spear new <name>\n"
-            : "usage:\n  spear\n  spear file.sp\n  spear <folder>\n  spear build [file.sp|folder]\n  spear serve [file.sp|folder]\n  spear check [file.sp|folder]\n  spear new <name>\n";
+            ? "사용법:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n"
+            : "usage:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n";
     }
     if (strcmp(key, "expected_sp") == 0) {
-        return lang_is("ko") ? ".sp 소스 파일이나 Spear 프로젝트 폴더가 필요합니다" : "expected a .sp source file or a Spear project folder";
+        return lang_is("ko") ? ".sp 소스 파일이나 Sharp 프로젝트 폴더가 필요합니다" : "expected a .sp source file or a Sharp project folder";
     }
     if (strcmp(key, "missing_spearc") == 0) {
-        return lang_is("ko") ? "spear.exe 옆에서 spearc.exe를 찾을 수 없습니다" : "installed spearc.exe was not found next to spear.exe";
+        return lang_is("ko") ? "sharp.exe 옆에서 sharpc.exe를 찾을 수 없습니다" : "installed sharpc.exe was not found next to sharp.exe";
     }
     if (strcmp(key, "compile_failed") == 0) {
-        return lang_is("ko") ? "spear 컴파일 오류: 소스 컴파일에 실패했습니다" : "spear compile error: source compilation failed";
+        return lang_is("ko") ? "sharp 컴파일 오류: 소스 컴파일에 실패했습니다" : "sharp compile error: source compilation failed";
     }
     if (strcmp(key, "backend_failed") == 0) {
-        return lang_is("ko") ? "spear 백엔드 오류: 네이티브 빌드에 실패했습니다" : "spear backend error: native build failed";
+        return lang_is("ko") ? "sharp 백엔드 오류: 네이티브 빌드에 실패했습니다" : "sharp backend error: native build failed";
     }
     if (strcmp(key, "details") == 0) {
         return lang_is("ko") ? "자세한 내용" : "details";
@@ -94,10 +104,10 @@ static const char *cli_text(const char *key) {
         return lang_is("ko") ? "새 프로젝트 이름이 필요합니다" : "expected a project name";
     }
     if (strcmp(key, "project_not_found") == 0) {
-        return lang_is("ko") ? "Spear 프로젝트 진입 파일을 찾을 수 없습니다" : "could not find a Spear project entry file";
+        return lang_is("ko") ? "Sharp 프로젝트 진입 파일을 찾을 수 없습니다" : "could not find a Sharp project entry file";
     }
     if (strcmp(key, "serve_prefix") == 0) {
-        return "spear serve";
+        return "sharp serve";
     }
     return key;
 }
@@ -144,9 +154,9 @@ static void path_basename(const char *path, char *out, size_t cap) {
 
 static void exe_dir(char *out, size_t cap) {
     DWORD len = GetModuleFileNameA(NULL, out, (DWORD) cap);
-    if (len == 0 || len >= cap) fail("cannot resolve spear executable path");
+    if (len == 0 || len >= cap) fail("cannot resolve sharp executable path");
     char *slash = strrchr(out, '\\');
-    if (!slash) fail("cannot resolve spear executable directory");
+    if (!slash) fail("cannot resolve sharp executable directory");
     *slash = '\0';
 }
 
@@ -255,7 +265,10 @@ static bool resolve_project_source(const char *raw_input, char *source_out, size
     }
 
     format_text(project_root_out, root_cap, "%s", full_input);
-    join_path(manifest_path, sizeof(manifest_path), full_input, "spear.toml");
+    join_path(manifest_path, sizeof(manifest_path), full_input, "sharp.toml");
+    if (!file_exists(manifest_path)) {
+        join_path(manifest_path, sizeof(manifest_path), full_input, "spear.toml");
+    }
     if (parse_manifest_value(manifest_path, "entry", entry_rel, sizeof(entry_rel))) {
         join_path(entry_path, sizeof(entry_path), full_input, entry_rel);
         if (file_exists(entry_path) && has_sp_extension(entry_path)) {
@@ -310,7 +323,7 @@ static void create_project(const char *name) {
     path_basename(root, project_name, sizeof(project_name));
     ensure_dir(root);
 
-    join_path(manifest, sizeof(manifest), root, "spear.toml");
+    join_path(manifest, sizeof(manifest), root, "sharp.toml");
     join_path(main_sp, sizeof(main_sp), root, "main.sp");
     join_path(gitignore, sizeof(gitignore), root, ".gitignore");
 
@@ -336,13 +349,13 @@ static void create_project(const char *name) {
         "        centered(box(glass_panel_mod()) {\n"
         "            column_box(gap_space(space_4())) {\n"
         "                markup(\"span\", style_attr(badge_mod())) {\n"
-        "                    \"Spear App\";\n"
+        "                    \"Sharp App\";\n"
         "                };\n"
         "                markup(\"h1\", style_attr(hero_title_mod())) {\n"
         "                    \"Build sharp web pages with readable blocks.\";\n"
         "                };\n"
         "                markup(\"p\", style_attr(lead_copy_mod())) {\n"
-        "                    \"Spear gives you strong defaults, composable design tokens, and production-friendly page primitives.\";\n"
+        "                    \"Sharp gives you strong defaults, composable design tokens, and production-friendly page primitives.\";\n"
         "                };\n"
         "                row_box(gap_space(space_2())) {\n"
         "                    button_link(button_primary_mod(), \"#start\", \"Start building\");\n"
@@ -373,7 +386,7 @@ static void create_project(const char *name) {
         "            )\n"
         "        ));\n"
         "    };\n"
-        "    write(\"build/spear-ui.html\", html);\n"
+        "    write(\"build/sharp-ui.html\", html);\n"
         "}\n",
         project_name
     );
@@ -639,7 +652,10 @@ int main(int argc, char **argv) {
         fail(cli_text("project_not_found"));
     }
 
-    join_path(spearc_path, sizeof(spearc_path), install_dir, "spearc.exe");
+    join_path(spearc_path, sizeof(spearc_path), install_dir, "sharpc.exe");
+    if (GetFileAttributesA(spearc_path) == INVALID_FILE_ATTRIBUTES) {
+        join_path(spearc_path, sizeof(spearc_path), install_dir, "spearc.exe");
+    }
     if (GetFileAttributesA(spearc_path) == INVALID_FILE_ATTRIBUTES) {
         fail(cli_text("missing_spearc"));
     }
@@ -718,9 +734,14 @@ int main(int argc, char **argv) {
     if (_stricmp(mode, "serve") == 0) {
         char html_path[4096];
         const char *html = "http://127.0.0.1:4173/";
-        join_path(html_path, sizeof(html_path), build_dir, "spear-ui.html");
+        join_path(html_path, sizeof(html_path), build_dir, "sharp-ui.html");
         if (GetFileAttributesA(html_path) != INVALID_FILE_ATTRIBUTES) {
-            html = "http://127.0.0.1:4173/spear-ui.html";
+            html = "http://127.0.0.1:4173/sharp-ui.html";
+        } else {
+            join_path(html_path, sizeof(html_path), build_dir, "spear-ui.html");
+            if (GetFileAttributesA(html_path) != INVALID_FILE_ATTRIBUTES) {
+                html = "http://127.0.0.1:4173/spear-ui.html";
+            }
         }
         printf("%s: %s\n", cli_text("serve_prefix"), html);
         resolve_runtime_script(serve_script, sizeof(serve_script), install_dir, "serve_static.ps1");

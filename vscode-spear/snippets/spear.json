@@ -1,12 +1,12 @@
 {
-  "Spear Entry": {
-    "prefix": "spear",
+  "Sharp Entry": {
+    "prefix": "Sharp",
     "body": [
-      "spear launch() {",
+      "Sharp launch() {",
       "    $0",
       "}"
     ],
-    "description": "Create a Spear entry function"
+    "description": "Create a Sharp entry function"
   },
   "Sharp Scope": {
     "prefix": "sharp",
@@ -45,7 +45,7 @@
       "    $0",
       "}"
     ],
-    "description": "Iterate through a Spear list"
+    "description": "Iterate through a Sharp list"
   },
   "For Loop": {
     "prefix": "for",
@@ -61,21 +61,21 @@
     "body": [
       "import \"${1:module.sp}\";"
     ],
-    "description": "Import another Spear source file"
+    "description": "Import another Sharp source file"
   },
   "Node Bridge": {
     "prefix": "nodecall",
     "body": [
       "nodecall(\"${1:package}\", \"${2:function}\", \"${3:{}}\")"
     ],
-    "description": "Call a Node/npm function through the Spear bridge"
+    "description": "Call a Node/npm function through the Sharp bridge"
   },
   "Python Bridge": {
     "prefix": "pycall",
     "body": [
       "pycall(\"${1:module}\", \"${2:function}\", \"${3:{}}\")"
     ],
-    "description": "Call a Python/pip function through the Spear bridge"
+    "description": "Call a Python/pip function through the Sharp bridge"
   },
   "Num Function": {
     "prefix": "spnum",
@@ -105,12 +105,12 @@
       "    );",
       "}"
     ],
-    "description": "Create a UI-oriented Spear view component"
+    "description": "Create a UI-oriented Sharp view component"
   },
   "HTML Page": {
     "prefix": "page",
     "body": [
-      "spear launch() {",
+      "Sharp launch() {",
       "    const let title = \"${1:Title}\";",
       "    let body = stack(",
       "        markup(\"h1\", escape(title)),",
@@ -121,6 +121,7 @@
       "    say(page(title, body));",
       "}"
     ],
-    "description": "Create a simple Spear HTML page"
+    "description": "Create a simple Sharp HTML page"
   }
 }
+

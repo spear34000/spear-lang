@@ -7,8 +7,8 @@
 #include <windows.h>
 #include <commctrl.h>
 
-#define APP_CLASS "SpearSetupWizardWindow"
-#define APP_CLASS_W L"SpearSetupWizardWindow"
+#define APP_CLASS "SharpSetupWizardWindow"
+#define APP_CLASS_W L"SharpSetupWizardWindow"
 #define WM_APP_INSTALL_DONE (WM_APP + 1)
 #define EMBEDDED_TRAILER_MAGIC "SPREMB01"
 #define EMBEDDED_TRAILER_SIZE 24
@@ -141,7 +141,7 @@ static void fail(const char *fmt, ...) {
     va_start(args, fmt);
     vsnprintf(message, sizeof(message), fmt, args);
     va_end(args);
-    fprintf(stderr, "spear setup error: %s\n", message);
+    fprintf(stderr, "sharp setup error: %s\n", message);
     exit(1);
 }
 
@@ -283,22 +283,22 @@ static const char *lang_code(int index) {
 static const char *tr(int lang, const char *key) __attribute__((unused));
 static const char *tr(int lang, const char *key) {
     if (strcmp(key, "wizard_setup") == 0) {
-        if (lang == LANG_KO) return "Spear 설치";
-        if (lang == LANG_JA) return "Spear セットアップ";
-        if (lang == LANG_ZH) return "Spear 安装";
-        return "Spear Setup";
+    if (lang == LANG_KO) return "Sharp 설치";
+    if (lang == LANG_JA) return "Sharp セットアップ";
+    if (lang == LANG_ZH) return "Sharp 安装";
+    return "Sharp Setup";
     }
     if (strcmp(key, "wizard_repair") == 0) {
-        if (lang == LANG_KO) return "Spear 복구";
-        if (lang == LANG_JA) return "Spear 修復";
-        if (lang == LANG_ZH) return "Spear 修复";
-        return "Spear Repair";
+    if (lang == LANG_KO) return "Sharp 복구";
+    if (lang == LANG_JA) return "Sharp 修復";
+    if (lang == LANG_ZH) return "Sharp 修复";
+    return "Sharp Repair";
     }
     if (strcmp(key, "welcome_title") == 0) {
-        if (lang == LANG_KO) return "Spear에 오신 것을 환영합니다";
-        if (lang == LANG_JA) return "Spear へようこそ";
-        if (lang == LANG_ZH) return "欢迎使用 Spear";
-        return "Welcome to Spear";
+    if (lang == LANG_KO) return "Sharp에 오신 것을 환영합니다";
+    if (lang == LANG_JA) return "Sharp へようこそ";
+    if (lang == LANG_ZH) return "欢迎使用 Sharp";
+    return "Welcome to Sharp";
     }
     if (strcmp(key, "welcome_body") == 0) {
         if (lang == LANG_KO) return "설치 중에 사용할 언어를 먼저 고른 다음, 필요한 구성 요소를 선택하세요.";
@@ -325,10 +325,10 @@ static const char *tr(int lang, const char *key) {
         return "Select what to install. You can run the setup wizard again later to change these choices.";
     }
     if (strcmp(key, "check_path") == 0) {
-        if (lang == LANG_KO) return "Spear를 사용자 PATH에 추가";
-        if (lang == LANG_JA) return "Spear をユーザー PATH に追加";
-        if (lang == LANG_ZH) return "将 Spear 添加到用户 PATH";
-        return "Add Spear to the user PATH";
+    if (lang == LANG_KO) return "Sharp를 사용자 PATH에 추가";
+    if (lang == LANG_JA) return "Sharp をユーザー PATH に追加";
+    if (lang == LANG_ZH) return "将 Sharp 添加到用户 PATH";
+    return "Add Sharp to the user PATH";
     }
     if (strcmp(key, "check_examples") == 0) {
         if (lang == LANG_KO) return "기본 예제 작업공간 설치";
@@ -367,10 +367,10 @@ static const char *tr(int lang, const char *key) {
         return "Installing";
     }
     if (strcmp(key, "installing_body") == 0) {
-        if (lang == LANG_KO) return "Spear를 설치하고 있습니다. 완료되면 화면이 자동으로 갱신됩니다.";
-        if (lang == LANG_JA) return "Spear をインストールしています。完了すると画面が自動で更新されます。";
-        if (lang == LANG_ZH) return "正在安装 Spear。完成后此窗口会自动更新。";
-        return "Spear is being installed. The window will update when setup finishes.";
+    if (lang == LANG_KO) return "Sharp를 설치하고 있습니다. 완료되면 화면이 자동으로 갱신됩니다.";
+    if (lang == LANG_JA) return "Sharp をインストールしています。完了すると画面が自動で更新されます。";
+    if (lang == LANG_ZH) return "正在安装 Sharp。完成后此窗口会自动更新。";
+    return "Sharp is being installed. The window will update when setup finishes.";
     }
     if (strcmp(key, "installing_status") == 0) {
         if (lang == LANG_KO) return "파일을 복사하고 설치를 구성하는 중입니다...";
@@ -391,10 +391,10 @@ static const char *tr(int lang, const char *key) {
         return "Installation Failed";
     }
     if (strcmp(key, "done_body") == 0) {
-        if (lang == LANG_KO) return "Spear를 사용할 준비가 되었습니다.";
-        if (lang == LANG_JA) return "Spear を使用する準備ができました。";
-        if (lang == LANG_ZH) return "Spear 已可以使用。";
-        return "Spear is ready to use.";
+    if (lang == LANG_KO) return "Sharp를 사용할 준비가 되었습니다.";
+    if (lang == LANG_JA) return "Sharp を使用する準備ができました。";
+    if (lang == LANG_ZH) return "Sharp 已可以使用。";
+    return "Sharp is ready to use.";
     }
     if (strcmp(key, "failed_body") == 0) {
         if (lang == LANG_KO) return "설치를 완료하지 못했습니다.";
@@ -460,25 +460,25 @@ static const char *tr(int lang, const char *key) {
 }
 
 static const char *ui_tr(int lang, const char *key) {
-    if (strcmp(key, "wizard_setup") == 0) return lang == LANG_KO ? "Spear 설치" : "Spear Setup";
-    if (strcmp(key, "wizard_repair") == 0) return lang == LANG_KO ? "Spear 복구" : "Spear Repair";
-    if (strcmp(key, "welcome_title") == 0) return lang == LANG_KO ? "Spear 설치에 오신 것을 환영합니다." : "Welcome to Spear";
+    if (strcmp(key, "wizard_setup") == 0) return lang == LANG_KO ? "Sharp 설치" : "Sharp Setup";
+    if (strcmp(key, "wizard_repair") == 0) return lang == LANG_KO ? "Sharp 복구" : "Sharp Repair";
+    if (strcmp(key, "welcome_title") == 0) return lang == LANG_KO ? "Sharp 설치에 오신 것을 환영합니다." : "Welcome to Sharp";
     if (strcmp(key, "welcome_body") == 0) return lang == LANG_KO ? "설치 중에 사용할 언어를 먼저 고른 다음, 필요한 구성 요소를 선택하세요." : "Choose the language for installation and runtime messages, then select the components you want.";
     if (strcmp(key, "language_label") == 0) return lang == LANG_KO ? "사용 언어" : "Language";
     if (strcmp(key, "components_title") == 0) return lang == LANG_KO ? "구성 요소 선택" : "Choose Components";
     if (strcmp(key, "components_body") == 0) return lang == LANG_KO ? "설치할 항목을 고르세요. 설치 마법사를 다시 실행하면 나중에도 바꿀 수 있습니다." : "Select what to install. You can run the setup wizard again later to change these choices.";
-    if (strcmp(key, "check_path") == 0) return lang == LANG_KO ? "Spear를 사용자 PATH에 추가" : "Add Spear to the user PATH";
+    if (strcmp(key, "check_path") == 0) return lang == LANG_KO ? "Sharp를 사용자 PATH에 추가" : "Add Sharp to the user PATH";
     if (strcmp(key, "check_examples") == 0) return lang == LANG_KO ? "기본 예제 작업공간 설치" : "Install the bundled example workspace";
     if (strcmp(key, "check_editor") == 0) return lang == LANG_KO ? "기본 VS Code 확장 설치" : "Install the bundled VS Code extension";
     if (strcmp(key, "check_tests") == 0) return lang == LANG_KO ? "설치 후 자체 검사 실행" : "Run post-install self-checks";
     if (strcmp(key, "ready_title") == 0) return lang == LANG_KO ? "설치 준비 완료" : "Ready To Install";
     if (strcmp(key, "ready_body") == 0) return lang == LANG_KO ? "선택한 옵션을 확인한 뒤 설치를 누르세요." : "Review the selected options and click Install.";
     if (strcmp(key, "installing_title") == 0) return lang == LANG_KO ? "설치 중" : "Installing";
-    if (strcmp(key, "installing_body") == 0) return lang == LANG_KO ? "Spear를 설치하고 있습니다. 설치가 끝나면 화면이 자동으로 갱신됩니다." : "Spear is being installed. The window will update when setup finishes.";
+    if (strcmp(key, "installing_body") == 0) return lang == LANG_KO ? "Sharp를 설치하고 있습니다. 설치가 끝나면 화면이 자동으로 갱신됩니다." : "Sharp is being installed. The window will update when setup finishes.";
     if (strcmp(key, "installing_status") == 0) return lang == LANG_KO ? "파일을 복사하고 설치를 구성하는 중입니다..." : "Copying files and configuring the installation...";
     if (strcmp(key, "done_title") == 0) return lang == LANG_KO ? "설치 완료" : "Completed";
     if (strcmp(key, "failed_title") == 0) return lang == LANG_KO ? "설치 실패" : "Installation Failed";
-    if (strcmp(key, "done_body") == 0) return lang == LANG_KO ? "Spear를 사용할 준비가 되었습니다." : "Spear is ready to use.";
+    if (strcmp(key, "done_body") == 0) return lang == LANG_KO ? "Sharp를 사용할 준비가 되었습니다." : "Sharp is ready to use.";
     if (strcmp(key, "failed_body") == 0) return lang == LANG_KO ? "설치를 끝내지 못했습니다." : "The installer could not finish.";
     if (strcmp(key, "back") == 0) return lang == LANG_KO ? "< 이전" : "< Back";
     if (strcmp(key, "next") == 0) return lang == LANG_KO ? "다음 >" : "Next >";
@@ -622,7 +622,7 @@ static void update_user_path(const char *bin_dir, bool add_entry) {
 }
 
 static void remove_uninstall_info(void) {
-    RegDeleteTreeA(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Spear");
+    RegDeleteTreeA(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Sharp");
 }
 
 static void set_uninstall_info(const char *install_root, const char *bin_dir) {
@@ -630,14 +630,14 @@ static void set_uninstall_info(const char *install_root, const char *bin_dir) {
     char uninstall_cmd[2048];
     char icon_path[2048];
     if (RegCreateKeyExA(HKEY_CURRENT_USER,
-            "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Spear",
+        "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Sharp",
             0, NULL, 0, KEY_WRITE, NULL, &key, NULL) != ERROR_SUCCESS) {
         fail("failed to register uninstall metadata");
     }
-    fmt(uninstall_cmd, sizeof(uninstall_cmd), "\"%s\\spear-setup.exe\" --uninstall", bin_dir);
-    fmt(icon_path, sizeof(icon_path), "%s\\spear.exe", bin_dir);
-    RegSetValueExA(key, "DisplayName", 0, REG_SZ, (const BYTE *) "Spear", 6);
-    RegSetValueExA(key, "Publisher", 0, REG_SZ, (const BYTE *) "Spear Project", 14);
+    fmt(uninstall_cmd, sizeof(uninstall_cmd), "\"%s\\sharp-setup.exe\" --uninstall", bin_dir);
+    fmt(icon_path, sizeof(icon_path), "%s\\sharp.exe", bin_dir);
+    RegSetValueExA(key, "DisplayName", 0, REG_SZ, (const BYTE *) "Sharp", 6);
+    RegSetValueExA(key, "Publisher", 0, REG_SZ, (const BYTE *) "Sharp Project", 14);
     RegSetValueExA(key, "InstallLocation", 0, REG_SZ, (const BYTE *) install_root, (DWORD) strlen(install_root) + 1);
     RegSetValueExA(key, "DisplayVersion", 0, REG_SZ, (const BYTE *) "0.1.0", 6);
     RegSetValueExA(key, "UninstallString", 0, REG_SZ, (const BYTE *) uninstall_cmd, (DWORD) strlen(uninstall_cmd) + 1);
@@ -887,8 +887,14 @@ static void run_self_check(const SetupContext *ctx, const SetupOptions *options,
     char command[8192];
     char output[4096];
     bool can_run_launcher_check;
-    join_path(spearc, sizeof(spearc), ctx->bin_dir, "spearc.exe");
-    join_path(spear, sizeof(spear), ctx->bin_dir, "spear.exe");
+    join_path(spearc, sizeof(spearc), ctx->bin_dir, "sharpc.exe");
+    if (!file_exists(spearc)) {
+        join_path(spearc, sizeof(spearc), ctx->bin_dir, "spearc.exe");
+    }
+    join_path(spear, sizeof(spear), ctx->bin_dir, "sharp.exe");
+    if (!file_exists(spear)) {
+        join_path(spear, sizeof(spear), ctx->bin_dir, "spear.exe");
+    }
     if (options->install_examples && dir_exists(ctx->examples_dir)) {
         join_path(check_file, sizeof(check_file), ctx->examples_dir, "hello.sp");
     } else {
@@ -896,7 +902,7 @@ static void run_self_check(const SetupContext *ctx, const SetupOptions *options,
         {
             FILE *fp = fopen(temp_source, "wb");
             if (!fp) fail("failed to create self-check source");
-            fputs("spear launch() {\n    say(1);\n}\n", fp);
+    fputs("run {\n    print(1);\n}\n", fp);
             fclose(fp);
         }
         fmt(check_file, sizeof(check_file), "%s", temp_source);
@@ -931,26 +937,29 @@ static void discover_context(SetupContext *ctx) {
     extract_embedded_payload(ctx);
     if (GetEnvironmentVariableA("LOCALAPPDATA", local_app, sizeof(local_app)) == 0) fail("LOCALAPPDATA is not available");
     if (GetEnvironmentVariableA("USERPROFILE", user_profile, sizeof(user_profile)) == 0) fail("USERPROFILE is not available");
-    join_path(ctx->install_root, sizeof(ctx->install_root), local_app, "Programs\\Spear");
+    join_path(ctx->install_root, sizeof(ctx->install_root), local_app, "Programs\\Sharp");
     join_path(ctx->bin_dir, sizeof(ctx->bin_dir), ctx->install_root, "bin");
     join_path(ctx->runtime_dir, sizeof(ctx->runtime_dir), ctx->install_root, "runtime");
     join_path(ctx->std_dir, sizeof(ctx->std_dir), ctx->install_root, "std");
     join_path(ctx->examples_dir, sizeof(ctx->examples_dir), ctx->install_root, "examples");
     join_path(ctx->toolchain_dir, sizeof(ctx->toolchain_dir), ctx->install_root, "toolchain");
-    fmt(ctx->editor_dir, sizeof(ctx->editor_dir), "%s\\.vscode\\extensions\\spear-language-local", user_profile);
+    fmt(ctx->editor_dir, sizeof(ctx->editor_dir), "%s\\.vscode\\extensions\\sharp-language-local", user_profile);
     {
         char existing_launcher[4096];
-        join_path(existing_launcher, sizeof(existing_launcher), ctx->bin_dir, "spear.exe");
+    join_path(existing_launcher, sizeof(existing_launcher), ctx->bin_dir, "sharp.exe");
         ctx->existing_install = file_exists(existing_launcher);
     }
     ctx->repair_mode = strstr(GetCommandLineA(), "--repair") != NULL;
     ctx->uninstall_mode = strstr(GetCommandLineA(), "--uninstall") != NULL;
-    if (!resolve_source_file(ctx->source_root, "spear.exe", ctx->src_spear, sizeof(ctx->src_spear)) ||
-        !resolve_source_file(ctx->source_root, "spearc.exe", ctx->src_spearc, sizeof(ctx->src_spearc)) ||
-        !resolve_source_file(ctx->source_root, "spear-setup.exe", ctx->src_setup, sizeof(ctx->src_setup)) ||
+    if ((!resolve_source_file(ctx->source_root, "sharp.exe", ctx->src_spear, sizeof(ctx->src_spear)) &&
+         !resolve_source_file(ctx->source_root, "spear.exe", ctx->src_spear, sizeof(ctx->src_spear))) ||
+        (!resolve_source_file(ctx->source_root, "sharpc.exe", ctx->src_spearc, sizeof(ctx->src_spearc)) &&
+         !resolve_source_file(ctx->source_root, "spearc.exe", ctx->src_spearc, sizeof(ctx->src_spearc))) ||
+        (!resolve_source_file(ctx->source_root, "sharp-setup.exe", ctx->src_setup, sizeof(ctx->src_setup)) &&
+         !resolve_source_file(ctx->source_root, "spear-setup.exe", ctx->src_setup, sizeof(ctx->src_setup))) ||
         !resolve_source_dir(ctx->source_root, "runtime", ctx->src_runtime, sizeof(ctx->src_runtime)) ||
         !resolve_source_dir(ctx->source_root, "std", ctx->src_std, sizeof(ctx->src_std))) {
-        fail("installer must run with spear.exe, spearc.exe, spear-setup.exe, runtime, and std available");
+        fail("installer must run with sharp.exe, sharpc.exe, sharp-setup.exe, runtime, and std available");
     }
     ctx->has_std = true;
     ctx->has_examples = resolve_source_dir(ctx->source_root, "examples", ctx->src_examples, sizeof(ctx->src_examples));
@@ -964,18 +973,18 @@ static void perform_uninstall(const SetupContext *ctx) {
     int answer;
     char message[4096];
     fmt(message, sizeof(message),
-        "Remove Spear from this user profile?\n\nInstall root:\n%s\n\nThis removes the launcher, compiler, runtime, examples, and the local VS Code extension folder.",
+            "Remove Sharp from this user profile?\n\nInstall root:\n%s\n\nThis removes the launcher, compiler, runtime, examples, and the local VS Code extension folder.",
         ctx->install_root);
-    answer = MessageBoxA(NULL, message, "Spear Uninstall", MB_ICONQUESTION | MB_OKCANCEL | MB_SETFOREGROUND);
+        answer = MessageBoxA(NULL, message, "Sharp Uninstall", MB_ICONQUESTION | MB_OKCANCEL | MB_SETFOREGROUND);
     if (answer != IDOK) {
-        printf("Spear uninstall cancelled.\n");
+        printf("Sharp uninstall cancelled.\n");
         return;
     }
     update_user_path(ctx->bin_dir, false);
     remove_uninstall_info();
     remove_tree_recursive(ctx->install_root);
     remove_tree_recursive(ctx->editor_dir);
-    printf("Spear uninstalled from %s\n", ctx->install_root);
+    printf("Sharp uninstalled from %s\n", ctx->install_root);
 }
 
 static void perform_uninstall_silent(const SetupContext *ctx) {
@@ -1019,7 +1028,7 @@ static void write_options(WizardState *state) {
 static void write_language_config(const SetupContext *ctx, int lang) {
     char path[4096];
     FILE *fp;
-    join_path(path, sizeof(path), ctx->install_root, "spear-lang.txt");
+    join_path(path, sizeof(path), ctx->install_root, "sharp-lang.txt");
     fp = fopen(path, "wb");
     if (!fp) fail("failed to write language configuration");
     fputs(lang_code(lang), fp);
@@ -1033,7 +1042,7 @@ static void build_summary(WizardState *state, char *out, size_t cap) {
     fmt(out, cap,
         "Install location:\r\n%s\r\n\r\n"
         "Language:\r\n%s\r\n\r\n"
-        "Core:\r\n- spear.exe\r\n- spearc.exe\r\n- spear-setup.exe\r\n- runtime tools\r\n\r\n"
+        "Core:\r\n- sharp.exe\r\n- sharpc.exe\r\n- sharp-setup.exe\r\n- runtime tools\r\n\r\n"
         "Options:\r\n- PATH registration: %s\r\n- Example workspace: %s\r\n- VS Code extension: %s\r\n- Post-install self-check: %s\r\n\r\n"
         "Detected:\r\n- system gcc: %s\r\n- bundled toolchain: %s\r\n- VS Code CLI: %s",
         state->ctx.install_root,
@@ -1087,9 +1096,9 @@ static void show_page(WizardState *state) {
         set_text(state->body, tr(state->options.language_index, "welcome_body"));
         set_text(state->lang_label, tr(state->options.language_index, "language_label"));
         set_text(state->mode_label, state->options.language_index == LANG_KO ? "설치 작업" : "Action");
-        set_text(state->mode_install, state->options.language_index == LANG_KO ? (state->ctx.existing_install ? "Spear 다시 설치" : "Spear 설치") : (state->ctx.existing_install ? "Reinstall Spear" : "Install Spear"));
+    set_text(state->mode_install, state->options.language_index == LANG_KO ? (state->ctx.existing_install ? "Sharp 다시 설치" : "Sharp 설치") : (state->ctx.existing_install ? "Reinstall Sharp" : "Install Sharp"));
         set_text(state->mode_repair, state->options.language_index == LANG_KO ? "현재 설치 복구" : "Repair current install");
-        set_text(state->mode_remove, state->options.language_index == LANG_KO ? "Spear 제거" : "Remove Spear");
+    set_text(state->mode_remove, state->options.language_index == LANG_KO ? "Sharp 제거" : "Remove Sharp");
         write_options(state);
         ShowWindow(state->lang_label, SW_SHOW);
         ShowWindow(state->lang_combo, SW_SHOW);
@@ -1155,7 +1164,7 @@ static DWORD WINAPI install_worker(LPVOID param) {
     state->result[0] = '\0';
     if (state->options.operation == OP_REMOVE) {
         perform_uninstall_silent(&state->ctx);
-        fmt(state->result, sizeof(state->result), "Spear was removed from:\r\n%s", state->ctx.install_root);
+        fmt(state->result, sizeof(state->result), "Sharp was removed from:\r\n%s", state->ctx.install_root);
         state->ok = true;
         PostMessageA(state->hwnd, WM_APP_INSTALL_DONE, 0, 0);
         return 0;
@@ -1169,10 +1178,16 @@ static DWORD WINAPI install_worker(LPVOID param) {
     ensure_dir_recursive(state->ctx.runtime_dir);
     ensure_dir_recursive(state->ctx.std_dir);
     ensure_dir_recursive(state->ctx.toolchain_dir);
+    join_path(dst, sizeof(dst), state->ctx.bin_dir, "sharp.exe");
+    copy_file_to(state->ctx.src_spear, dst);
     join_path(dst, sizeof(dst), state->ctx.bin_dir, "spear.exe");
     copy_file_to(state->ctx.src_spear, dst);
+    join_path(dst, sizeof(dst), state->ctx.bin_dir, "sharpc.exe");
+    copy_file_to(state->ctx.src_spearc, dst);
     join_path(dst, sizeof(dst), state->ctx.bin_dir, "spearc.exe");
     copy_file_to(state->ctx.src_spearc, dst);
+    join_path(dst, sizeof(dst), state->ctx.bin_dir, "sharp-setup.exe");
+    copy_file_to(state->ctx.src_setup, dst);
     join_path(dst, sizeof(dst), state->ctx.bin_dir, "spear-setup.exe");
     copy_file_to(state->ctx.src_setup, dst);
     copy_tree(state->ctx.src_runtime, state->ctx.runtime_dir);
@@ -1397,7 +1412,7 @@ static LRESULT CALLBACK wizard_proc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                 card.right = rc.right - 24;
                 card.bottom = rc.bottom - 64;
                 draw_round_panel(hdc, &card, UI_PANEL, UI_PANEL_EDGE, 16);
-                draw_text_utf8(hdc, 28, 28, 120, 34, DT_LEFT | DT_VCENTER | DT_SINGLELINE, UI_TEXT, g_font_brand, "Spear");
+    draw_text_utf8(hdc, 28, 28, 120, 34, DT_LEFT | DT_VCENTER | DT_SINGLELINE, UI_TEXT, g_font_brand, "Sharp");
                 draw_text_utf8(hdc, 28, 61, 120, 18, DT_LEFT | DT_VCENTER | DT_SINGLELINE, UI_MUTED, g_font_ui, "Premium installer");
                 draw_text_utf8(hdc, 28, rc.bottom - 78, 120, 18, DT_LEFT | DT_VCENTER | DT_SINGLELINE, UI_MUTED, g_font_ui, "v0.1.0");
                 draw_step_item(hdc, 124, 1, state && state->page == 0, "Welcome");

@@ -1,7 +1,7 @@
 {
-  "name": "spear-language",
-  "displayName": "Spear Language",
-  "description": "Syntax highlighting for the Spear programming language",
+  "name": "sharp-language",
+  "displayName": "Sharp Language",
+  "description": "Syntax highlighting for the Sharp programming language",
   "version": "0.1.0",
   "publisher": "local",
   "icon": "assets/spear-logo.png",
@@ -18,7 +18,7 @@
     "Programming Languages"
   ],
   "keywords": [
-    "spear",
+    "sharp",
     "sharp",
     "language"
   ],
@@ -27,19 +27,19 @@
   ],
   "contributes": {
     "configuration": {
-      "title": "Spear",
+      "title": "Sharp",
       "properties": {
         "spear.compilerPath": {
           "type": "string",
           "default": "",
-          "description": "Optional absolute path to spearc.exe. When empty, the extension uses build/spearc.exe from the current workspace."
+          "description": "Optional absolute path to sharpc.exe. When empty, the extension uses build/sharpc.exe from the current workspace."
         }
       }
     },
     "languages": [
       {
         "id": "spear",
-        "aliases": ["Spear", "spear"],
+        "aliases": ["Sharp", "sharp"],
         "extensions": [".sp"],
         "configuration": "./language-configuration.json"
       }
@@ -53,7 +53,7 @@
     ],
     "themes": [
       {
-        "label": "Spear Dark",
+        "label": "Sharp Dark",
         "uiTheme": "vs-dark",
         "path": "./themes/spear-dark-color-theme.json"
       }

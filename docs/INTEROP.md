@@ -10,10 +10,13 @@ sharp add pip matplotlib
 sharp add pip plotly
 sharp add pip pillow
 sharp add pip openai
+sharp add pip fastapi
 sharp add npm dayjs
 sharp add npm axios
 sharp add npm react
 sharp add npm three
+sharp add npm express
+sharp add npm next
 ```
 
 When you add a package, Sharp updates `sharp.toml` and creates:
@@ -207,6 +210,29 @@ Generated helpers:
 
 - `chat_text(model, prompt)`
 
+## FastAPI Preset
+
+After:
+
+```bash
+sharp add pip fastapi
+```
+
+you can use:
+
+```sp
+import "interop/fastapi.sp";
+
+run {
+    print(app_module("SharpApi"));
+}
+```
+
+Generated helpers:
+
+- `app_module(name)`
+- `route_module(name, path)`
+
 ## Dayjs Preset
 
 After:
@@ -283,6 +309,29 @@ Generated helpers:
 - `component(name, title, body)`
 - `page(name, title, body)`
 
+## Express Preset
+
+After:
+
+```bash
+sharp add npm express
+```
+
+you can use:
+
+```sp
+import "interop/express.sp";
+
+run {
+    print(server_module("sharpServer"));
+}
+```
+
+Generated helpers:
+
+- `server_module(name)`
+- `route_module(name, path)`
+
 ## Three Preset
 
 After:
@@ -306,6 +355,29 @@ Generated helpers:
 - `scene_module(name)`
 - `spinning_cube(name)`
 
+## Next Preset
+
+After:
+
+```bash
+sharp add npm next
+```
+
+you can use:
+
+```sp
+import "interop/next.sp";
+
+run {
+    print(page_module("HomePage", "Sharp", "Next starter from Sharp"));
+}
+```
+
+Generated helpers:
+
+- `page_module(name, title, body)`
+- `api_route(name)`
+
 ## Project Layout
 
 Typical project output after adding packages:
@@ -320,10 +392,13 @@ my-app/
     plotly.sp
     pillow.sp
     openai.sp
+    fastapi.sp
     dayjs.sp
     axios.sp
     react.sp
     three.sp
+    express.sp
+    next.sp
     requests_example.sp
     numpy_example.sp
   std/

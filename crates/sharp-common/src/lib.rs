@@ -213,14 +213,29 @@ pub fn render_interop_example(package: &str, module_name: &str) -> String {
             "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(chat_text(\"gpt-5.4-mini\", \"Say hello from Sharp.\"));\n}}\n"
         );
     }
+    if package.eq_ignore_ascii_case("fastapi") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(app_module(\"SharpApi\"));\n}}\n"
+        );
+    }
     if package.eq_ignore_ascii_case("react") {
         return format!(
             "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(component(\"HeroCard\", \"Sharp\", \"Rust-backed interop wrappers\"));\n}}\n"
         );
     }
+    if package.eq_ignore_ascii_case("express") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(server_module(\"sharpServer\"));\n}}\n"
+        );
+    }
     if package.eq_ignore_ascii_case("three") {
         return format!(
             "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(spinning_cube(\"SharpScene\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("next") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(page_module(\"HomePage\", \"Sharp\", \"Next starter from Sharp\"));\n}}\n"
         );
     }
     format!(
@@ -237,11 +252,14 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str,
             || package.eq_ignore_ascii_case("plotly")
             || package.eq_ignore_ascii_case("pillow")
             || package.eq_ignore_ascii_case("openai")
+            || package.eq_ignore_ascii_case("fastapi")
             || package.eq_ignore_ascii_case("demo_python"))
         || ecosystem.eq_ignore_ascii_case("npm")
             && (package.eq_ignore_ascii_case("dayjs")
                 || package.eq_ignore_ascii_case("axios")
                 || package.eq_ignore_ascii_case("react")
+                || package.eq_ignore_ascii_case("express")
+                || package.eq_ignore_ascii_case("next")
                 || package.eq_ignore_ascii_case("three")
                 || package.eq_ignore_ascii_case("./demo_node.cjs"))
     {
@@ -278,12 +296,18 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str,
         "function text image_size(text path) {\n    return call(\"image_size\", json_object1(json_field(\"path\", json_text(path))));\n}\n\nfunction text thumbnail(text path, number width, number height, text output_path) {\n    return call(\"thumbnail\", json_object4(json_field(\"path\", json_text(path)), json_field(\"width\", json_number(width)), json_field(\"height\", json_number(height)), json_field(\"output\", json_text(output_path))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("openai") {
         "function text chat_text(text model, text prompt) {\n    return call(\"chat_text\", json_object2(json_field(\"model\", json_text(model)), json_field(\"prompt\", json_text(prompt))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("fastapi") {
+        "function text app_module(text name) {\n    return call(\"app_module\", json_object1(json_field(\"name\", json_text(name))));\n}\n\nfunction text route_module(text name, text path) {\n    return call(\"route_module\", json_object2(json_field(\"name\", json_text(name)), json_field(\"path\", json_text(path))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("dayjs") {
         "function text format_now(text pattern) {\n    return call(\"format_now\", json_object1(json_field(\"pattern\", json_text(pattern))));\n}\n\nfunction text add_days(text iso_value, number days, text pattern) {\n    return call(\"add_days\", json_object3(json_field(\"value\", json_text(iso_value)), json_field(\"days\", json_number(days)), json_field(\"pattern\", json_text(pattern))));\n}\n\nfunction text from_iso(text iso_value, text pattern) {\n    return call(\"from_iso\", json_object2(json_field(\"value\", json_text(iso_value)), json_field(\"pattern\", json_text(pattern))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("axios") {
         "function text get_text(text url) {\n    return call(\"get_text\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text get_json(text url) {\n    return call(\"get_json\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text post_json(text url, text body_json) {\n    return call(\"post_json\", json_object2(json_field(\"url\", json_text(url)), json_field(\"body\", json_parse(body_json))));\n}\n\nfunction number status_code(text url) {\n    return num(call(\"status_code\", json_object1(json_field(\"url\", json_text(url)))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("react") {
         "function text component(text name, text title, text body) {\n    return call(\"component\", json_object3(json_field(\"name\", json_text(name)), json_field(\"title\", json_text(title)), json_field(\"body\", json_text(body))));\n}\n\nfunction text page(text name, text title, text body) {\n    return call(\"page\", json_object3(json_field(\"name\", json_text(name)), json_field(\"title\", json_text(title)), json_field(\"body\", json_text(body))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("express") {
+        "function text server_module(text name) {\n    return call(\"server_module\", json_object1(json_field(\"name\", json_text(name))));\n}\n\nfunction text route_module(text name, text path) {\n    return call(\"route_module\", json_object2(json_field(\"name\", json_text(name)), json_field(\"path\", json_text(path))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("next") {
+        "function text page_module(text name, text title, text body) {\n    return call(\"page_module\", json_object3(json_field(\"name\", json_text(name)), json_field(\"title\", json_text(title)), json_field(\"body\", json_text(body))));\n}\n\nfunction text api_route(text name) {\n    return call(\"api_route\", json_object1(json_field(\"name\", json_text(name))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("three") {
         "function text scene_module(text name) {\n    return call(\"scene_module\", json_object1(json_field(\"name\", json_text(name))));\n}\n\nfunction text spinning_cube(text name) {\n    return call(\"spinning_cube\", json_object1(json_field(\"name\", json_text(name))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("demo_python") {
@@ -334,6 +358,11 @@ pub fn render_python_shim(package: &str) -> Option<String> {
             "from openai import OpenAI\n\n\ndef chat_text(payload):\n    client = OpenAI()\n    model = payload.get(\"model\", \"gpt-5.4-mini\")\n    prompt = payload.get(\"prompt\", \"\")\n    response = client.responses.create(model=model, input=prompt)\n    return response.output_text\n".to_string(),
         );
     }
+    if package.eq_ignore_ascii_case("fastapi") {
+        return Some(
+            "def app_module(payload):\n    name = payload.get(\"name\", \"SharpApi\")\n    return f\"from fastapi import FastAPI\\n\\napp = FastAPI(title=\\\"{name}\\\")\\n\\n@app.get(\\\"/health\\\")\\ndef health():\\n    return {{\\\"status\\\": \\\"ok\\\", \\\"service\\\": \\\"{name}\\\"}}\\n\"\n\n\ndef route_module(payload):\n    name = payload.get(\"name\", \"items\")\n    path = payload.get(\"path\", \"/items\")\n    return f\"from fastapi import APIRouter\\n\\nrouter = APIRouter()\\n\\n@router.get(\\\"{path}\\\")\\ndef {name}():\\n    return {{\\\"route\\\": \\\"{name}\\\", \\\"ok\\\": True}}\\n\"\n".to_string(),
+        );
+    }
     if package.eq_ignore_ascii_case("demo_python") {
         return Some(
             "import demo_python\n\n\ndef render(payload):\n    return demo_python.render(payload)\n".to_string(),
@@ -356,6 +385,16 @@ pub fn render_node_shim(package: &str) -> Option<String> {
     if package.eq_ignore_ascii_case("react") {
         return Some(
             "const React = require(\"react\");\nconst ReactDOMServer = require(\"react-dom/server\");\n\nexports.component = function component(payload) {\n  const name = payload?.name || \"SharpCard\";\n  const title = payload?.title || \"Sharp\";\n  const body = payload?.body || \"Interop component\";\n  return `export function ${name}() {\\n  return (\\n    <section className=\\\"${name}\\\">\\n      <h2>${title}</h2>\\n      <p>${body}</p>\\n    </section>\\n  );\\n}\\n`;\n};\n\nexports.page = function page(payload) {\n  const title = payload?.title || \"Sharp\";\n  const body = payload?.body || \"Interop page\";\n  const view = React.createElement(\"main\", null,\n    React.createElement(\"h1\", null, title),\n    React.createElement(\"p\", null, body)\n  );\n  return ReactDOMServer.renderToStaticMarkup(view);\n};\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("express") {
+        return Some(
+            "exports.server_module = function serverModule(payload) {\n  const name = payload?.name || \"sharpServer\";\n  return `const express = require(\\\"express\\\");\\nconst app = express();\\n\\napp.get(\\\"/health\\\", (req, res) => {\\n  res.json({ status: \\\"ok\\\", service: \\\"${name}\\\" });\\n});\\n\\napp.listen(3000, () => {\\n  console.log(\\\"${name} listening on :3000\\\");\\n});\\n`;\n};\n\nexports.route_module = function routeModule(payload) {\n  const name = payload?.name || \"items\";\n  const path = payload?.path || \"/items\";\n  return `router.get(\\\"${path}\\\", (req, res) => {\\n  res.json({ route: \\\"${name}\\\", ok: true });\\n});\\n`;\n};\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("next") {
+        return Some(
+            "exports.page_module = function pageModule(payload) {\n  const name = payload?.name || \"HomePage\";\n  const title = payload?.title || \"Sharp\";\n  const body = payload?.body || \"Next starter from Sharp\";\n  return `export default function ${name}() {\\n  return (\\n    <main style={{ padding: 32 }}>\\n      <h1>${title}</h1>\\n      <p>${body}</p>\\n    </main>\\n  );\\n}\\n`;\n};\n\nexports.api_route = function apiRoute(payload) {\n  const name = payload?.name || \"route\";\n  return `export async function GET() {\\n  return Response.json({ route: \\\"${name}\\\", ok: true });\\n}\\n`;\n};\n".to_string(),
         );
     }
     if package.eq_ignore_ascii_case("three") {

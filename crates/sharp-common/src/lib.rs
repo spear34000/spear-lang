@@ -159,12 +159,28 @@ pub fn sanitize_module_name(package: &str) -> String {
     out.trim_matches('_').to_string()
 }
 
-pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str) -> String {
-    let import_line = "import \"../std/interop.sp\";";
-    let handle_fn = if ecosystem.eq_ignore_ascii_case("pip") {
-        format!("    return pip_module(\"{}\");", package)
+pub fn interop_python_module_name(package: &str) -> String {
+    format!("{}_sharp", sanitize_module_name(package))
+}
+
+pub fn interop_node_shim_name(package: &str) -> String {
+    format!("{}_sharp.cjs", sanitize_module_name(package))
+}
+
+pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str, target: &str) -> String {
+    let imports = if ecosystem.eq_ignore_ascii_case("pip")
+        && (package.eq_ignore_ascii_case("requests") || package.eq_ignore_ascii_case("demo_python"))
+        || ecosystem.eq_ignore_ascii_case("npm")
+            && (package.eq_ignore_ascii_case("dayjs") || package.eq_ignore_ascii_case("./demo_node.cjs"))
+    {
+        "import \"std/interop.sp\";\nimport \"std/json.sp\";"
     } else {
-        format!("    return npm_module(\"{}\");", package)
+        "import \"std/interop.sp\";"
+    };
+    let handle_fn = if ecosystem.eq_ignore_ascii_case("pip") {
+        format!("    return pip_module(\"{}\");", target)
+    } else {
+        format!("    return npm_module(\"{}\");", target)
     };
     let call_fn = if ecosystem.eq_ignore_ascii_case("pip") {
         "    return py_call(module_handle(), fn_name, payload);"
@@ -176,9 +192,48 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str)
     } else {
         "    return js_empty(module_handle(), fn_name);"
     };
+    let preset = if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("requests") {
+        "function text get_text(text url) {\n    return call(\"get_text\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text get_json(text url) {\n    return call(\"get_json\", json_object1(json_field(\"url\", json_text(url))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("dayjs") {
+        "function text format_now(text pattern) {\n    return call(\"format_now\", json_object1(json_field(\"pattern\", json_text(pattern))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("demo_python") {
+        "function text render(text name) {\n    return call(\"render\", json_object1(json_field(\"name\", json_text(name))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("./demo_node.cjs") {
+        "function text render(text name) {\n    return call(\"render\", json_object1(json_field(\"name\", json_text(name))));\n}\n"
+    } else {
+        ""
+    };
     format!(
-        "{import_line}\n\npackage app;\nmodule {module_name};\n\nfunction text module_handle() {{\n{handle_fn}\n}}\n\nfunction text call(text fn_name, text payload) {{\n{call_fn}\n}}\n\nfunction text call0(text fn_name) {{\n{call0_fn}\n}}\n"
+        "{imports}\n\npackage app;\nmodule {module_name};\n\nfunction text module_handle() {{\n{handle_fn}\n}}\n\nfunction text call(text fn_name, text payload) {{\n{call_fn}\n}}\n\nfunction text call0(text fn_name) {{\n{call0_fn}\n}}\n\n{preset}"
     )
+}
+
+pub fn render_python_shim(package: &str) -> Option<String> {
+    if package.eq_ignore_ascii_case("requests") {
+        return Some(
+            "import requests\n\n\ndef get_text(payload):\n    url = payload.get(\"url\", \"\")\n    return requests.get(url, timeout=10).text\n\n\ndef get_json(payload):\n    url = payload.get(\"url\", \"\")\n    return requests.get(url, timeout=10).json()\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("demo_python") {
+        return Some(
+            "import demo_python\n\n\ndef render(payload):\n    return demo_python.render(payload)\n".to_string(),
+        );
+    }
+    None
+}
+
+pub fn render_node_shim(package: &str) -> Option<String> {
+    if package.eq_ignore_ascii_case("dayjs") {
+        return Some(
+            "const dayjs = require(\"dayjs\");\n\nexports.format_now = function formatNow(payload) {\n  const pattern = payload?.pattern || \"YYYY-MM-DD\";\n  return dayjs().format(pattern);\n};\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("./demo_node.cjs") {
+        return Some(
+            "const demo = require(process.cwd() + \"/demo_node.cjs\");\n\nexports.render = function render(payload) {\n  return demo.render(payload);\n};\n".to_string(),
+        );
+    }
+    None
 }
 
 pub fn resolve_project_source(raw_input: Option<&str>) -> io::Result<(PathBuf, PathBuf, String)> {

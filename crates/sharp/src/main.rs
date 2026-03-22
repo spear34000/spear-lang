@@ -1,7 +1,8 @@
 use sharp_common::{
-    ensure_dir, exe_dir, load_lang_from_dir, normalize_windows_path, parse_manifest_array, project_name,
-    render_interop_wrapper, render_starter_main, render_starter_manifest, resolve_bundled_gcc,
-    resolve_manifest_path, resolve_project_source, resolve_tool, sanitize_module_name, upsert_manifest_array, Lang,
+    ensure_dir, exe_dir, interop_node_shim_name, interop_python_module_name, load_lang_from_dir,
+    normalize_windows_path, parse_manifest_array, project_name, render_interop_wrapper, render_node_shim,
+    render_python_shim, render_starter_main, render_starter_manifest, resolve_bundled_gcc, resolve_manifest_path,
+    resolve_project_source, resolve_tool, sanitize_module_name, upsert_manifest_array, Lang,
 };
 use std::env;
 use std::fs;
@@ -148,9 +149,15 @@ fn add_dependency(lang: Lang, ecosystem: &str, package: &str, raw_root: Option<&
     let manifest = resolve_manifest_path(&project_root);
     let vendor_root = project_root.join(".sharp").join("vendor");
     let wrappers_dir = project_root.join("interop");
+    let project_std_dir = project_root.join("std");
     ensure_dir(&wrappers_dir)?;
+    ensure_dir(&project_std_dir)?;
+    write_file(&project_std_dir.join("interop.sp"), "import \"../../std/interop.sp\";\n\npackage app;\nmodule interop_proxy;\n")?;
+    write_file(&project_std_dir.join("json.sp"), "import \"../../std/json.sp\";\n\npackage app;\nmodule json_proxy;\n")?;
     let module_name = sanitize_module_name(package);
     let wrapper_path = wrappers_dir.join(format!("{module_name}.sp"));
+    let python_shims_dir = project_root.join(".sharp").join("shims").join("python");
+    let node_shims_dir = project_root.join(".sharp").join("shims").join("node");
     let status = if ecosystem.eq_ignore_ascii_case("pip") {
         let py_root = vendor_root.join("python");
         ensure_dir(&py_root)?;
@@ -197,7 +204,24 @@ fn add_dependency(lang: Lang, ecosystem: &str, package: &str, raw_root: Option<&
             cmd
         })
     };
-    write_file(&wrapper_path, &render_interop_wrapper(ecosystem, package, &module_name))?;
+    let target = if ecosystem.eq_ignore_ascii_case("pip") {
+        if let Some(body) = render_python_shim(package) {
+            ensure_dir(&python_shims_dir)?;
+            let shim_module = interop_python_module_name(package);
+            write_file(&python_shims_dir.join(format!("{shim_module}.py")), &body)?;
+            shim_module
+        } else {
+            package.to_string()
+        }
+    } else if let Some(body) = render_node_shim(package) {
+        ensure_dir(&node_shims_dir)?;
+        let shim_name = interop_node_shim_name(package);
+        write_file(&node_shims_dir.join(&shim_name), &body)?;
+        format!("./.sharp/shims/node/{shim_name}")
+    } else {
+        package.to_string()
+    };
+    write_file(&wrapper_path, &render_interop_wrapper(ecosystem, package, &module_name, &target))?;
     println!("{} {}", text(lang, "added"), package);
     println!("manifest: {}", manifest.display());
     println!("wrapper: {}", wrapper_path.display());
@@ -213,8 +237,17 @@ fn apply_interop_env(cmd: &mut Command, project_root: &Path) {
     let pip = parse_manifest_array(&manifest, "pip");
     if !pip.is_empty() {
         let py_vendor = project_root.join(".sharp").join("vendor").join("python");
+        let py_shims = project_root.join(".sharp").join("shims").join("python");
+        let mut entries: Vec<PathBuf> = Vec::new();
+        if py_shims.is_dir() {
+            entries.push(py_shims);
+        }
         if py_vendor.is_dir() {
-            cmd.env("SHARP_PYTHONPATH", py_vendor);
+            entries.push(py_vendor);
+        }
+        if !entries.is_empty() {
+            let joined = env::join_paths(entries).unwrap_or_default();
+            cmd.env("SHARP_PYTHONPATH", joined);
         }
     }
     let npm = parse_manifest_array(&manifest, "npm");
@@ -222,6 +255,7 @@ fn apply_interop_env(cmd: &mut Command, project_root: &Path) {
         let node_modules = project_root.join(".sharp").join("vendor").join("node").join("node_modules");
         if node_modules.is_dir() {
             cmd.env("SHARP_NODE_PATH", node_modules);
+            cmd.env("NODE_PATH", project_root.join(".sharp").join("vendor").join("node").join("node_modules"));
         }
     }
 }

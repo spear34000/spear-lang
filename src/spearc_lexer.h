@@ -87,6 +87,7 @@ static TokenKind keyword_kind(const char *text, size_t len) {
     if (len == 5 && strncmp(text, "sharp", len) == 0) return TOK_SHARP;
     if (len == 4 && strncmp(text, "keep", len) == 0) return TOK_KEEP;
     if (len == 5 && strncmp(text, "defer", len) == 0) return TOK_DEFER;
+    if (len == 4 && strncmp(text, "emit", len) == 0) return TOK_EMIT;
     if (len == 3 && strncmp(text, "num", len) == 0) return TOK_NUM;
     if (len == 6 && strncmp(text, "number", len) == 0) return TOK_NUM;
     if (len == 4 && strncmp(text, "text", len) == 0) return TOK_TEXT;

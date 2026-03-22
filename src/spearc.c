@@ -121,6 +121,7 @@ typedef enum {
     TOK_ASK,
     TOK_KEEP,
     TOK_DEFER,
+    TOK_EMIT,
     TOK_RUN
 } TokenKind;
 
@@ -217,6 +218,8 @@ typedef struct {
     StringList defer_lists[128];
     int defer_list_count;
     bool in_defer_capture;
+    ValueType sharp_types[128];
+    int sharp_type_count;
     char *current_package_name;
     char *current_module_name;
 } Parser;
@@ -397,6 +400,7 @@ static Expr parse_sharp_expr(Parser *parser, int scope_id, ValueType expected_ty
 #include "spearc_statement_control.h"
 #include "spearc_statement_tail.h"
 #include "spearc_statement_defer.h"
+#include "spearc_statement_emit.h"
 #include "spearc_expr_num.h"
 #include "spearc_expr_text.h"
 #include "spearc_expr_value.h"
@@ -412,6 +416,14 @@ static bool parse_statement(Parser *parser, int scope_id) {
     {
         bool handled = false;
         bool terminated = parse_defer_statement(parser, scope_id, &handled);
+        if (handled) {
+            return terminated;
+        }
+    }
+
+    {
+        bool handled = false;
+        bool terminated = parse_emit_statement(parser, scope_id, &handled);
         if (handled) {
             return terminated;
         }

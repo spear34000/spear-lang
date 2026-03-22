@@ -84,7 +84,7 @@
         },
         {
           "name": "keyword.control.flow.spear",
-          "match": "\\b(if|else|for|while|break|continue|return|each|in|throw|try|catch|run|keep|defer)\\b"
+          "match": "\\b(if|else|for|while|break|continue|return|each|in|throw|try|catch|run|keep|defer|emit)\\b"
         },
         {
           "name": "storage.type.memory.spear",
@@ -188,7 +188,7 @@
       "patterns": [
         {
           "name": "entity.name.function.call.spear",
-          "match": "\\b(?!(?:if|else|for|while|return|each|in|function|let|value|var|variable|mutable|const|view|package|module|import|throw|try|catch|class|run|keep|defer|say|print|write|join|read|ask|size|same|pack|push|count|at|guard|escape|attr|attrs|class_name|id_name|style_attr|href_attr|src_attr|alt_attr|markup|page|stack|inline|column|row|box|surface_box|column_box|row_box|action|nodecall|pycall|sharpen|num|number|text|string|numlist|numbers|textlist|strings|spear|sharp)\\b)([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+          "match": "\\b(?!(?:if|else|for|while|return|each|in|function|let|value|var|variable|mutable|const|view|package|module|import|throw|try|catch|class|run|keep|defer|emit|say|print|write|join|read|ask|size|same|pack|push|count|at|guard|escape|attr|attrs|class_name|id_name|style_attr|href_attr|src_attr|alt_attr|markup|page|stack|inline|column|row|box|surface_box|column_box|row_box|action|nodecall|pycall|sharpen|num|number|text|string|numlist|numbers|textlist|strings|spear|sharp)\\b)([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
           "captures": {
             "1": { "name": "entity.name.function.spear" }
           }

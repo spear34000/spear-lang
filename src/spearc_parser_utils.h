@@ -21,6 +21,8 @@ static void parser_init(Parser *parser, const char *src) {
     parser->defer_list_count = 0;
     parser->in_defer_capture = false;
     memset(parser->defer_lists, 0, sizeof(parser->defer_lists));
+    parser->sharp_type_count = 0;
+    memset(parser->sharp_types, 0, sizeof(parser->sharp_types));
     parser->current_package_name = xstrdup("");
     parser->current_module_name = xstrdup("");
     parser->lexer.current = lexer_next(&parser->lexer);

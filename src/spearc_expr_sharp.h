@@ -57,10 +57,14 @@ static Expr parse_sharp_expr(Parser *parser, int scope_id, ValueType expected_ty
     if (parser->defer_list_count >= (int) (sizeof(parser->defer_lists) / sizeof(parser->defer_lists[0]))) {
         fatal_at(parser->lexer.current.line, parser->lexer.current.col, "sharp nesting is too deep");
     }
+    if (parser->sharp_type_count >= (int) (sizeof(parser->sharp_types) / sizeof(parser->sharp_types[0]))) {
+        fatal_at(parser->lexer.current.line, parser->lexer.current.col, "sharp nesting is too deep");
+    }
     defer_index = parser->defer_list_count++;
     parser->defer_lists[defer_index].items = NULL;
     parser->defer_lists[defer_index].count = 0;
     parser->defer_lists[defer_index].cap = 0;
+    parser->sharp_types[parser->sharp_type_count++] = expected_type;
 
     inner_scope_id = ++parser->scope_counter;
     parser->active_scope_ids[parser->active_scope_count++] = inner_scope_id;
@@ -96,7 +100,7 @@ static Expr parse_sharp_expr(Parser *parser, int scope_id, ValueType expected_ty
         parse_statement(parser, inner_scope_id);
     }
     expect(parser, TOK_RBRACE, "expected '}'");
-    if (!has_keep) {
+    if (!has_keep && expected_type != TYPE_TEXT) {
         fatal_at(sharp_tok.line, sharp_tok.col, "sharp expression requires keep");
     }
 
@@ -109,6 +113,7 @@ static Expr parse_sharp_expr(Parser *parser, int scope_id, ValueType expected_ty
     }
 
     parser->defer_list_count--;
+    parser->sharp_type_count--;
     pop_symbols(parser, symbol_depth);
     parser->active_scope_count = saved_active_scope_count;
     parser->depth = saved_depth;

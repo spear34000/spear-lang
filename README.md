@@ -104,8 +104,12 @@ function number add(number left, number right) {
 
 `defer ...;` can be used inside `sharp` blocks to run cleanup or final actions right before the sharp scope closes.
 
+`emit ...;` can be used inside `sharp text { ... }` blocks to append text incrementally, which makes markup and UI fragment building much flatter than long `join(...)` chains.
+
 **한국어**  
 `sharp { ... }`는 임시 메모리 영역을 만듭니다. 블록 안에서 만든 텍스트는 블록이 끝날 때 함께 정리됩니다.
+
+`sharp text { ... }` 안에서는 `emit ...;`를 써서 텍스트를 순서대로 붙일 수 있습니다. 그래서 긴 `join(...)` 체인 없이 마크업이나 UI 조각을 더 평평하게 조립할 수 있습니다.
 
 ```sp
 sharp {
@@ -118,7 +122,8 @@ sharp {
 value label = sharp text {
     value prefix = "sharp-";
     defer print("leaving sharp");
-    keep join(prefix, "text");
+    emit prefix;
+    emit "text";
 };
 ```
 

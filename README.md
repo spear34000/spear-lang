@@ -190,8 +190,11 @@ sharp add pip requests
 sharp add pip matplotlib
 sharp add pip plotly
 sharp add pip pillow
+sharp add pip openai
 sharp add npm dayjs
 sharp add npm axios
+sharp add npm react
+sharp add npm three
 ```
 
 For details, see [`docs/INTEROP.md`](docs/INTEROP.md).
@@ -212,6 +215,7 @@ Common generated helpers:
 - `plotly.line_html(title, labels_json, values_json)`
 - `pillow.image_size(path)`
 - `pillow.thumbnail(path, width, height, output_path)`
+- `openai.chat_text(model, prompt)`
 - `dayjs.format_now(pattern)`
 - `dayjs.add_days(iso, days, pattern)`
 - `dayjs.from_iso(iso, pattern)`
@@ -219,6 +223,10 @@ Common generated helpers:
 - `axios.get_json(url)`
 - `axios.post_json(url, body_json)`
 - `axios.status_code(url)`
+- `react.component(name, title, body)`
+- `react.page(name, title, body)`
+- `three.scene_module(name)`
+- `three.spinning_cube(name)`
 
 `sharp add` also generates `interop/<package>_example.sp` so a new package comes with a ready-to-run sample file.
 

@@ -208,6 +208,21 @@ pub fn render_interop_example(package: &str, module_name: &str) -> String {
             "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(image_size(\"input.png\"));\n    print(thumbnail(\"input.png\", 320, 240, \"thumb.png\"));\n}}\n"
         );
     }
+    if package.eq_ignore_ascii_case("openai") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(chat_text(\"gpt-5.4-mini\", \"Say hello from Sharp.\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("react") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(component(\"HeroCard\", \"Sharp\", \"Rust-backed interop wrappers\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("three") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(spinning_cube(\"SharpScene\"));\n}}\n"
+        );
+    }
     format!(
         "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(\"interop ready\");\n}}\n"
     )
@@ -221,10 +236,13 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str,
             || package.eq_ignore_ascii_case("matplotlib")
             || package.eq_ignore_ascii_case("plotly")
             || package.eq_ignore_ascii_case("pillow")
+            || package.eq_ignore_ascii_case("openai")
             || package.eq_ignore_ascii_case("demo_python"))
         || ecosystem.eq_ignore_ascii_case("npm")
             && (package.eq_ignore_ascii_case("dayjs")
                 || package.eq_ignore_ascii_case("axios")
+                || package.eq_ignore_ascii_case("react")
+                || package.eq_ignore_ascii_case("three")
                 || package.eq_ignore_ascii_case("./demo_node.cjs"))
     {
         "import \"std/interop.sp\";\nimport \"std/json.sp\";"
@@ -258,10 +276,16 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str,
         "function text bar_html(text title, text labels_json, text values_json) {\n    return call(\"bar_html\", json_object3(json_field(\"title\", json_text(title)), json_field(\"labels\", json_parse(labels_json)), json_field(\"values\", json_parse(values_json))));\n}\n\nfunction text line_html(text title, text labels_json, text values_json) {\n    return call(\"line_html\", json_object3(json_field(\"title\", json_text(title)), json_field(\"labels\", json_parse(labels_json)), json_field(\"values\", json_parse(values_json))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("pillow") {
         "function text image_size(text path) {\n    return call(\"image_size\", json_object1(json_field(\"path\", json_text(path))));\n}\n\nfunction text thumbnail(text path, number width, number height, text output_path) {\n    return call(\"thumbnail\", json_object4(json_field(\"path\", json_text(path)), json_field(\"width\", json_number(width)), json_field(\"height\", json_number(height)), json_field(\"output\", json_text(output_path))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("openai") {
+        "function text chat_text(text model, text prompt) {\n    return call(\"chat_text\", json_object2(json_field(\"model\", json_text(model)), json_field(\"prompt\", json_text(prompt))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("dayjs") {
         "function text format_now(text pattern) {\n    return call(\"format_now\", json_object1(json_field(\"pattern\", json_text(pattern))));\n}\n\nfunction text add_days(text iso_value, number days, text pattern) {\n    return call(\"add_days\", json_object3(json_field(\"value\", json_text(iso_value)), json_field(\"days\", json_number(days)), json_field(\"pattern\", json_text(pattern))));\n}\n\nfunction text from_iso(text iso_value, text pattern) {\n    return call(\"from_iso\", json_object2(json_field(\"value\", json_text(iso_value)), json_field(\"pattern\", json_text(pattern))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("axios") {
         "function text get_text(text url) {\n    return call(\"get_text\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text get_json(text url) {\n    return call(\"get_json\", json_object1(json_field(\"url\", json_text(url))));\n}\n\nfunction text post_json(text url, text body_json) {\n    return call(\"post_json\", json_object2(json_field(\"url\", json_text(url)), json_field(\"body\", json_parse(body_json))));\n}\n\nfunction number status_code(text url) {\n    return num(call(\"status_code\", json_object1(json_field(\"url\", json_text(url)))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("react") {
+        "function text component(text name, text title, text body) {\n    return call(\"component\", json_object3(json_field(\"name\", json_text(name)), json_field(\"title\", json_text(title)), json_field(\"body\", json_text(body))));\n}\n\nfunction text page(text name, text title, text body) {\n    return call(\"page\", json_object3(json_field(\"name\", json_text(name)), json_field(\"title\", json_text(title)), json_field(\"body\", json_text(body))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("three") {
+        "function text scene_module(text name) {\n    return call(\"scene_module\", json_object1(json_field(\"name\", json_text(name))));\n}\n\nfunction text spinning_cube(text name) {\n    return call(\"spinning_cube\", json_object1(json_field(\"name\", json_text(name))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("demo_python") {
         "function text render(text name) {\n    return call(\"render\", json_object1(json_field(\"name\", json_text(name))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("./demo_node.cjs") {
@@ -305,6 +329,11 @@ pub fn render_python_shim(package: &str) -> Option<String> {
             "from PIL import Image\n\n\ndef image_size(payload):\n    path = payload.get(\"path\", \"\")\n    image = Image.open(path)\n    return f\"{image.width}x{image.height}\"\n\n\ndef thumbnail(payload):\n    path = payload.get(\"path\", \"\")\n    width = int(payload.get(\"width\", 320))\n    height = int(payload.get(\"height\", 240))\n    output = payload.get(\"output\", \"thumb.png\")\n    image = Image.open(path)\n    image.thumbnail((width, height))\n    image.save(output)\n    return output\n".to_string(),
         );
     }
+    if package.eq_ignore_ascii_case("openai") {
+        return Some(
+            "from openai import OpenAI\n\n\ndef chat_text(payload):\n    client = OpenAI()\n    model = payload.get(\"model\", \"gpt-5.4-mini\")\n    prompt = payload.get(\"prompt\", \"\")\n    response = client.responses.create(model=model, input=prompt)\n    return response.output_text\n".to_string(),
+        );
+    }
     if package.eq_ignore_ascii_case("demo_python") {
         return Some(
             "import demo_python\n\n\ndef render(payload):\n    return demo_python.render(payload)\n".to_string(),
@@ -322,6 +351,16 @@ pub fn render_node_shim(package: &str) -> Option<String> {
     if package.eq_ignore_ascii_case("axios") {
         return Some(
             "const axios = require(\"axios\");\n\nexports.get_text = async function getText(payload) {\n  const url = payload?.url || \"\";\n  const response = await axios.get(url, { timeout: 10000, responseType: \"text\", validateStatus: () => true });\n  return typeof response.data === \"string\" ? response.data : JSON.stringify(response.data);\n};\n\nexports.get_json = async function getJson(payload) {\n  const url = payload?.url || \"\";\n  const response = await axios.get(url, { timeout: 10000, validateStatus: () => true });\n  return JSON.stringify(response.data);\n};\n\nexports.post_json = async function postJson(payload) {\n  const url = payload?.url || \"\";\n  const body = payload?.body || {};\n  const response = await axios.post(url, body, { timeout: 10000, validateStatus: () => true });\n  return JSON.stringify(response.data);\n};\n\nexports.status_code = async function statusCode(payload) {\n  const url = payload?.url || \"\";\n  const response = await axios.get(url, { timeout: 10000, validateStatus: () => true });\n  return response.status;\n};\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("react") {
+        return Some(
+            "const React = require(\"react\");\nconst ReactDOMServer = require(\"react-dom/server\");\n\nexports.component = function component(payload) {\n  const name = payload?.name || \"SharpCard\";\n  const title = payload?.title || \"Sharp\";\n  const body = payload?.body || \"Interop component\";\n  return `export function ${name}() {\\n  return (\\n    <section className=\\\"${name}\\\">\\n      <h2>${title}</h2>\\n      <p>${body}</p>\\n    </section>\\n  );\\n}\\n`;\n};\n\nexports.page = function page(payload) {\n  const title = payload?.title || \"Sharp\";\n  const body = payload?.body || \"Interop page\";\n  const view = React.createElement(\"main\", null,\n    React.createElement(\"h1\", null, title),\n    React.createElement(\"p\", null, body)\n  );\n  return ReactDOMServer.renderToStaticMarkup(view);\n};\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("three") {
+        return Some(
+            "exports.scene_module = function sceneModule(payload) {\n  const name = payload?.name || \"SharpScene\";\n  return `import * as THREE from \"three\";\\n\\nexport function ${name}(canvas) {\\n  const scene = new THREE.Scene();\\n  const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);\\n  const renderer = new THREE.WebGLRenderer({ canvas });\\n  const geometry = new THREE.BoxGeometry();\\n  const material = new THREE.MeshNormalMaterial();\\n  const cube = new THREE.Mesh(geometry, material);\\n  scene.add(cube);\\n  camera.position.z = 3;\\n  function frame() {\\n    cube.rotation.x += 0.01;\\n    cube.rotation.y += 0.02;\\n    renderer.render(scene, camera);\\n    requestAnimationFrame(frame);\\n  }\\n  frame();\\n}\\n`;\n};\n\nexports.spinning_cube = function spinningCube(payload) {\n  const name = payload?.name || \"SharpScene\";\n  return exports.scene_module({ name });\n};\n".to_string(),
         );
     }
     if package.eq_ignore_ascii_case("./demo_node.cjs") {

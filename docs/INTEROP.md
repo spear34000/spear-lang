@@ -9,8 +9,11 @@ sharp add pip requests
 sharp add pip matplotlib
 sharp add pip plotly
 sharp add pip pillow
+sharp add pip openai
 sharp add npm dayjs
 sharp add npm axios
+sharp add npm react
+sharp add npm three
 ```
 
 When you add a package, Sharp updates `sharp.toml` and creates:
@@ -182,6 +185,28 @@ Generated helpers:
 - `image_size(path)`
 - `thumbnail(path, width, height, output_path)`
 
+## OpenAI Preset
+
+After:
+
+```bash
+sharp add pip openai
+```
+
+you can use:
+
+```sp
+import "interop/openai.sp";
+
+run {
+    print(chat_text("gpt-5.4-mini", "Say hello from Sharp."));
+}
+```
+
+Generated helpers:
+
+- `chat_text(model, prompt)`
+
 ## Dayjs Preset
 
 After:
@@ -235,6 +260,52 @@ Generated helpers:
 - `post_json(url, body_json)`
 - `status_code(url)`
 
+## React Preset
+
+After:
+
+```bash
+sharp add npm react
+```
+
+you can use:
+
+```sp
+import "interop/react.sp";
+
+run {
+    print(component("HeroCard", "Sharp", "Interop component"));
+}
+```
+
+Generated helpers:
+
+- `component(name, title, body)`
+- `page(name, title, body)`
+
+## Three Preset
+
+After:
+
+```bash
+sharp add npm three
+```
+
+you can use:
+
+```sp
+import "interop/three.sp";
+
+run {
+    print(spinning_cube("SharpScene"));
+}
+```
+
+Generated helpers:
+
+- `scene_module(name)`
+- `spinning_cube(name)`
+
 ## Project Layout
 
 Typical project output after adding packages:
@@ -248,8 +319,11 @@ my-app/
     matplotlib.sp
     plotly.sp
     pillow.sp
+    openai.sp
     dayjs.sp
     axios.sp
+    react.sp
+    three.sp
     requests_example.sp
     numpy_example.sp
   std/

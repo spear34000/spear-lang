@@ -57,6 +57,9 @@
       <ComponentRef Id="CmpRuntimeBridgePython" />
       <ComponentRef Id="CmpRuntimeDemoNode" />
       <ComponentRef Id="CmpRuntimeDemoPython" />
+      <ComponentRef Id="CmpRuntimeServeStatic" />
+      <ComponentRef Id="CmpRuntimeSqlite" />
+      <ComponentRef Id="CmpRuntimeSharpcBackend" />
       <ComponentRef Id="CmpStdPrelude" />
       <ComponentRef Id="CmpStdMathFacade" />
       <ComponentRef Id="CmpStdTextFacade" />
@@ -134,6 +137,18 @@
 
     <Component Id="CmpRuntimeDemoPython" Directory="RuntimeFolder" Guid="*">
       <File Id="FileRuntimeDemoPython" Source="$(var.SourceDir)\runtime\demo_python.py" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpRuntimeServeStatic" Directory="RuntimeFolder" Guid="*">
+      <File Id="FileRuntimeServeStatic" Source="$(var.SourceDir)\runtime\serve_static.ps1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpRuntimeSqlite" Directory="RuntimeFolder" Guid="*">
+      <File Id="FileRuntimeSqlite" Source="$(var.SourceDir)\runtime\sqlite3.exe" KeyPath="yes" />
+    </Component>
+
+    <Component Id="CmpRuntimeSharpcBackend" Directory="RuntimeFolder" Guid="*">
+      <File Id="FileRuntimeSharpcBackend" Source="$(var.SourceDir)\runtime\sharpc-c.exe" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdPrelude" Directory="StdFolder" Guid="*">

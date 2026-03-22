@@ -39,6 +39,14 @@ pub fn ensure_dir(path: &Path) -> io::Result<()> {
     fs::create_dir_all(path)
 }
 
+pub fn normalize_windows_path(path: PathBuf) -> PathBuf {
+    let raw = path.to_string_lossy();
+    if let Some(rest) = raw.strip_prefix(r"\\?\") {
+        return PathBuf::from(rest);
+    }
+    path
+}
+
 pub fn file_stem(path: &Path) -> String {
     path.file_stem()
         .and_then(|v| v.to_str())
@@ -71,7 +79,7 @@ pub fn parse_manifest_value(manifest_path: &Path, key: &str) -> Option<String> {
 
 pub fn resolve_project_source(raw_input: Option<&str>) -> io::Result<(PathBuf, PathBuf, String)> {
     let input = raw_input.unwrap_or(".");
-    let full_input = fs::canonicalize(input)?;
+    let full_input = normalize_windows_path(fs::canonicalize(input)?);
 
     if full_input.is_file() && full_input.extension().and_then(|v| v.to_str()) == Some("sp") {
         let root = full_input
@@ -102,7 +110,7 @@ pub fn resolve_project_source(raw_input: Option<&str>) -> io::Result<(PathBuf, P
             let entry_path = full_input.join(entry);
             if entry_path.is_file() {
                 let name = parse_manifest_value(&manifest, "name").unwrap_or_else(|| project_name(&full_input));
-                return Ok((entry_path, full_input.clone(), name));
+                return Ok((normalize_windows_path(entry_path), full_input.clone(), name));
             }
         }
     }
@@ -110,7 +118,7 @@ pub fn resolve_project_source(raw_input: Option<&str>) -> io::Result<(PathBuf, P
     for rel in ["main.sp", "app/main.sp", "src/main.sp"] {
         let candidate = full_input.join(rel);
         if candidate.is_file() {
-            return Ok((candidate, full_input.clone(), project_name(&full_input)));
+            return Ok((normalize_windows_path(candidate), full_input.clone(), project_name(&full_input)));
         }
     }
 
@@ -131,10 +139,12 @@ pub fn render_starter_main(name: &str) -> String {
 }
 
 pub fn resolve_bundled_gcc(bin_dir: &Path) -> Option<PathBuf> {
-    let install_root = bin_dir.parent()?;
-    let bundled = install_root.join("toolchain").join("mingw64").join("bin").join("gcc.exe");
-    if bundled.is_file() {
-        return Some(bundled);
+    for root in [Some(bin_dir.to_path_buf()), bin_dir.parent().map(Path::to_path_buf)] {
+        let Some(root) = root else { continue };
+        let bundled = root.join("toolchain").join("mingw64").join("bin").join("gcc.exe");
+        if bundled.is_file() {
+            return Some(bundled);
+        }
     }
     if let Some(path_var) = env::var_os("PATH") {
         for dir in env::split_paths(&path_var) {
@@ -152,6 +162,26 @@ pub fn resolve_tool(bin_dir: &Path, preferred: &[&str]) -> Option<PathBuf> {
         let candidate = bin_dir.join(name);
         if candidate.is_file() {
             return Some(candidate);
+        }
+    }
+    None
+}
+
+pub fn resolve_runtime_tool(bin_dir: &Path, preferred: &[&str]) -> Option<PathBuf> {
+    for name in preferred {
+        let local = bin_dir.join(name);
+        if local.is_file() {
+            return Some(local);
+        }
+        let local_runtime = bin_dir.join("runtime").join(name);
+        if local_runtime.is_file() {
+            return Some(local_runtime);
+        }
+        if let Some(root) = bin_dir.parent() {
+            let runtime = root.join("runtime").join(name);
+            if runtime.is_file() {
+                return Some(runtime);
+            }
         }
     }
     None

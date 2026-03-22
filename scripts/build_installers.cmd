@@ -5,10 +5,8 @@ if not exist build mkdir build
 if not exist dist mkdir dist
 if not exist dist\installers mkdir dist\installers
 
-gcc -O2 -Wall -Wextra -std=c11 -o build\sharpc.exe src\spearc.c || exit /b 1
-gcc -O2 -Wall -Wextra -std=c11 -o build\spearc.exe src\spearc.c || exit /b 1
-gcc -O2 -Wall -Wextra -std=c11 -o build\sharp.exe src\spear_cli.c || exit /b 1
-gcc -O2 -Wall -Wextra -std=c11 -o build\spear.exe src\spear_cli.c || exit /b 1
+gcc -O2 -Wall -Wextra -std=c11 -o build\sharpc-c.exe src\spearc.c || exit /b 1
+call scripts\build_rust.cmd || exit /b 1
 gcc -O2 -Wall -Wextra -std=c11 -mwindows -o build\sharp-setup.exe src\spear_setup.c -lcomctl32 || exit /b 1
 gcc -O2 -Wall -Wextra -std=c11 -mwindows -o build\spear-setup.exe src\spear_setup.c -lcomctl32 || exit /b 1
 

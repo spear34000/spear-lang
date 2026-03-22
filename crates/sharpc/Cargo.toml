@@ -1,0 +1,8 @@
+[package]
+name = "sharpc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+sharp-common = { path = "../sharp-common" }

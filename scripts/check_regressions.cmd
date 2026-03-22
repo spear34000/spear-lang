@@ -3,8 +3,8 @@ setlocal
 
 if not exist build mkdir build
 
-gcc -O2 -Wall -Wextra -std=c11 -o build\spearc.exe src\spearc.c || exit /b 1
-gcc -O2 -Wall -Wextra -std=c11 -o build\spear.exe src\spear_cli.c || exit /b 1
+gcc -O2 -Wall -Wextra -std=c11 -o build\sharpc-c.exe src\spearc.c || exit /b 1
+call scripts\build_rust.cmd || exit /b 1
 
 powershell -NoProfile -Command "$lines = @('spear launch() {','    for (var i = 0; i < 3; i = i + 1) {','        sharp {','            if (i == 0) {','                continue;','            }','            if (i == 1) {','                break;','            }','        }','    }','}'); [System.IO.File]::WriteAllText('build\\regression_loop.sp', [string]::Join([Environment]::NewLine, $lines))" || exit /b 1
 

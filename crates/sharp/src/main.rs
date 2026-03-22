@@ -1,6 +1,6 @@
 use sharp_common::{
-    ensure_dir, exe_dir, load_lang_from_dir, project_name, render_starter_main, render_starter_manifest,
-    resolve_bundled_gcc, resolve_project_source, resolve_tool, Lang,
+    ensure_dir, exe_dir, load_lang_from_dir, normalize_windows_path, project_name, render_starter_main,
+    render_starter_manifest, resolve_bundled_gcc, resolve_project_source, resolve_tool, Lang,
 };
 use std::env;
 use std::fs;
@@ -10,46 +10,42 @@ use std::process::{Command, ExitCode, Stdio};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-fn text(lang: Lang, key: &str) -> &'static str {
+fn text(lang: Lang, key: &str) -> String {
     match key {
         "error_prefix" => match lang {
-            Lang::Ko => "sharp 오류",
-            Lang::En => "sharp error",
+            Lang::Ko => "sharp 오류".to_string(),
+            Lang::En => "sharp error".to_string(),
         },
         "usage" => match lang {
-            Lang::Ko => {
-                "사용법:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n"
-            }
-            Lang::En => {
-                "usage:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n"
-            }
+            Lang::Ko => "사용법:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n".to_string(),
+            Lang::En => "usage:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n".to_string(),
         },
         "created" => match lang {
-            Lang::Ko => "프로젝트 생성 완료",
-            Lang::En => "created project",
+            Lang::Ko => "프로젝트 생성 완료".to_string(),
+            Lang::En => "created project".to_string(),
         },
         "checked" => match lang {
-            Lang::Ko => "검사 완료",
-            Lang::En => "checked",
+            Lang::Ko => "검사 완료".to_string(),
+            Lang::En => "checked".to_string(),
         },
         "built" => match lang {
-            Lang::Ko => "빌드 완료",
-            Lang::En => "built",
+            Lang::Ko => "빌드 완료".to_string(),
+            Lang::En => "built".to_string(),
         },
         "compile_failed" => match lang {
-            Lang::Ko => "sharp 컴파일 오류: 소스 컴파일에 실패했습니다",
-            Lang::En => "sharp compile error: source compilation failed",
+            Lang::Ko => "sharp 컴파일 오류: 소스 컴파일에 실패했습니다".to_string(),
+            Lang::En => "sharp compile error: source compilation failed".to_string(),
         },
         "backend_failed" => match lang {
-            Lang::Ko => "sharp 백엔드 오류: 네이티브 빌드에 실패했습니다",
-            Lang::En => "sharp backend error: native build failed",
+            Lang::Ko => "sharp 백엔드 오류: 네이티브 빌드에 실패했습니다".to_string(),
+            Lang::En => "sharp backend error: native build failed".to_string(),
         },
         "details" => match lang {
-            Lang::Ko => "자세한 내용",
-            Lang::En => "details",
+            Lang::Ko => "자세한 내용".to_string(),
+            Lang::En => "details".to_string(),
         },
-        "serve_prefix" => "sharp serve",
-        _ => key,
+        "serve_prefix" => "sharp serve".to_string(),
+        _ => key.to_string(),
     }
 }
 
@@ -74,7 +70,11 @@ fn create_project(lang: Lang, name: &str) -> io::Result<()> {
     write_file(&root.join("sharp.toml"), &render_starter_manifest(&project_name(&root)))?;
     write_file(&root.join("main.sp"), &render_starter_main(&project_name(&root)))?;
     write_file(&root.join(".gitignore"), "build/\n")?;
-    println!("{} {}", text(lang, "created"), root.canonicalize()?.display());
+    println!(
+        "{} {}",
+        text(lang, "created"),
+        normalize_windows_path(root.canonicalize()?).display()
+    );
     Ok(())
 }
 
@@ -88,11 +88,6 @@ fn temp_runtime_dir() -> io::Result<PathBuf> {
     path.push(format!("sharp-{}-{}", pid, stamp));
     ensure_dir(&path)?;
     Ok(path)
-}
-
-fn remove_if_exists(path: &Path) {
-    let _ = fs::remove_file(path);
-    let _ = fs::remove_dir(path);
 }
 
 fn run_capture(mut cmd: Command, log_path: &Path) -> io::Result<i32> {
@@ -210,7 +205,7 @@ fn main() -> ExitCode {
             eprintln!("{}", text(lang, "compile_failed"));
             eprintln!("{}: {}", text(lang, "details"), front_log.display());
         } else {
-            print_log(text(lang, "compile_failed"), &front_log);
+            print_log(&text(lang, "compile_failed"), &front_log);
         }
         return ExitCode::from(1);
     }
@@ -248,7 +243,7 @@ fn main() -> ExitCode {
             eprintln!("{}", text(lang, "backend_failed"));
             eprintln!("{}: {}", text(lang, "details"), back_log.display());
         } else {
-            print_log(text(lang, "backend_failed"), &back_log);
+            print_log(&text(lang, "backend_failed"), &back_log);
         }
         return ExitCode::from(1);
     }
@@ -288,11 +283,11 @@ fn main() -> ExitCode {
             "http://127.0.0.1:4173/"
         };
         println!("{}: {}", text(lang, "serve_prefix"), html);
-        let serve_script = bin_dir
-            .parent()
-            .unwrap_or(&bin_dir)
-            .join("runtime")
-            .join("serve_static.ps1");
+        let serve_script = if bin_dir.join("runtime").join("serve_static.ps1").is_file() {
+            bin_dir.join("runtime").join("serve_static.ps1")
+        } else {
+            bin_dir.parent().unwrap_or(&bin_dir).join("runtime").join("serve_static.ps1")
+        };
         let _ = run_console({
             let mut cmd = Command::new("cmd");
             cmd.arg("/c")

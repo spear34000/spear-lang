@@ -2,6 +2,7 @@
 members = [
     "crates/sharp-common",
     "crates/sharp",
+    "crates/sharpc",
 ]
 resolver = "2"
 

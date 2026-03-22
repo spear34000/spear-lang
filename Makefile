@@ -5,15 +5,17 @@ SETUP_LDFLAGS ?= -mwindows
 
 all: sharp setup
 
-sharpc: src/spearc.c
-	$(CC) $(CFLAGS) -o build/sharpc.exe src/spearc.c
-	$(CC) $(CFLAGS) -o build/spearc.exe src/spearc.c
+sharpc-backend: src/spearc.c
+	$(CC) $(CFLAGS) -o build/sharpc-c.exe src/spearc.c
+
+rust-bins: Cargo.toml rust-toolchain.toml crates/sharp-common/src/lib.rs crates/sharp/src/main.rs crates/sharpc/Cargo.toml crates/sharpc/src/main.rs
+	scripts\\build_rust.cmd
+
+sharpc: sharpc-backend rust-bins
 
 spearc: sharpc
 
-sharp: sharpc src/spear_cli.c
-	$(CC) $(CFLAGS) -o build/sharp.exe src/spear_cli.c
-	$(CC) $(CFLAGS) -o build/spear.exe src/spear_cli.c
+sharp: sharpc
 
 spear: sharp
 

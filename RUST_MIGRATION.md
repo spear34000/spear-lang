@@ -10,23 +10,25 @@ Current direction:
 Current Rust workspace:
 - `crates/sharp-common/`: shared path, project, and environment helpers
 - `crates/sharp/`: Rust CLI entrypoint compatible with the current `sharp` flow
+- `crates/sharpc/`: Rust compiler entrypoint wrapper in front of the legacy C backend
 
 Current integration:
-- `scripts/build_rust.cmd` builds `build/sharp-rs.exe` when Cargo is available
-- `sharp.cmd` prefers `build/sharp-rs.exe` if it exists
-- `spear.cmd` can also forward to the Rust CLI for compatibility
+- `scripts/build_rust.cmd` builds `build/sharp.exe` and `build/sharpc.exe`
+- `sharp.cmd` and `spear.cmd` use the Rust CLI by default
+- the legacy C compiler is kept as `sharpc-c.exe` and packaged under `runtime/`
 
 What is already mirrored in Rust:
 - `sharp new <name>`
 - `sharp check [file.sp|folder]`
 - `sharp build [file.sp|folder]`
 - `sharp serve [file.sp|folder]`
+- `sharpc ...` user-facing compiler entrypoint
 - project discovery via `sharp.toml` or legacy `spear.toml`
 - fallback to bundled `sharpc.exe` / `spearc.exe`
 - fallback to bundled MinGW `gcc.exe`
 
 What still remains in C:
-- compiler frontend and parser
+- compiler frontend and parser backend implementation
 - code generation
 - setup wizard
 - runtime prelude and native helpers

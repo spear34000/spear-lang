@@ -34,6 +34,7 @@ copy /Y build\sharp-setup.exe build\dist\sharp-setup.exe >NUL
 copy /Y build\spear.exe build\dist\spear.exe >NUL
 copy /Y build\spearc.exe build\dist\spearc.exe >NUL
 copy /Y build\spear-setup.exe build\dist\spear-setup.exe >NUL
+if exist build\sharpc-c.exe copy /Y build\sharpc-c.exe build\dist\runtime\sharpc-c.exe >NUL
 
 copy /Y runtime\bridge_python.py build\dist\runtime\bridge_python.py >NUL
 copy /Y runtime\demo_python.py build\dist\runtime\demo_python.py >NUL

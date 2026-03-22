@@ -1,11 +1,6 @@
 @echo off
 setlocal
 
-if exist "%~dp0build\sharp-rs.exe" (
-    "%~dp0build\sharp-rs.exe" %*
-    exit /b %errorlevel%
-)
-
 if exist "%~dp0build\sharp.exe" (
     "%~dp0build\sharp.exe" %*
     exit /b %errorlevel%

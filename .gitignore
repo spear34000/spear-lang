@@ -11,3 +11,4 @@ dist/
 .spear-check-*.sp
 __pycache__/
 *.pyc
+target/

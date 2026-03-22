@@ -649,6 +649,11 @@ int main(int argc, char **argv) {
     exe_dir(install_dir, sizeof(install_dir));
     load_lang_from_dir(install_dir);
 
+    if (argc == 1) {
+        printf("%s", cli_text("usage"));
+        return 0;
+    }
+
     if (argc >= 2 && _stricmp(argv[1], "new") == 0) {
         if (argc < 3) {
             fail(cli_text("expected_project_name"));

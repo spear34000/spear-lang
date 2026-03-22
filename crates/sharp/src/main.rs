@@ -275,6 +275,11 @@ fn main() -> ExitCode {
     let lang = load_lang_from_dir(&bin_dir);
     let args: Vec<String> = env::args().collect();
 
+    if args.len() == 1 {
+        print!("{}", text(lang, "usage"));
+        return ExitCode::SUCCESS;
+    }
+
     if args.len() >= 2 && args[1].eq_ignore_ascii_case("new") {
         if args.len() < 3 {
             fail(lang, "expected a project name");

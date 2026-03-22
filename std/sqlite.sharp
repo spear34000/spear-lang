@@ -1,0 +1,20 @@
+﻿import "bridge.sharp";
+import "json.sharp";
+
+package std;
+module sqlite;
+
+function text sqlite_execute(text path, text sql) {
+    return python_json("spear_std", "sqlite_execute", json_object2(
+        json_field("path", json_text(path)),
+        json_field("sql", json_text(sql))
+    ));
+}
+
+function text sqlite_query(text path, text sql) {
+    return python_json("spear_std", "sqlite_query", json_object2(
+        json_field("path", json_text(path)),
+        json_field("sql", json_text(sql))
+    ));
+}
+

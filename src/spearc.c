@@ -254,10 +254,10 @@ static const char *compiler_text(const char *key) {
         return "path or command too long";
     }
     if (strcmp(key, "usage") == 0) {
-        if (compiler_lang_is("ko")) return "spearc 오류: 사용법: spearc <input.sp> [-o output.c] | spearc --check <input.sp> | spearc --check-stdin <input.sp>\n";
-        if (compiler_lang_is("ja")) return "spearc エラー: 使い方: spearc <input.sp> [-o output.c] | spearc --check <input.sp> | spearc --check-stdin <input.sp>\n";
-        if (compiler_lang_is("zh")) return "spearc 错误：用法：spearc <input.sp> [-o output.c] | spearc --check <input.sp> | spearc --check-stdin <input.sp>\n";
-        return "spearc error: usage: spearc <input.sp> [-o output.c] | spearc --check <input.sp> | spearc --check-stdin <input.sp>\n";
+        if (compiler_lang_is("ko")) return "spearc 오류: 사용법: spearc <input.sharp> [-o output.c] | spearc --check <input.sharp> | spearc --check-stdin <input.sharp>\n";
+        if (compiler_lang_is("ja")) return "spearc エラー: 使い方: spearc <input.sharp> [-o output.c] | spearc --check <input.sharp> | spearc --check-stdin <input.sharp>\n";
+        if (compiler_lang_is("zh")) return "spearc 错误：用法：spearc <input.sharp> [-o output.c] | spearc --check <input.sharp> | spearc --check-stdin <input.sharp>\n";
+        return "spearc error: usage: spearc <input.sharp> [-o output.c] | spearc --check <input.sharp> | spearc --check-stdin <input.sharp>\n";
     }
     if (strcmp(key, "cannot_open") == 0) {
         if (compiler_lang_is("ko")) return "열 수 없습니다";
@@ -342,8 +342,8 @@ static const char *compiler_message(const char *key) {
         return "path or command too long";
     }
     if (strcmp(key, "usage") == 0) {
-        if (compiler_lang_is("ko")) return "spearc 오류: 사용법: spearc <input.sp> [-o output.c] | spearc --check <input.sp> | spearc --check-stdin <input.sp>\n";
-        return "spearc error: usage: spearc <input.sp> [-o output.c] | spearc --check <input.sp> | spearc --check-stdin <input.sp>\n";
+        if (compiler_lang_is("ko")) return "spearc 오류: 사용법: spearc <input.sharp> [-o output.c] | spearc --check <input.sharp> | spearc --check-stdin <input.sharp>\n";
+        return "spearc error: usage: spearc <input.sharp> [-o output.c] | spearc --check <input.sharp> | spearc --check-stdin <input.sharp>\n";
     }
     if (strcmp(key, "cannot_open") == 0) {
         if (compiler_lang_is("ko")) return "열 수 없습니다";
@@ -4483,11 +4483,24 @@ int main(int argc, char **argv) {
     ImportInfo *direct_imports = collect_direct_imports(input, stdin_source, &direct_import_count);
     char prelude_path[2048];
     char repo_prelude_path[2048];
-    checked_snprintf(prelude_path, sizeof(prelude_path), "%s\\std\\prelude.sp", tool_dir);
-    checked_snprintf(repo_prelude_path, sizeof(repo_prelude_path), "%s\\..\\std\\prelude.sp", tool_dir);
+    checked_snprintf(prelude_path, sizeof(prelude_path), "%s\\std\\prelude.sharp", tool_dir);
+    checked_snprintf(repo_prelude_path, sizeof(repo_prelude_path), "%s\\..\\std\\prelude.sharp", tool_dir);
     char *source = load_source_tree(input, stdin_source, &seen, &active);
     FILE *prelude_fp = fopen(prelude_path, "rb");
     if (!prelude_fp) {
+        checked_snprintf(prelude_path, sizeof(prelude_path), "%s\\std\\prelude.sp", tool_dir);
+        prelude_fp = fopen(prelude_path, "rb");
+    }
+    if (!prelude_fp) {
+        prelude_fp = fopen(repo_prelude_path, "rb");
+        if (prelude_fp) {
+            fclose(prelude_fp);
+            checked_snprintf(prelude_path, sizeof(prelude_path), "%s", repo_prelude_path);
+            prelude_fp = fopen(prelude_path, "rb");
+        }
+    }
+    if (!prelude_fp) {
+        checked_snprintf(repo_prelude_path, sizeof(repo_prelude_path), "%s\\..\\std\\prelude.sp", tool_dir);
         prelude_fp = fopen(repo_prelude_path, "rb");
         if (prelude_fp) {
             fclose(prelude_fp);

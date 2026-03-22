@@ -1,0 +1,28 @@
+﻿import "bridge.sharp";
+import "json.sharp";
+
+package std;
+module os;
+
+function text env_get(text name, text fallback) {
+    return python_json("spear_std", "env_get", json_object2(
+        json_field("name", json_text(name)),
+        json_field("default", json_text(fallback))
+    ));
+}
+
+function text env_all() {
+    return python_empty("spear_std", "env_all");
+}
+
+function text process_run(text command) {
+    return python_json("spear_std", "process_run", json_object1(json_field("command", json_text(command))));
+}
+
+function text process_run_in(text command, text cwd) {
+    return python_json("spear_std", "process_run", json_object2(
+        json_field("command", json_text(command)),
+        json_field("cwd", json_text(cwd))
+    ));
+}
+

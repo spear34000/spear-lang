@@ -1,4 +1,4 @@
-use std::env;
+﻿use std::env;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -129,7 +129,7 @@ pub fn upsert_manifest_array(manifest_path: &Path, key: &str, value: &str) -> io
     } else {
         vec![
             format!("name = \"{}\"", project_name(manifest_path.parent().unwrap_or(Path::new(".")))),
-            "entry = \"main.sp\"".to_string(),
+            "entry = \"main.sharp\"".to_string(),
             "kind = \"app\"".to_string(),
         ]
     };
@@ -170,106 +170,106 @@ pub fn interop_node_shim_name(package: &str) -> String {
 pub fn render_interop_example(package: &str, module_name: &str) -> String {
     if package.eq_ignore_ascii_case("requests") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(status_code(\"https://example.com\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(status_code(\"https://example.com\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("dayjs") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(format_now(\"YYYY-MM-DD\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(format_now(\"YYYY-MM-DD\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("axios") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(status_code(\"https://example.com\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(status_code(\"https://example.com\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("numpy") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(array_sum(\"[1,2,3]\"));\n    print(mean(\"[1,2,3]\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(array_sum(\"[1,2,3]\"));\n    print(mean(\"[1,2,3]\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("pandas") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(read_csv_head(\"data.csv\", 5));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(read_csv_head(\"data.csv\", 5));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("matplotlib") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(line_svg(\"Demo\", \"[\\\"Mon\\\",\\\"Tue\\\",\\\"Wed\\\"]\", \"[4,7,5]\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(line_svg(\"Demo\", \"[\\\"Mon\\\",\\\"Tue\\\",\\\"Wed\\\"]\", \"[4,7,5]\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("plotly") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(bar_html(\"Demo\", \"[\\\"Mon\\\",\\\"Tue\\\",\\\"Wed\\\"]\", \"[4,7,5]\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(bar_html(\"Demo\", \"[\\\"Mon\\\",\\\"Tue\\\",\\\"Wed\\\"]\", \"[4,7,5]\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("pillow") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(image_size(\"input.png\"));\n    print(thumbnail(\"input.png\", 320, 240, \"thumb.png\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(image_size(\"input.png\"));\n    print(thumbnail(\"input.png\", 320, 240, \"thumb.png\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("openai") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(chat_text(\"gpt-5.4-mini\", \"Say hello from Sharp.\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(chat_text(\"gpt-5.4-mini\", \"Say hello from Sharp.\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("fastapi") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(app_module(\"SharpApi\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(app_module(\"SharpApi\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("langchain") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(prompt_template(\"Say hello to {{name}}.\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(prompt_template(\"Say hello to {{name}}.\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("transformers") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(sentiment_pipeline(\"distilbert-base-uncased-finetuned-sst-2-english\", \"Sharp is fast.\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(sentiment_pipeline(\"distilbert-base-uncased-finetuned-sst-2-english\", \"Sharp is fast.\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("discord.py") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(bot_module(\"SharpBot\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(bot_module(\"SharpBot\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("react") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(component(\"HeroCard\", \"Sharp\", \"Rust-backed interop wrappers\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(component(\"HeroCard\", \"Sharp\", \"Rust-backed interop wrappers\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("tailwindcss") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(config_module(\"./src/**/*.{{js,ts,jsx,tsx}}\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(config_module(\"./src/**/*.{{js,ts,jsx,tsx}}\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("zustand") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(store_module(\"useAppStore\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(store_module(\"useAppStore\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("express") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(server_module(\"sharpServer\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(server_module(\"sharpServer\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("three") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(spinning_cube(\"SharpScene\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(spinning_cube(\"SharpScene\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("discord.js") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(bot_module(\"SharpBot\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(bot_module(\"SharpBot\"));\n}}\n"
         );
     }
     if package.eq_ignore_ascii_case("next") {
         return format!(
-            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(page_module(\"HomePage\", \"Sharp\", \"Next starter from Sharp\"));\n}}\n"
+            "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(page_module(\"HomePage\", \"Sharp\", \"Next starter from Sharp\"));\n}}\n"
         );
     }
     format!(
-        "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(\"interop ready\");\n}}\n"
+        "import \"interop/{module_name}.sharp\";\n\nrun {{\n    print(\"interop ready\");\n}}\n"
     )
 }
 
@@ -299,9 +299,9 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str,
                 || package.eq_ignore_ascii_case("discord.js")
                 || package.eq_ignore_ascii_case("./demo_node.cjs"))
     {
-        "import \"std/interop.sp\";\nimport \"std/json.sp\";"
+        "import \"std/interop.sharp\";\nimport \"std/json.sharp\";"
     } else {
-        "import \"std/interop.sp\";"
+        "import \"std/interop.sharp\";"
     };
     let handle_fn = if ecosystem.eq_ignore_ascii_case("pip") {
         format!("    return pip_module(\"{}\");", target)
@@ -492,7 +492,12 @@ pub fn resolve_project_source(raw_input: Option<&str>) -> io::Result<(PathBuf, P
     let input = raw_input.unwrap_or(".");
     let full_input = normalize_windows_path(fs::canonicalize(input)?);
 
-    if full_input.is_file() && full_input.extension().and_then(|v| v.to_str()) == Some("sp") {
+    if full_input.is_file()
+        && matches!(
+            full_input.extension().and_then(|v| v.to_str()),
+            Some("sharp") | Some("sp")
+        )
+    {
         let root = full_input
             .parent()
             .map(Path::to_path_buf)
@@ -503,7 +508,7 @@ pub fn resolve_project_source(raw_input: Option<&str>) -> io::Result<(PathBuf, P
     if !full_input.is_dir() {
         return Err(io::Error::new(
             io::ErrorKind::NotFound,
-            "expected a .sp source file or a Sharp project folder",
+            "expected a .sharp source file or a Sharp project folder",
         ));
     }
 
@@ -518,7 +523,7 @@ pub fn resolve_project_source(raw_input: Option<&str>) -> io::Result<(PathBuf, P
         }
     }
 
-    for rel in ["main.sp", "app/main.sp", "src/main.sp"] {
+    for rel in ["main.sharp", "app/main.sharp", "src/main.sharp", "main.sp", "app/main.sp", "src/main.sp"] {
         let candidate = full_input.join(rel);
         if candidate.is_file() {
             return Ok((normalize_windows_path(candidate), full_input.clone(), project_name(&full_input)));
@@ -532,12 +537,12 @@ pub fn resolve_project_source(raw_input: Option<&str>) -> io::Result<(PathBuf, P
 }
 
 pub fn render_starter_manifest(name: &str) -> String {
-    format!("name = \"{}\"\nentry = \"main.sp\"\nkind = \"web\"\n", name)
+    format!("name = \"{}\"\nentry = \"main.sharp\"\nkind = \"web\"\n", name)
 }
 
 pub fn render_starter_main(name: &str) -> String {
     format!(
-        "import \"std/web.sp\";\n\nrun {{\n    const title = \"{name}\";\n    string html = landing_page(title, theme_product_bg()) {{\n        centered(box(glass_panel_mod()) {{\n            column_box(gap_space(space_4())) {{\n                markup(\"span\", style_attr(badge_mod())) {{\n                    \"Sharp App\";\n                }};\n                markup(\"h1\", style_attr(hero_title_mod())) {{\n                    \"Build sharp web pages with readable blocks.\";\n                }};\n                markup(\"p\", style_attr(lead_copy_mod())) {{\n                    \"Sharp gives you strong defaults, composable design tokens, and production-friendly page primitives.\";\n                }};\n                row_box(gap_space(space_2())) {{\n                    button_link(button_primary_mod(), \"#start\", \"Start building\");\n                    button_link(button_secondary_mod(), \"#signals\", \"See the layout\");\n                }};\n            }};\n        }});\n    }};\n    write(\"build/sharp-ui.html\", html);\n}}\n"
+        "import \"std/web.sharp\";\n\nrun {{\n    const title = \"{name}\";\n    string html = landing_page(title, theme_product_bg()) {{\n        centered(box(glass_panel_mod()) {{\n            column_box(gap_space(space_4())) {{\n                markup(\"span\", style_attr(badge_mod())) {{\n                    \"Sharp App\";\n                }};\n                markup(\"h1\", style_attr(hero_title_mod())) {{\n                    \"Build sharp web pages with readable blocks.\";\n                }};\n                markup(\"p\", style_attr(lead_copy_mod())) {{\n                    \"Sharp gives you strong defaults, composable design tokens, and production-friendly page primitives.\";\n                }};\n                row_box(gap_space(space_2())) {{\n                    button_link(button_primary_mod(), \"#start\", \"Start building\");\n                    button_link(button_secondary_mod(), \"#signals\", \"See the layout\");\n                }};\n            }};\n        }});\n    }};\n    write(\"build/sharp-ui.html\", html);\n}}\n"
     )
 }
 
@@ -589,3 +594,4 @@ pub fn resolve_runtime_tool(bin_dir: &Path, preferred: &[&str]) -> Option<PathBu
     }
     None
 }
+

@@ -1,4 +1,4 @@
-# Sharp Interop
+﻿# Sharp Interop
 
 Sharp can vendor Python and Node packages into a project and generate wrapper modules for them.
 
@@ -29,17 +29,17 @@ When you add a package, Sharp updates `sharp.toml` and creates:
 
 - `.sharp/vendor/...`
 - `.sharp/shims/...`
-- `interop/<package>.sp`
-- `interop/<package>_example.sp`
-- `std/interop.sp`
-- `std/json.sp`
+- `interop/<package>.sharp`
+- `interop/<package>_example.sharp`
+- `std/interop.sharp`
+- `std/json.sharp`
 
 ## Generated Wrapper Style
 
 Sharp keeps a low-level escape hatch:
 
-```sp
-import "std/interop.sp";
+```sharp
+import "std/interop.sharp";
 
 run {
     value module = pip_module("requests_sharp");
@@ -59,8 +59,8 @@ sharp add pip requests
 
 you can use:
 
-```sp
-import "interop/requests.sp";
+```sharp
+import "interop/requests.sharp";
 
 run {
     print(get_text("https://example.com"));
@@ -86,8 +86,8 @@ sharp add pip numpy
 
 you can use:
 
-```sp
-import "interop/numpy.sp";
+```sharp
+import "interop/numpy.sharp";
 
 run {
     print(array_sum("[1,2,3]"));
@@ -110,8 +110,8 @@ sharp add pip pandas
 
 you can use:
 
-```sp
-import "interop/pandas.sp";
+```sharp
+import "interop/pandas.sharp";
 
 run {
     print(read_csv_head("data.csv", 5));
@@ -134,8 +134,8 @@ sharp add pip matplotlib
 
 you can use:
 
-```sp
-import "interop/matplotlib.sp";
+```sharp
+import "interop/matplotlib.sharp";
 
 run {
     print(line_svg("Demo", "[\"Mon\",\"Tue\",\"Wed\"]", "[4,7,5]"));
@@ -157,8 +157,8 @@ sharp add pip plotly
 
 you can use:
 
-```sp
-import "interop/plotly.sp";
+```sharp
+import "interop/plotly.sharp";
 
 run {
     print(bar_html("Demo", "[\"Mon\",\"Tue\",\"Wed\"]", "[4,7,5]"));
@@ -180,8 +180,8 @@ sharp add pip pillow
 
 you can use:
 
-```sp
-import "interop/pillow.sp";
+```sharp
+import "interop/pillow.sharp";
 
 run {
     print(image_size("input.png"));
@@ -204,8 +204,8 @@ sharp add pip openai
 
 you can use:
 
-```sp
-import "interop/openai.sp";
+```sharp
+import "interop/openai.sharp";
 
 run {
     print(chat_text("gpt-5.4-mini", "Say hello from Sharp."));
@@ -226,8 +226,8 @@ sharp add pip fastapi
 
 you can use:
 
-```sp
-import "interop/fastapi.sp";
+```sharp
+import "interop/fastapi.sharp";
 
 run {
     print(app_module("SharpApi"));
@@ -288,8 +288,8 @@ sharp add npm dayjs
 
 you can use:
 
-```sp
-import "interop/dayjs.sp";
+```sharp
+import "interop/dayjs.sharp";
 
 run {
     print(format_now("YYYY-MM-DD"));
@@ -314,8 +314,8 @@ sharp add npm axios
 
 you can use:
 
-```sp
-import "interop/axios.sp";
+```sharp
+import "interop/axios.sharp";
 
 run {
     print(get_text("https://example.com"));
@@ -341,8 +341,8 @@ sharp add npm react
 
 you can use:
 
-```sp
-import "interop/react.sp";
+```sharp
+import "interop/react.sharp";
 
 run {
     print(component("HeroCard", "Sharp", "Interop component"));
@@ -390,8 +390,8 @@ sharp add npm express
 
 you can use:
 
-```sp
-import "interop/express.sp";
+```sharp
+import "interop/express.sharp";
 
 run {
     print(server_module("sharpServer"));
@@ -413,8 +413,8 @@ sharp add npm three
 
 you can use:
 
-```sp
-import "interop/three.sp";
+```sharp
+import "interop/three.sharp";
 
 run {
     print(spinning_cube("SharpScene"));
@@ -449,8 +449,8 @@ sharp add npm next
 
 you can use:
 
-```sp
-import "interop/next.sp";
+```sharp
+import "interop/next.sharp";
 
 run {
     print(page_module("HomePage", "Sharp", "Next starter from Sharp"));
@@ -469,31 +469,31 @@ Typical project output after adding packages:
 ```text
 my-app/
   sharp.toml
-  main.sp
+  main.sharp
   interop/
-    requests.sp
-    matplotlib.sp
-    plotly.sp
-    pillow.sp
-    openai.sp
-    fastapi.sp
-    langchain.sp
-    transformers.sp
-    discord_py.sp
-    dayjs.sp
-    axios.sp
-    react.sp
-    three.sp
-    express.sp
-    next.sp
-    tailwindcss.sp
-    zustand.sp
-    discord_js.sp
-    requests_example.sp
-    numpy_example.sp
+    requests.sharp
+    matplotlib.sharp
+    plotly.sharp
+    pillow.sharp
+    openai.sharp
+    fastapi.sharp
+    langchain.sharp
+    transformers.sharp
+    discord_py.sharp
+    dayjs.sharp
+    axios.sharp
+    react.sharp
+    three.sharp
+    express.sharp
+    next.sharp
+    tailwindcss.sharp
+    zustand.sharp
+    discord_js.sharp
+    requests_example.sharp
+    numpy_example.sharp
   std/
-    interop.sp
-    json.sp
+    interop.sharp
+    json.sharp
   .sharp/
     vendor/
     shims/
@@ -507,3 +507,5 @@ Sharp interop is meant to feel higher-level than raw Python or raw JavaScript em
 - generate importable Sharp modules
 - expose common operations as normal Sharp functions
 - preserve low-level `py_call` and `js_call` escape hatches
+
+

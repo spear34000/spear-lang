@@ -1,4 +1,4 @@
-use sharp_common::{
+﻿use sharp_common::{
     ensure_dir, exe_dir, interop_node_shim_name, interop_python_module_name, load_lang_from_dir,
     normalize_windows_path, parse_manifest_array, project_name, render_interop_wrapper, render_node_shim,
     render_python_shim, render_starter_main, render_starter_manifest, render_interop_example,
@@ -16,44 +16,44 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 fn text(lang: Lang, key: &str) -> String {
     match key {
         "error_prefix" => match lang {
-            Lang::Ko => "sharp 오류".to_string(),
+            Lang::Ko => "sharp ?ㅻ쪟".to_string(),
             Lang::En => "sharp error".to_string(),
         },
         "usage" => match lang {
-            Lang::Ko => "사용법:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n  sharp add pip <package> [folder]\n  sharp add npm <package> [folder]\n".to_string(),
-            Lang::En => "usage:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n  sharp add pip <package> [folder]\n  sharp add npm <package> [folder]\n".to_string(),
+            Lang::Ko => "?ъ슜踰?\n  sharp\n  sharp file.sharp\n  sharp <folder>\n  sharp build [file.sharp|folder]\n  sharp serve [file.sharp|folder]\n  sharp check [file.sharp|folder]\n  sharp new <name>\n  sharp add pip <package> [folder]\n  sharp add npm <package> [folder]\n".to_string(),
+            Lang::En => "usage:\n  sharp\n  sharp file.sharp\n  sharp <folder>\n  sharp build [file.sharp|folder]\n  sharp serve [file.sharp|folder]\n  sharp check [file.sharp|folder]\n  sharp new <name>\n  sharp add pip <package> [folder]\n  sharp add npm <package> [folder]\n".to_string(),
         },
         "created" => match lang {
-            Lang::Ko => "프로젝트 생성 완료".to_string(),
+            Lang::Ko => "?꾨줈?앺듃 ?앹꽦 ?꾨즺".to_string(),
             Lang::En => "created project".to_string(),
         },
         "checked" => match lang {
-            Lang::Ko => "검사 완료".to_string(),
+            Lang::Ko => "寃???꾨즺".to_string(),
             Lang::En => "checked".to_string(),
         },
         "built" => match lang {
-            Lang::Ko => "빌드 완료".to_string(),
+            Lang::Ko => "鍮뚮뱶 ?꾨즺".to_string(),
             Lang::En => "built".to_string(),
         },
         "compile_failed" => match lang {
-            Lang::Ko => "sharp 컴파일 오류: 소스 컴파일에 실패했습니다".to_string(),
+            Lang::Ko => "sharp 而댄뙆???ㅻ쪟: ?뚯뒪 而댄뙆?쇱뿉 ?ㅽ뙣?덉뒿?덈떎".to_string(),
             Lang::En => "sharp compile error: source compilation failed".to_string(),
         },
         "backend_failed" => match lang {
-            Lang::Ko => "sharp 백엔드 오류: 네이티브 빌드에 실패했습니다".to_string(),
+            Lang::Ko => "sharp 諛깆뿏???ㅻ쪟: ?ㅼ씠?곕툕 鍮뚮뱶???ㅽ뙣?덉뒿?덈떎".to_string(),
             Lang::En => "sharp backend error: native build failed".to_string(),
         },
         "details" => match lang {
-            Lang::Ko => "자세한 내용".to_string(),
+            Lang::Ko => "?먯꽭???댁슜".to_string(),
             Lang::En => "details".to_string(),
         },
         "serve_prefix" => "sharp serve".to_string(),
         "added" => match lang {
-            Lang::Ko => "의존성 추가 완료".to_string(),
+            Lang::Ko => "?섏〈??異붽? ?꾨즺".to_string(),
             Lang::En => "added dependency".to_string(),
         },
         "install_warn" => match lang {
-            Lang::Ko => "도구를 찾지 못해 manifest만 갱신했습니다".to_string(),
+            Lang::Ko => "?꾧뎄瑜?李얠? 紐삵빐 manifest留?媛깆떊?덉뒿?덈떎".to_string(),
             Lang::En => "updated manifest only because the package tool was not available".to_string(),
         },
         _ => key.to_string(),
@@ -79,7 +79,7 @@ fn create_project(lang: Lang, name: &str) -> io::Result<()> {
     }
     ensure_dir(&root)?;
     write_file(&root.join("sharp.toml"), &render_starter_manifest(&project_name(&root)))?;
-    write_file(&root.join("main.sp"), &render_starter_main(&project_name(&root)))?;
+    write_file(&root.join("main.sharp"), &render_starter_main(&project_name(&root)))?;
     write_file(&root.join(".gitignore"), "build/\n")?;
     println!(
         "{} {}",
@@ -153,11 +153,11 @@ fn add_dependency(lang: Lang, ecosystem: &str, package: &str, raw_root: Option<&
     let project_std_dir = project_root.join("std");
     ensure_dir(&wrappers_dir)?;
     ensure_dir(&project_std_dir)?;
-    write_file(&project_std_dir.join("interop.sp"), "import \"../../std/interop.sp\";\n\npackage app;\nmodule interop_proxy;\n")?;
-    write_file(&project_std_dir.join("json.sp"), "import \"../../std/json.sp\";\n\npackage app;\nmodule json_proxy;\n")?;
+    write_file(&project_std_dir.join("interop.sharp"), "import \"../../std/interop.sharp\";\n\npackage app;\nmodule interop_proxy;\n")?;
+    write_file(&project_std_dir.join("json.sharp"), "import \"../../std/json.sharp\";\n\npackage app;\nmodule json_proxy;\n")?;
     let module_name = sanitize_module_name(package);
-    let wrapper_path = wrappers_dir.join(format!("{module_name}.sp"));
-    let example_path = wrappers_dir.join(format!("{module_name}_example.sp"));
+    let wrapper_path = wrappers_dir.join(format!("{module_name}.sharp"));
+    let example_path = wrappers_dir.join(format!("{module_name}_example.sharp"));
     let python_shims_dir = project_root.join(".sharp").join("shims").join("python");
     let node_shims_dir = project_root.join(".sharp").join("shims").join("node");
     let status = if ecosystem.eq_ignore_ascii_case("pip") {
@@ -488,3 +488,4 @@ fn main() -> ExitCode {
         ExitCode::from(1)
     }
 }
+

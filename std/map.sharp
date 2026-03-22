@@ -1,0 +1,52 @@
+﻿import "bridge.sharp";
+import "json.sharp";
+
+package std;
+module maps;
+
+function text map_empty() {
+    return "{}";
+}
+
+function text map_get(text body, text key, text fallback) {
+    return python_json("spear_std", "map_get", json_object3(
+        json_field("text", json_text(body)),
+        json_field("key", json_text(key)),
+        json_field("default", json_text(fallback))
+    ));
+}
+
+function num map_has(text body, text key) {
+    return same(python_json("spear_std", "map_has", json_object2(
+        json_field("text", json_text(body)),
+        json_field("key", json_text(key))
+    )), "1");
+}
+
+function text map_set_text(text body, text key, text value) {
+    return python_json("spear_std", "map_set", json_object3(
+        json_field("text", json_text(body)),
+        json_field("key", json_text(key)),
+        json_field("value", json_text(value))
+    ));
+}
+
+function text map_set_json(text body, text key, text value_json) {
+    return python_json("spear_std", "map_set", json_object3(
+        json_field("text", json_text(body)),
+        json_field("key", json_text(key)),
+        json_field("value", value_json)
+    ));
+}
+
+function text map_remove(text body, text key) {
+    return python_json("spear_std", "map_remove", json_object2(
+        json_field("text", json_text(body)),
+        json_field("key", json_text(key))
+    ));
+}
+
+function text map_keys(text body) {
+    return json_keys(body);
+}
+

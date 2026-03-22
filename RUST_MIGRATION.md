@@ -1,4 +1,4 @@
-# Rust Migration
+﻿# Rust Migration
 
 Sharp is starting a staged migration from C to Rust.
 
@@ -19,9 +19,9 @@ Current integration:
 
 What is already mirrored in Rust:
 - `sharp new <name>`
-- `sharp check [file.sp|folder]`
-- `sharp build [file.sp|folder]`
-- `sharp serve [file.sp|folder]`
+- `sharp check [file.sharp|folder]`
+- `sharp build [file.sharp|folder]`
+- `sharp serve [file.sharp|folder]`
 - `sharpc ...` user-facing compiler entrypoint
 - project discovery via `sharp.toml` or legacy `spear.toml`
 - fallback to bundled `sharpc.exe` / `spearc.exe`
@@ -40,3 +40,4 @@ Recommended next migration order:
 4. frontend scan
 5. parser
 6. code generation
+

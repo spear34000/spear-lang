@@ -1,0 +1,6 @@
+﻿import "math/arithmetic.sharp";
+import "math/compare.sharp";
+
+package std;
+module math;
+

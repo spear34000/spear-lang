@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS
+﻿#define _CRT_SECURE_NO_WARNINGS
 #include <direct.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -63,48 +63,48 @@ static void load_lang_from_dir(const char *dir) {
 
 static const char *cli_text(const char *key) {
     if (strcmp(key, "error_prefix") == 0) {
-        return lang_is("ko") ? "sharp 오류" : "sharp error";
+        return lang_is("ko") ? "sharp ?ㅻ쪟" : "sharp error";
     }
     if (strcmp(key, "usage") == 0) {
         return lang_is("ko")
-            ? "사용법:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n"
-            : "usage:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n";
+            ? "?ъ슜踰?\n  sharp\n  sharp file.sharp\n  sharp <folder>\n  sharp build [file.sharp|folder]\n  sharp serve [file.sharp|folder]\n  sharp check [file.sharp|folder]\n  sharp new <name>\n"
+            : "usage:\n  sharp\n  sharp file.sharp\n  sharp <folder>\n  sharp build [file.sharp|folder]\n  sharp serve [file.sharp|folder]\n  sharp check [file.sharp|folder]\n  sharp new <name>\n";
     }
     if (strcmp(key, "expected_sp") == 0) {
-        return lang_is("ko") ? ".sp 소스 파일이나 Sharp 프로젝트 폴더가 필요합니다" : "expected a .sp source file or a Sharp project folder";
+        return lang_is("ko") ? ".sharp ?뚯뒪 ?뚯씪?대굹 Sharp ?꾨줈?앺듃 ?대뜑媛 ?꾩슂?⑸땲?? : "expected a .sharp source file or a Sharp project folder";
     }
     if (strcmp(key, "missing_spearc") == 0) {
-        return lang_is("ko") ? "sharp.exe 옆에서 sharpc.exe를 찾을 수 없습니다" : "installed sharpc.exe was not found next to sharp.exe";
+        return lang_is("ko") ? "sharp.exe ?놁뿉??sharpc.exe瑜?李얠쓣 ???놁뒿?덈떎" : "installed sharpc.exe was not found next to sharp.exe";
     }
     if (strcmp(key, "compile_failed") == 0) {
-        return lang_is("ko") ? "sharp 컴파일 오류: 소스 컴파일에 실패했습니다" : "sharp compile error: source compilation failed";
+        return lang_is("ko") ? "sharp 而댄뙆???ㅻ쪟: ?뚯뒪 而댄뙆?쇱뿉 ?ㅽ뙣?덉뒿?덈떎" : "sharp compile error: source compilation failed";
     }
     if (strcmp(key, "backend_failed") == 0) {
-        return lang_is("ko") ? "sharp 백엔드 오류: 네이티브 빌드에 실패했습니다" : "sharp backend error: native build failed";
+        return lang_is("ko") ? "sharp 諛깆뿏???ㅻ쪟: ?ㅼ씠?곕툕 鍮뚮뱶???ㅽ뙣?덉뒿?덈떎" : "sharp backend error: native build failed";
     }
     if (strcmp(key, "details") == 0) {
-        return lang_is("ko") ? "자세한 내용" : "details";
+        return lang_is("ko") ? "?먯꽭???댁슜" : "details";
     }
     if (strcmp(key, "details_missing") == 0) {
-        return lang_is("ko") ? "자세한 정보를 찾을 수 없습니다" : "details were not available";
+        return lang_is("ko") ? "?먯꽭???뺣낫瑜?李얠쓣 ???놁뒿?덈떎" : "details were not available";
     }
     if (strcmp(key, "checked") == 0) {
-        return lang_is("ko") ? "검사 완료" : "checked";
+        return lang_is("ko") ? "寃???꾨즺" : "checked";
     }
     if (strcmp(key, "built") == 0) {
-        return lang_is("ko") ? "빌드 완료" : "built";
+        return lang_is("ko") ? "鍮뚮뱶 ?꾨즺" : "built";
     }
     if (strcmp(key, "created") == 0) {
-        return lang_is("ko") ? "프로젝트 생성 완료" : "created project";
+        return lang_is("ko") ? "?꾨줈?앺듃 ?앹꽦 ?꾨즺" : "created project";
     }
     if (strcmp(key, "new_exists") == 0) {
-        return lang_is("ko") ? "대상 폴더가 이미 존재합니다" : "target folder already exists";
+        return lang_is("ko") ? "????대뜑媛 ?대? 議댁옱?⑸땲?? : "target folder already exists";
     }
     if (strcmp(key, "expected_project_name") == 0) {
-        return lang_is("ko") ? "새 프로젝트 이름이 필요합니다" : "expected a project name";
+        return lang_is("ko") ? "???꾨줈?앺듃 ?대쫫???꾩슂?⑸땲?? : "expected a project name";
     }
     if (strcmp(key, "project_not_found") == 0) {
-        return lang_is("ko") ? "Sharp 프로젝트 진입 파일을 찾을 수 없습니다" : "could not find a Sharp project entry file";
+        return lang_is("ko") ? "Sharp ?꾨줈?앺듃 吏꾩엯 ?뚯씪??李얠쓣 ???놁뒿?덈떎" : "could not find a Sharp project entry file";
     }
     if (strcmp(key, "serve_prefix") == 0) {
         return "sharp serve";
@@ -186,9 +186,11 @@ static bool file_exists(const char *path) {
     return attr != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY);
 }
 
-static bool has_sp_extension(const char *path) {
+static bool has_sharp_extension(const char *path) {
     size_t len = strlen(path);
-    return len >= 3 && _stricmp(path + len - 3, ".sp") == 0;
+    if (len >= 6 && _stricmp(path + len - 6, ".sharp") == 0) return true;
+    if (len >= 3 && _stricmp(path + len - 3, ".sp") == 0) return true;
+    return false;
 }
 
 static void ensure_dir(const char *path) {
@@ -253,7 +255,7 @@ static bool resolve_project_source(const char *raw_input, char *source_out, size
         return false;
     }
 
-    if (file_exists(full_input) && has_sp_extension(full_input)) {
+    if (file_exists(full_input) && has_sharp_extension(full_input)) {
         format_text(source_out, source_cap, "%s", full_input);
         parent_dir_of(full_input, project_root_out, root_cap);
         file_stem(full_input, stem_out, stem_cap);
@@ -280,6 +282,24 @@ static bool resolve_project_source(const char *raw_input, char *source_out, size
         }
     }
 
+    join_path(candidate, sizeof(candidate), full_input, "main.sharp");
+    if (file_exists(candidate)) {
+        format_text(source_out, source_cap, "%s", candidate);
+        path_basename(full_input, stem_out, stem_cap);
+        return true;
+    }
+    join_path(candidate, sizeof(candidate), full_input, "app\\main.sharp");
+    if (file_exists(candidate)) {
+        format_text(source_out, source_cap, "%s", candidate);
+        path_basename(full_input, stem_out, stem_cap);
+        return true;
+    }
+    join_path(candidate, sizeof(candidate), full_input, "src\\main.sharp");
+    if (file_exists(candidate)) {
+        format_text(source_out, source_cap, "%s", candidate);
+        path_basename(full_input, stem_out, stem_cap);
+        return true;
+    }
     join_path(candidate, sizeof(candidate), full_input, "main.sp");
     if (file_exists(candidate)) {
         format_text(source_out, source_cap, "%s", candidate);
@@ -324,7 +344,7 @@ static void create_project(const char *name) {
     ensure_dir(root);
 
     join_path(manifest, sizeof(manifest), root, "sharp.toml");
-    join_path(main_sp, sizeof(main_sp), root, "main.sp");
+    join_path(main_sp, sizeof(main_sp), root, "main.sharp");
     join_path(gitignore, sizeof(gitignore), root, ".gitignore");
 
     {
@@ -332,7 +352,7 @@ static void create_project(const char *name) {
         format_text(
             manifest_body,
             sizeof(manifest_body),
-            "name = \"%s\"\nentry = \"main.sp\"\nkind = \"web\"\n",
+            "name = \"%s\"\nentry = \"main.sharp\"\nkind = \"web\"\n",
             project_name
         );
         write_text_file(manifest, manifest_body);
@@ -341,7 +361,7 @@ static void create_project(const char *name) {
     format_text(
         source,
         sizeof(source),
-        "import \"std/web.sp\";\n"
+        "import \"std/web.sharp\";\n"
         "\n"
         "run {\n"
         "    const title = \"%s\";\n"
@@ -666,14 +686,14 @@ int main(int argc, char **argv) {
     if (_stricmp(mode, "build") == 0) {
         format_text(c_out, sizeof(c_out), "%s\\%s.c", build_dir, stem);
         format_text(exe_out, sizeof(exe_out), "%s\\%s.exe", build_dir, stem);
-        format_text(front_log, sizeof(front_log), "%s\\%s.spearc.log", build_dir, stem);
+    format_text(front_log, sizeof(front_log), "%s\\%s.sharpc.log", build_dir, stem);
         format_text(back_log, sizeof(back_log), "%s\\%s.native.log", build_dir, stem);
     } else {
         DWORD pid = GetCurrentProcessId();
         temp_runtime_dir(temp_dir, sizeof(temp_dir));
         format_text(c_out, sizeof(c_out), "%s\\%s-%lu.c", temp_dir, stem, (unsigned long) pid);
         format_text(exe_out, sizeof(exe_out), "%s\\%s-%lu.exe", temp_dir, stem, (unsigned long) pid);
-        format_text(front_log, sizeof(front_log), "%s\\%s-%lu.spearc.log", temp_dir, stem, (unsigned long) pid);
+    format_text(front_log, sizeof(front_log), "%s\\%s-%lu.sharpc.log", temp_dir, stem, (unsigned long) pid);
         format_text(back_log, sizeof(back_log), "%s\\%s-%lu.native.log", temp_dir, stem, (unsigned long) pid);
     }
 
@@ -753,3 +773,4 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+

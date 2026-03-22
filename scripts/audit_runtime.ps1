@@ -1,10 +1,10 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $stdRoot = Join-Path $repoRoot "std"
 $spearcPath = Join-Path $repoRoot "src\spearc.c"
 
-$stdFunctions = Get-ChildItem -Path $stdRoot -Recurse -Filter *.sp |
+$stdFunctions = Get-ChildItem -Path $stdRoot -Recurse -Filter *.sharp |
     Select-String -Pattern 'python_json\("spear_std", "([^"]+)"' |
     ForEach-Object { $_.Matches[0].Groups[1].Value } |
     Sort-Object -Unique
@@ -34,3 +34,4 @@ if ($missing.Count -gt 0) {
 } else {
     Write-Output "All std spear_std calls are covered by native intercepts."
 }
+

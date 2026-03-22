@@ -1,4 +1,4 @@
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package
     Name="Sharp"
     Manufacturer="Sharp Project"
@@ -152,111 +152,111 @@
     </Component>
 
     <Component Id="CmpStdPrelude" Directory="StdFolder" Guid="*">
-      <File Id="FileStdPrelude" Source="$(var.SourceDir)\std\prelude.sp" KeyPath="yes" />
+      <File Id="FileStdPrelude" Source="$(var.SourceDir)\std\prelude.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdMathFacade" Directory="StdFolder" Guid="*">
-      <File Id="FileStdMath" Source="$(var.SourceDir)\std\math.sp" KeyPath="yes" />
+      <File Id="FileStdMath" Source="$(var.SourceDir)\std\math.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdTextFacade" Directory="StdFolder" Guid="*">
-      <File Id="FileStdText" Source="$(var.SourceDir)\std\text.sp" KeyPath="yes" />
+      <File Id="FileStdText" Source="$(var.SourceDir)\std\text.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdListsFacade" Directory="StdFolder" Guid="*">
-      <File Id="FileStdLists" Source="$(var.SourceDir)\std\lists.sp" KeyPath="yes" />
+      <File Id="FileStdLists" Source="$(var.SourceDir)\std\lists.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdIoFacade" Directory="StdFolder" Guid="*">
-      <File Id="FileStdIo" Source="$(var.SourceDir)\std\io.sp" KeyPath="yes" />
+      <File Id="FileStdIo" Source="$(var.SourceDir)\std\io.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdPathsFacade" Directory="StdFolder" Guid="*">
-      <File Id="FileStdPaths" Source="$(var.SourceDir)\std\paths.sp" KeyPath="yes" />
+      <File Id="FileStdPaths" Source="$(var.SourceDir)\std\paths.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdAssertFacade" Directory="StdFolder" Guid="*">
-      <File Id="FileStdAssert" Source="$(var.SourceDir)\std\assert.sp" KeyPath="yes" />
+      <File Id="FileStdAssert" Source="$(var.SourceDir)\std\assert.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdBridgeFacade" Directory="StdFolder" Guid="*">
-      <File Id="FileStdBridge" Source="$(var.SourceDir)\std\bridge.sp" KeyPath="yes" />
+      <File Id="FileStdBridge" Source="$(var.SourceDir)\std\bridge.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdWebFacade" Directory="StdFolder" Guid="*">
-      <File Id="FileStdWeb" Source="$(var.SourceDir)\std\web.sp" KeyPath="yes" />
+      <File Id="FileStdWeb" Source="$(var.SourceDir)\std\web.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdMathArithmetic" Directory="StdMathFolder" Guid="*">
-      <File Id="FileStdMathArithmetic" Source="$(var.SourceDir)\std\math\arithmetic.sp" KeyPath="yes" />
+      <File Id="FileStdMathArithmetic" Source="$(var.SourceDir)\std\math\arithmetic.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdMathCompare" Directory="StdMathFolder" Guid="*">
-      <File Id="FileStdMathCompare" Source="$(var.SourceDir)\std\math\compare.sp" KeyPath="yes" />
+      <File Id="FileStdMathCompare" Source="$(var.SourceDir)\std\math\compare.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdTextBuilders" Directory="StdTextFolder" Guid="*">
-      <File Id="FileStdTextBuilders" Source="$(var.SourceDir)\std\text\builders.sp" KeyPath="yes" />
+      <File Id="FileStdTextBuilders" Source="$(var.SourceDir)\std\text\builders.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdTextLayout" Directory="StdTextFolder" Guid="*">
-      <File Id="FileStdTextLayout" Source="$(var.SourceDir)\std\text\layout.sp" KeyPath="yes" />
+      <File Id="FileStdTextLayout" Source="$(var.SourceDir)\std\text\layout.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdCollectionsListsBase" Directory="StdCollectionsFolder" Guid="*">
-      <File Id="FileStdCollectionsListsBase" Source="$(var.SourceDir)\std\collections\lists_base.sp" KeyPath="yes" />
+      <File Id="FileStdCollectionsListsBase" Source="$(var.SourceDir)\std\collections\lists_base.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdIoConsole" Directory="StdIoFolder" Guid="*">
-      <File Id="FileStdIoConsole" Source="$(var.SourceDir)\std\io\console.sp" KeyPath="yes" />
+      <File Id="FileStdIoConsole" Source="$(var.SourceDir)\std\io\console.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdIoFiles" Directory="StdIoFolder" Guid="*">
-      <File Id="FileStdIoFiles" Source="$(var.SourceDir)\std\io\files.sp" KeyPath="yes" />
+      <File Id="FileStdIoFiles" Source="$(var.SourceDir)\std\io\files.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdSystemPathsBase" Directory="StdSystemFolder" Guid="*">
-      <File Id="FileStdSystemPathsBase" Source="$(var.SourceDir)\std\system\paths_base.sp" KeyPath="yes" />
+      <File Id="FileStdSystemPathsBase" Source="$(var.SourceDir)\std\system\paths_base.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdSystemAssertsBase" Directory="StdSystemFolder" Guid="*">
-      <File Id="FileStdSystemAssertsBase" Source="$(var.SourceDir)\std\system\asserts_base.sp" KeyPath="yes" />
+      <File Id="FileStdSystemAssertsBase" Source="$(var.SourceDir)\std\system\asserts_base.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdBridgeNodeBase" Directory="StdBridgeFolder" Guid="*">
-      <File Id="FileStdBridgeNodeBase" Source="$(var.SourceDir)\std\bridge\node_base.sp" KeyPath="yes" />
+      <File Id="FileStdBridgeNodeBase" Source="$(var.SourceDir)\std\bridge\node_base.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdBridgePythonBase" Directory="StdBridgeFolder" Guid="*">
-      <File Id="FileStdBridgePythonBase" Source="$(var.SourceDir)\std\bridge\python_base.sp" KeyPath="yes" />
+      <File Id="FileStdBridgePythonBase" Source="$(var.SourceDir)\std\bridge\python_base.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdWebLayout" Directory="StdWebFolder" Guid="*">
-      <File Id="FileStdWebLayout" Source="$(var.SourceDir)\std\web\layout.sp" KeyPath="yes" />
+      <File Id="FileStdWebLayout" Source="$(var.SourceDir)\std\web\layout.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdWebContent" Directory="StdWebFolder" Guid="*">
-      <File Id="FileStdWebContent" Source="$(var.SourceDir)\std\web\content.sp" KeyPath="yes" />
+      <File Id="FileStdWebContent" Source="$(var.SourceDir)\std\web\content.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpStdWebActions" Directory="StdWebFolder" Guid="*">
-      <File Id="FileStdWebActions" Source="$(var.SourceDir)\std\web\actions.sp" KeyPath="yes" />
+      <File Id="FileStdWebActions" Source="$(var.SourceDir)\std\web\actions.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpExampleBridge" Directory="ExamplesFolder" Guid="*">
-      <File Id="FileExampleBridge" Source="$(var.SourceDir)\examples\bridge.sp" KeyPath="yes" />
+      <File Id="FileExampleBridge" Source="$(var.SourceDir)\examples\bridge.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpExampleHello" Directory="ExamplesFolder" Guid="*">
-      <File Id="FileExampleHello" Source="$(var.SourceDir)\examples\hello.sp" KeyPath="yes" />
+      <File Id="FileExampleHello" Source="$(var.SourceDir)\examples\hello.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpExampleMath" Directory="ExamplesFolder" Guid="*">
-      <File Id="FileExampleMath" Source="$(var.SourceDir)\examples\math.sp" KeyPath="yes" />
+      <File Id="FileExampleMath" Source="$(var.SourceDir)\examples\math.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpExampleWeb" Directory="ExamplesFolder" Guid="*">
-      <File Id="FileExampleWeb" Source="$(var.SourceDir)\examples\web.sp" KeyPath="yes" />
+      <File Id="FileExampleWeb" Source="$(var.SourceDir)\examples\web.sharp" KeyPath="yes" />
     </Component>
 
     <Component Id="CmpVsExtension" Directory="VSCodeFolder" Guid="*">
@@ -307,3 +307,4 @@
     </Component>
   </Package>
 </Wix>
+

@@ -1,0 +1,6 @@
+﻿import "io/console.sharp";
+import "io/files.sharp";
+
+package std;
+module io;
+

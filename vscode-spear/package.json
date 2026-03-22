@@ -40,7 +40,7 @@
       {
         "id": "spear",
         "aliases": ["Sharp", "sharp"],
-        "extensions": [".sp"],
+        "extensions": [".sharp"],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -66,3 +66,4 @@
     ]
   }
 }
+

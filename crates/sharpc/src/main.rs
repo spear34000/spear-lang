@@ -1,4 +1,4 @@
-use sharp_common::{exe_dir, load_lang_from_dir, resolve_runtime_tool, Lang};
+﻿use sharp_common::{exe_dir, load_lang_from_dir, resolve_runtime_tool, Lang};
 use std::env;
 use std::path::PathBuf;
 use std::process::{Command, ExitCode};
@@ -6,12 +6,12 @@ use std::process::{Command, ExitCode};
 fn text(lang: Lang, key: &str) -> String {
     match key {
         "error_prefix" => match lang {
-            Lang::Ko => "sharpc 오류".to_string(),
+            Lang::Ko => "sharpc ?ㅻ쪟".to_string(),
             Lang::En => "sharpc error".to_string(),
         },
         "usage" => match lang {
-            Lang::Ko => "사용법:\n  sharpc <source.sp> [-o output.c]\n  sharpc --check <source.sp>\n  sharpc --check-stdin <virtual-file.sp>\n".to_string(),
-            Lang::En => "usage:\n  sharpc <source.sp> [-o output.c]\n  sharpc --check <source.sp>\n  sharpc --check-stdin <virtual-file.sp>\n".to_string(),
+            Lang::Ko => "?ъ슜踰?\n  sharpc <source.sharp> [-o output.c]\n  sharpc --check <source.sharp>\n  sharpc --check-stdin <virtual-file.sharp>\n".to_string(),
+            Lang::En => "usage:\n  sharpc <source.sharp> [-o output.c]\n  sharpc --check <source.sharp>\n  sharpc --check-stdin <virtual-file.sharp>\n".to_string(),
         },
         "missing_backend" => "legacy compiler backend (sharpc-c.exe) was not found".to_string(),
         _ => key.to_string(),
@@ -53,3 +53,4 @@ fn main() -> ExitCode {
         Err(err) => fail(lang, &err.to_string()),
     }
 }
+

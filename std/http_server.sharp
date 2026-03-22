@@ -1,0 +1,28 @@
+﻿import "bridge.sharp";
+import "json.sharp";
+
+package std;
+module httpserver;
+
+function text serve_text(num port, text body) {
+    return python_json("spear_std", "http_serve_text", json_object2(
+        json_field("port", json_number(port)),
+        json_field("body", json_text(body))
+    ));
+}
+
+function text serve_html(num port, text body) {
+    return python_json("spear_std", "http_serve_text", json_object3(
+        json_field("port", json_number(port)),
+        json_field("body", json_text(body)),
+        json_field("content_type", json_text("text/html; charset=utf-8"))
+    ));
+}
+
+function text serve_directory(num port, text directory) {
+    return python_json("spear_std", "http_serve_directory", json_object2(
+        json_field("port", json_number(port)),
+        json_field("directory", json_text(directory))
+    ));
+}
+

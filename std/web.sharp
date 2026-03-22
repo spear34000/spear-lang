@@ -1,0 +1,16 @@
+﻿import "web/layout.sharp";
+import "web/content.sharp";
+import "web/actions.sharp";
+import "web/modifiers.sharp";
+import "web/design.sharp";
+import "web/forms.sharp";
+import "web/dashboard.sharp";
+import "web/app.sharp";
+import "web/presets.sharp";
+import "web/charts.sharp";
+import "web/themes.sharp";
+import "web/blocks.sharp";
+
+package std;
+module web;
+

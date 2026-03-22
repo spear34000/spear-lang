@@ -1,0 +1,118 @@
+﻿import "bridge.sharp";
+import "text.sharp";
+
+package std;
+module json;
+
+function text json_text(text value) {
+    return python_text("spear_std", "json_quote", value);
+}
+
+function text json_number(num value) {
+    return text(value);
+}
+
+function text json_bool(num value) {
+    if (value) {
+        return "true";
+    }
+    return "false";
+}
+
+function text json_field(text key, text value_json) {
+    return join4(quote(key), ":", value_json, "");
+}
+
+function text json_object1(text a) {
+    return braces(a);
+}
+
+function text json_object2(text a, text b) {
+    return braces(join3(a, ",", b));
+}
+
+function text json_object3(text a, text b, text c) {
+    return braces(join(join3(a, ",", b), join(",", c)));
+}
+
+function text json_object4(text a, text b, text c, text d) {
+    return braces(join(join(join3(a, ",", b), join(",", c)), join(",", d)));
+}
+
+function text json_object5(text a, text b, text c, text d, text e) {
+    return braces(join(join(join(join3(a, ",", b), join(",", c)), join(",", d)), join(",", e)));
+}
+
+function text json_object6(text a, text b, text c, text d, text e, text f) {
+    return braces(join(join(join(join(join3(a, ",", b), join(",", c)), join(",", d)), join(",", e)), join(",", f)));
+}
+
+function text json_object7(text a, text b, text c, text d, text e, text f, text g) {
+    return braces(join(join(join(join(join(join3(a, ",", b), join(",", c)), join(",", d)), join(",", e)), join(",", f)), join(",", g)));
+}
+
+function text json_object8(text a, text b, text c, text d, text e, text f, text g, text h) {
+    return braces(join(join(join(join(join(join(join3(a, ",", b), join(",", c)), join(",", d)), join(",", e)), join(",", f)), join(",", g)), join(",", h)));
+}
+
+function text json_array1(text a) {
+    return brackets(a);
+}
+
+function text json_array2(text a, text b) {
+    return brackets(join3(a, ",", b));
+}
+
+function text json_array3(text a, text b, text c) {
+    return brackets(join(join3(a, ",", b), join(",", c)));
+}
+
+function text json_array4(text a, text b, text c, text d) {
+    return brackets(join(join(join3(a, ",", b), join(",", c)), join(",", d)));
+}
+
+function text json_array5(text a, text b, text c, text d, text e) {
+    return brackets(join(join(join(join3(a, ",", b), join(",", c)), join(",", d)), join(",", e)));
+}
+
+function text json_array_numbers(numlist values) {
+    variable out = "[";
+    variable i = 0;
+    while (i < count(values)) {
+        if (i > 0) {
+            out = join(out, ",");
+        }
+        out = join(out, json_number(at(values, i)));
+        i = i + 1;
+    }
+    return join(out, "]");
+}
+
+function text json_array_texts(textlist values) {
+    variable out = "[";
+    variable i = 0;
+    while (i < count(values)) {
+        if (i > 0) {
+            out = join(out, ",");
+        }
+        out = join(out, json_text(at(values, i)));
+        i = i + 1;
+    }
+    return join(out, "]");
+}
+
+function text json_parse(text body) {
+    return python_json("spear_std", "json_format", json_object1(json_field("text", json_text(body))));
+}
+
+function text json_get(text body, text key) {
+    return python_json("spear_std", "json_get", json_object2(
+        json_field("text", json_text(body)),
+        json_field("key", json_text(key))
+    ));
+}
+
+function text json_keys(text body) {
+    return python_json("spear_std", "json_keys", json_object1(json_field("text", json_text(body))));
+}
+

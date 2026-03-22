@@ -1,4 +1,4 @@
-CC = gcc
+﻿CC = gcc
 CFLAGS ?= -O2 -Wall -Wextra -std=c11
 SETUP_LIBS ?= -lcomctl32
 SETUP_LDFLAGS ?= -mwindows
@@ -24,32 +24,32 @@ setup: sharp src/spear_setup.c
 	$(CC) $(CFLAGS) $(SETUP_LDFLAGS) -o build/spear-setup.exe src/spear_setup.c $(SETUP_LIBS)
 
 example: sharp
-	./build/sharp.exe examples/hello.sp
+	./build/sharp.exe examples/hello.sharp
 
 audit:
 	powershell -ExecutionPolicy Bypass -File scripts\\audit_runtime.ps1
 
 check: sharp
-	./build/sharp.exe check examples/hello.sp
-	./build/sharp.exe check examples/bridge.sp
-	./build/sharp.exe check examples/map_demo.sp
-	./build/sharp.exe check examples/platform.sp
-	./build/sharp.exe check examples/security.sp
-	./build/sharp.exe check examples/http_native.sp
-	./build/sharp.exe check examples/native_security.sp
-	./build/sharp.exe check examples/native_runtime.sp
-	./build/sharp.exe check examples/native_collections.sp
-	./build/sharp.exe check examples/net_native.sp
-	./build/sharp.exe check examples/mobile.sp
-	./build/sharp.exe check examples/ui.sp
-	./build/sharp.exe check examples/ui_web_native.sp
-	./build/sharp.exe check examples/result_demo.sp
-	./build/sharp.exe check examples/result_flow.sp
-	./build/sharp.exe check examples/sharp.sp
-	./build/sharp.exe check examples/interop.sp
-	./build/sharp.exe check examples/tool.sp
-	./build/sharp.exe check examples/server.sp
-	./build/sharp.exe build examples/web.sp
+	./build/sharp.exe check examples/hello.sharp
+	./build/sharp.exe check examples/bridge.sharp
+	./build/sharp.exe check examples/map_demo.sharp
+	./build/sharp.exe check examples/platform.sharp
+	./build/sharp.exe check examples/security.sharp
+	./build/sharp.exe check examples/http_native.sharp
+	./build/sharp.exe check examples/native_security.sharp
+	./build/sharp.exe check examples/native_runtime.sharp
+	./build/sharp.exe check examples/native_collections.sharp
+	./build/sharp.exe check examples/net_native.sharp
+	./build/sharp.exe check examples/mobile.sharp
+	./build/sharp.exe check examples/ui.sharp
+	./build/sharp.exe check examples/ui_web_native.sharp
+	./build/sharp.exe check examples/result_demo.sharp
+	./build/sharp.exe check examples/result_flow.sharp
+	./build/sharp.exe check examples/sharp.sharp
+	./build/sharp.exe check examples/interop.sharp
+	./build/sharp.exe check examples/tool.sharp
+	./build/sharp.exe check examples/server.sharp
+	./build/sharp.exe build examples/web.sharp
 	scripts\\check_regressions.cmd
 	del /Q build\\web.c 2> NUL
 	del /Q build\\web.exe 2> NUL
@@ -67,3 +67,4 @@ clean:
 	del /Q build\*.html 2> NUL
 	del /Q build\*.wixpdb 2> NUL
 	if exist build\\dist rmdir /S /Q build\\dist
+

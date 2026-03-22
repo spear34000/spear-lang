@@ -1,0 +1,5 @@
+﻿import "system/paths_base.sharp";
+
+package std;
+module paths;
+

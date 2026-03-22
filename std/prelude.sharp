@@ -1,0 +1,37 @@
+﻿import "assert.sharp";
+import "json.sharp";
+import "map.sharp";
+import "result.sharp";
+import "math.sharp";
+import "text.sharp";
+import "lists.sharp";
+import "paths.sharp";
+import "io.sharp";
+import "fs.sharp";
+import "os.sharp";
+import "cli.sharp";
+import "net.sharp";
+import "http_server.sharp";
+import "csv.sharp";
+import "random.sharp";
+import "stats.sharp";
+import "vector.sharp";
+import "matrix.sharp";
+import "tensor.sharp";
+import "crypto.sharp";
+import "security.sharp";
+import "safe_fs.sharp";
+import "http.sharp";
+import "sqlite.sharp";
+import "logger.sharp";
+import "config.sharp";
+import "test.sharp";
+import "bridge.sharp";
+import "interop.sharp";
+import "web.sharp";
+import "mobile.sharp";
+import "ui.sharp";
+
+package std;
+module prelude;
+

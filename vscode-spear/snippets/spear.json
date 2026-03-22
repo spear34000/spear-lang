@@ -59,7 +59,7 @@
   "Import": {
     "prefix": "import",
     "body": [
-      "import \"${1:module.sp}\";"
+      "import \"${1:module.sharp}\";"
     ],
     "description": "Import another Sharp source file"
   },
@@ -124,4 +124,5 @@
     "description": "Create a simple Sharp HTML page"
   }
 }
+
 

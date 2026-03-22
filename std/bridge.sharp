@@ -1,0 +1,6 @@
+﻿import "bridge/node_base.sharp";
+import "bridge/python_base.sharp";
+
+package std;
+module bridge;
+

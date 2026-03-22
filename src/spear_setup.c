@@ -896,9 +896,12 @@ static void run_self_check(const SetupContext *ctx, const SetupOptions *options,
         join_path(spear, sizeof(spear), ctx->bin_dir, "spear.exe");
     }
     if (options->install_examples && dir_exists(ctx->examples_dir)) {
-        join_path(check_file, sizeof(check_file), ctx->examples_dir, "hello.sp");
+        join_path(check_file, sizeof(check_file), ctx->examples_dir, "hello.sharp");
+        if (!file_exists(check_file)) {
+            join_path(check_file, sizeof(check_file), ctx->examples_dir, "hello.sp");
+        }
     } else {
-        join_path(temp_source, sizeof(temp_source), ctx->install_root, "self-check.sp");
+        join_path(temp_source, sizeof(temp_source), ctx->install_root, "self-check.sharp");
         {
             FILE *fp = fopen(temp_source, "wb");
             if (!fp) fail("failed to create self-check source");

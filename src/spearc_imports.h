@@ -1,4 +1,4 @@
-#ifndef SPEARC_IMPORTS_H
+﻿#ifndef SPEARC_IMPORTS_H
 #define SPEARC_IMPORTS_H
 
 typedef struct {
@@ -120,11 +120,20 @@ static void normalize_import_leaf(char *out, size_t cap, const char *leaf) {
 static void resolve_import_path(char *out, size_t cap, const char *base, const char *leaf) {
     char clean_leaf[2048];
     char candidate[2048];
+    char legacy_candidate[2048];
     normalize_import_leaf(clean_leaf, sizeof(clean_leaf), leaf);
     join_fs_path(candidate, sizeof(candidate), base, clean_leaf);
     if (file_exists(candidate)) {
         checked_snprintf(out, cap, "%s", candidate);
         return;
+    }
+    if (strlen(clean_leaf) > 6 && strcmp(clean_leaf + strlen(clean_leaf) - 6, ".sharp") == 0) {
+        checked_snprintf(legacy_candidate, sizeof(legacy_candidate), "%.*s.sp", (int) (strlen(clean_leaf) - 6), clean_leaf);
+        join_fs_path(candidate, sizeof(candidate), base, legacy_candidate);
+        if (file_exists(candidate)) {
+            checked_snprintf(out, cap, "%s", candidate);
+            return;
+        }
     }
 
     if (g_tool_dir[0] &&
@@ -134,8 +143,17 @@ static void resolve_import_path(char *out, size_t cap, const char *base, const c
             checked_snprintf(out, cap, "%s", candidate);
             return;
         }
+        if (strlen(clean_leaf) > 6 && strcmp(clean_leaf + strlen(clean_leaf) - 6, ".sharp") == 0) {
+            checked_snprintf(legacy_candidate, sizeof(legacy_candidate), "%.*s.sp", (int) (strlen(clean_leaf) - 6), clean_leaf);
+            checked_snprintf(candidate, sizeof(candidate), "%s\\%s", g_tool_dir, legacy_candidate);
+            if (file_exists(candidate)) {
+                checked_snprintf(out, cap, "%s", candidate);
+                return;
+            }
+        }
     }
 
+    join_fs_path(candidate, sizeof(candidate), base, clean_leaf);
     checked_snprintf(out, cap, "%s", candidate);
 }
 
@@ -197,6 +215,12 @@ static char *read_file(const char *path) {
     }
     data[size] = '\0';
     fclose(fp);
+    if ((size_t) size >= 3 &&
+        (unsigned char) data[0] == 0xEF &&
+        (unsigned char) data[1] == 0xBB &&
+        (unsigned char) data[2] == 0xBF) {
+        memmove(data, data + 3, (size_t) size - 2);
+    }
     return data;
 }
 
@@ -224,6 +248,12 @@ static char *read_stream(FILE *fp, const char *label) {
         }
     }
     data[len] = '\0';
+    if (len >= 3 &&
+        (unsigned char) data[0] == 0xEF &&
+        (unsigned char) data[1] == 0xBB &&
+        (unsigned char) data[2] == 0xBF) {
+        memmove(data, data + 3, len - 2);
+    }
     return data;
 }
 
@@ -246,7 +276,11 @@ static char *default_output_path(const char *input_path) {
     size_t len = strlen(input_path);
     Buffer out;
     buf_init(&out);
-    if (len > 3 && strcmp(input_path + len - 3, ".sp") == 0) {
+    if (len > 6 && strcmp(input_path + len - 6, ".sharp") == 0) {
+        char *base = slice_dup(input_path, len - 6);
+        buf_appendf(&out, "%s.c", base);
+        free(base);
+    } else if (len > 3 && strcmp(input_path + len - 3, ".sp") == 0) {
         char *base = slice_dup(input_path, len - 3);
         buf_appendf(&out, "%s.c", base);
         free(base);
@@ -257,3 +291,4 @@ static char *default_output_path(const char *input_path) {
 }
 
 #endif
+

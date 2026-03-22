@@ -1,7 +1,7 @@
 use sharp_common::{
     ensure_dir, exe_dir, load_lang_from_dir, normalize_windows_path, parse_manifest_array, project_name,
-    render_starter_main, render_starter_manifest, resolve_bundled_gcc, resolve_manifest_path,
-    resolve_project_source, resolve_tool, upsert_manifest_array, Lang,
+    render_interop_wrapper, render_starter_main, render_starter_manifest, resolve_bundled_gcc,
+    resolve_manifest_path, resolve_project_source, resolve_tool, sanitize_module_name, upsert_manifest_array, Lang,
 };
 use std::env;
 use std::fs;
@@ -147,6 +147,10 @@ fn add_dependency(lang: Lang, ecosystem: &str, package: &str, raw_root: Option<&
     let project_root = resolve_project_dir(raw_root)?;
     let manifest = resolve_manifest_path(&project_root);
     let vendor_root = project_root.join(".sharp").join("vendor");
+    let wrappers_dir = project_root.join("interop");
+    ensure_dir(&wrappers_dir)?;
+    let module_name = sanitize_module_name(package);
+    let wrapper_path = wrappers_dir.join(format!("{module_name}.sp"));
     let status = if ecosystem.eq_ignore_ascii_case("pip") {
         let py_root = vendor_root.join("python");
         ensure_dir(&py_root)?;
@@ -193,8 +197,10 @@ fn add_dependency(lang: Lang, ecosystem: &str, package: &str, raw_root: Option<&
             cmd
         })
     };
+    write_file(&wrapper_path, &render_interop_wrapper(ecosystem, package, &module_name))?;
     println!("{} {}", text(lang, "added"), package);
     println!("manifest: {}", manifest.display());
+    println!("wrapper: {}", wrapper_path.display());
     match status {
         Ok(0) => {}
         _ => println!("{}", text(lang, "install_warn")),

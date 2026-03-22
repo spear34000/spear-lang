@@ -144,6 +144,43 @@ pub fn upsert_manifest_array(manifest_path: &Path, key: &str, value: &str) -> io
     fs::write(manifest_path, format!("{}\n", lines.join("\n")))
 }
 
+pub fn sanitize_module_name(package: &str) -> String {
+    let mut out = String::new();
+    for ch in package.chars() {
+        if ch.is_ascii_alphanumeric() {
+            out.push(ch.to_ascii_lowercase());
+        } else {
+            out.push('_');
+        }
+    }
+    while out.contains("__") {
+        out = out.replace("__", "_");
+    }
+    out.trim_matches('_').to_string()
+}
+
+pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str) -> String {
+    let import_line = "import \"../std/interop.sp\";";
+    let handle_fn = if ecosystem.eq_ignore_ascii_case("pip") {
+        format!("    return pip_module(\"{}\");", package)
+    } else {
+        format!("    return npm_module(\"{}\");", package)
+    };
+    let call_fn = if ecosystem.eq_ignore_ascii_case("pip") {
+        "    return py_call(module_handle(), fn_name, payload);"
+    } else {
+        "    return js_call(module_handle(), fn_name, payload);"
+    };
+    let call0_fn = if ecosystem.eq_ignore_ascii_case("pip") {
+        "    return py_empty(module_handle(), fn_name);"
+    } else {
+        "    return js_empty(module_handle(), fn_name);"
+    };
+    format!(
+        "{import_line}\n\npackage app;\nmodule {module_name};\n\nfunction text module_handle() {{\n{handle_fn}\n}}\n\nfunction text call(text fn_name, text payload) {{\n{call_fn}\n}}\n\nfunction text call0(text fn_name) {{\n{call0_fn}\n}}\n"
+    )
+}
+
 pub fn resolve_project_source(raw_input: Option<&str>) -> io::Result<(PathBuf, PathBuf, String)> {
     let input = raw_input.unwrap_or(".");
     let full_input = normalize_windows_path(fs::canonicalize(input)?);

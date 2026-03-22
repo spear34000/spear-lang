@@ -1,6 +1,7 @@
 use sharp_common::{
-    ensure_dir, exe_dir, load_lang_from_dir, normalize_windows_path, project_name, render_starter_main,
-    render_starter_manifest, resolve_bundled_gcc, resolve_project_source, resolve_tool, Lang,
+    ensure_dir, exe_dir, load_lang_from_dir, normalize_windows_path, parse_manifest_array, project_name,
+    render_starter_main, render_starter_manifest, resolve_bundled_gcc, resolve_manifest_path,
+    resolve_project_source, resolve_tool, upsert_manifest_array, Lang,
 };
 use std::env;
 use std::fs;
@@ -17,8 +18,8 @@ fn text(lang: Lang, key: &str) -> String {
             Lang::En => "sharp error".to_string(),
         },
         "usage" => match lang {
-            Lang::Ko => "사용법:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n".to_string(),
-            Lang::En => "usage:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n".to_string(),
+            Lang::Ko => "사용법:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n  sharp add pip <package> [folder]\n  sharp add npm <package> [folder]\n".to_string(),
+            Lang::En => "usage:\n  sharp\n  sharp file.sp\n  sharp <folder>\n  sharp build [file.sp|folder]\n  sharp serve [file.sp|folder]\n  sharp check [file.sp|folder]\n  sharp new <name>\n  sharp add pip <package> [folder]\n  sharp add npm <package> [folder]\n".to_string(),
         },
         "created" => match lang {
             Lang::Ko => "프로젝트 생성 완료".to_string(),
@@ -45,6 +46,14 @@ fn text(lang: Lang, key: &str) -> String {
             Lang::En => "details".to_string(),
         },
         "serve_prefix" => "sharp serve".to_string(),
+        "added" => match lang {
+            Lang::Ko => "의존성 추가 완료".to_string(),
+            Lang::En => "added dependency".to_string(),
+        },
+        "install_warn" => match lang {
+            Lang::Ko => "도구를 찾지 못해 manifest만 갱신했습니다".to_string(),
+            Lang::En => "updated manifest only because the package tool was not available".to_string(),
+        },
         _ => key.to_string(),
     }
 }
@@ -109,11 +118,105 @@ fn run_quiet(mut cmd: Command) -> io::Result<i32> {
     Ok(status.code().unwrap_or(1))
 }
 
+fn run_status(mut cmd: Command) -> io::Result<i32> {
+    let status = cmd.status()?;
+    Ok(status.code().unwrap_or(1))
+}
+
 fn print_log(prefix: &str, log_path: &Path) {
     eprintln!("{}", prefix);
     match fs::read_to_string(log_path) {
         Ok(body) => eprintln!("{}", body),
         Err(_) => eprintln!("details were not available"),
+    }
+}
+
+fn resolve_project_dir(raw: Option<&str>) -> io::Result<PathBuf> {
+    let input = raw.unwrap_or(".");
+    let full = normalize_windows_path(fs::canonicalize(input)?);
+    if full.is_dir() {
+        return Ok(full);
+    }
+    if let Some(parent) = full.parent() {
+        return Ok(parent.to_path_buf());
+    }
+    Err(io::Error::new(io::ErrorKind::NotFound, "could not resolve project folder"))
+}
+
+fn add_dependency(lang: Lang, ecosystem: &str, package: &str, raw_root: Option<&str>) -> io::Result<()> {
+    let project_root = resolve_project_dir(raw_root)?;
+    let manifest = resolve_manifest_path(&project_root);
+    let vendor_root = project_root.join(".sharp").join("vendor");
+    let status = if ecosystem.eq_ignore_ascii_case("pip") {
+        let py_root = vendor_root.join("python");
+        ensure_dir(&py_root)?;
+        upsert_manifest_array(&manifest, "pip", package)?;
+        let direct = run_status({
+            let mut cmd = Command::new("python");
+            cmd.arg("-m")
+                .arg("pip")
+                .arg("install")
+                .arg("--target")
+                .arg(&py_root)
+                .arg(package)
+                .current_dir(&project_root);
+            cmd
+        });
+        match direct {
+            Ok(code) if code == 0 => Ok(0),
+            _ => run_status({
+                let mut cmd = Command::new("py");
+                cmd.arg("-3")
+                    .arg("-m")
+                    .arg("pip")
+                    .arg("install")
+                    .arg("--target")
+                    .arg(&py_root)
+                    .arg(package)
+                    .current_dir(&project_root);
+                cmd
+            }),
+        }
+    } else {
+        let node_root = vendor_root.join("node");
+        ensure_dir(&node_root)?;
+        upsert_manifest_array(&manifest, "npm", package)?;
+        run_status({
+            let mut cmd = Command::new("cmd");
+            cmd.arg("/c")
+                .arg("npm")
+                .arg("install")
+                .arg("--prefix")
+                .arg(&node_root)
+                .arg(package)
+                .current_dir(&project_root);
+            cmd
+        })
+    };
+    println!("{} {}", text(lang, "added"), package);
+    println!("manifest: {}", manifest.display());
+    match status {
+        Ok(0) => {}
+        _ => println!("{}", text(lang, "install_warn")),
+    }
+    Ok(())
+}
+
+fn apply_interop_env(cmd: &mut Command, project_root: &Path) {
+    let manifest = resolve_manifest_path(project_root);
+    let pip = parse_manifest_array(&manifest, "pip");
+    if !pip.is_empty() {
+        let py_vendor = project_root.join(".sharp").join("vendor").join("python");
+        if py_vendor.is_dir() {
+            cmd.env("SHARP_PYTHONPATH", py_vendor);
+        }
+    }
+    let npm = parse_manifest_array(&manifest, "npm");
+    if !npm.is_empty() {
+        let node_modules = project_root.join(".sharp").join("vendor").join("node").join("node_modules");
+        if node_modules.is_dir() {
+            cmd.env("SHARP_NODE_PATH", node_modules);
+        }
     }
 }
 
@@ -133,6 +236,16 @@ fn main() -> ExitCode {
             fail(lang, "expected a project name");
         }
         if let Err(err) = create_project(lang, &args[2]) {
+            fail(lang, &err.to_string());
+        }
+        return ExitCode::SUCCESS;
+    }
+    if args.len() >= 4 && args[1].eq_ignore_ascii_case("add") {
+        let ecosystem = &args[2];
+        if !ecosystem.eq_ignore_ascii_case("pip") && !ecosystem.eq_ignore_ascii_case("npm") {
+            fail(lang, "expected 'pip' or 'npm' after 'add'");
+        }
+        if let Err(err) = add_dependency(lang, ecosystem, &args[3], args.get(4).map(String::as_str)) {
             fail(lang, &err.to_string());
         }
         return ExitCode::SUCCESS;
@@ -185,6 +298,7 @@ fn main() -> ExitCode {
             {
                 let mut cmd = Command::new(&sharpc);
                 cmd.arg("--check").arg(&input).current_dir(&project_root);
+                apply_interop_env(&mut cmd, &project_root);
                 cmd
             },
             &front_log,
@@ -194,6 +308,7 @@ fn main() -> ExitCode {
             {
                 let mut cmd = Command::new(&sharpc);
                 cmd.arg(&input).arg("-o").arg(&c_out).current_dir(&project_root);
+                apply_interop_env(&mut cmd, &project_root);
                 cmd
             },
             &front_log,
@@ -233,6 +348,7 @@ fn main() -> ExitCode {
                 .arg(&exe_out)
                 .arg(&c_out)
                 .current_dir(&project_root);
+            apply_interop_env(&mut cmd, &project_root);
             cmd
         },
         &back_log,
@@ -263,12 +379,14 @@ fn main() -> ExitCode {
         run_quiet({
             let mut cmd = Command::new(&exe_out);
             cmd.current_dir(&project_root);
+            apply_interop_env(&mut cmd, &project_root);
             cmd
         })
     } else {
         run_console({
             let mut cmd = Command::new(&exe_out);
             cmd.current_dir(&project_root);
+            apply_interop_env(&mut cmd, &project_root);
             cmd
         })
     }
@@ -311,6 +429,7 @@ fn main() -> ExitCode {
                 .arg("-Port")
                 .arg("4173")
                 .current_dir(&project_root);
+            apply_interop_env(&mut cmd, &project_root);
             cmd
         });
     }

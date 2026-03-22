@@ -46,6 +46,7 @@ check: sharp
 	./build/sharp.exe check examples/result_demo.sp
 	./build/sharp.exe check examples/result_flow.sp
 	./build/sharp.exe check examples/sharp.sp
+	./build/sharp.exe check examples/interop.sp
 	./build/sharp.exe check examples/tool.sp
 	./build/sharp.exe check examples/server.sp
 	./build/sharp.exe build examples/web.sp

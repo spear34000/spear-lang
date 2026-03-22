@@ -77,6 +77,73 @@ pub fn parse_manifest_value(manifest_path: &Path, key: &str) -> Option<String> {
     None
 }
 
+pub fn parse_manifest_array(manifest_path: &Path, key: &str) -> Vec<String> {
+    let body = match fs::read_to_string(manifest_path) {
+        Ok(v) => v,
+        Err(_) => return Vec::new(),
+    };
+    for line in body.lines() {
+        let trimmed = line.trim();
+        if !trimmed.starts_with(key) {
+            continue;
+        }
+        let rest = trimmed[key.len()..].trim_start();
+        let Some(value) = rest.strip_prefix('=') else { continue };
+        let value = value.trim();
+        let Some(inner) = value.strip_prefix('[').and_then(|v| v.strip_suffix(']')) else { continue };
+        let mut out = Vec::new();
+        for part in inner.split(',') {
+            let item = part.trim().trim_matches('"').trim();
+            if !item.is_empty() {
+                out.push(item.to_string());
+            }
+        }
+        return out;
+    }
+    Vec::new()
+}
+
+pub fn resolve_manifest_path(project_dir: &Path) -> PathBuf {
+    let sharp = project_dir.join("sharp.toml");
+    if sharp.is_file() {
+        return sharp;
+    }
+    let legacy = project_dir.join("spear.toml");
+    if legacy.is_file() {
+        return legacy;
+    }
+    sharp
+}
+
+pub fn render_manifest_array(key: &str, values: &[String]) -> String {
+    let parts: Vec<String> = values.iter().map(|v| format!("\"{}\"", v)).collect();
+    format!("{key} = [{}]", parts.join(", "))
+}
+
+pub fn upsert_manifest_array(manifest_path: &Path, key: &str, value: &str) -> io::Result<()> {
+    let mut lines: Vec<String> = if manifest_path.is_file() {
+        fs::read_to_string(manifest_path)?
+            .lines()
+            .map(|v| v.to_string())
+            .collect()
+    } else {
+        vec![
+            format!("name = \"{}\"", project_name(manifest_path.parent().unwrap_or(Path::new(".")))),
+            "entry = \"main.sp\"".to_string(),
+            "kind = \"app\"".to_string(),
+        ]
+    };
+    let mut values = parse_manifest_array(manifest_path, key);
+    if !values.iter().any(|v| v.eq_ignore_ascii_case(value)) {
+        values.push(value.to_string());
+    }
+    let rendered = render_manifest_array(key, &values);
+    let prefix = format!("{key} =");
+    lines.retain(|line| !line.trim().starts_with(&prefix));
+    lines.push(rendered);
+    fs::write(manifest_path, format!("{}\n", lines.join("\n")))
+}
+
 pub fn resolve_project_source(raw_input: Option<&str>) -> io::Result<(PathBuf, PathBuf, String)> {
     let input = raw_input.unwrap_or(".");
     let full_input = normalize_windows_path(fs::canonicalize(input)?);
@@ -96,15 +163,7 @@ pub fn resolve_project_source(raw_input: Option<&str>) -> io::Result<(PathBuf, P
         ));
     }
 
-    let manifest = {
-        let sharp = full_input.join("sharp.toml");
-        if sharp.is_file() {
-            sharp
-        } else {
-            full_input.join("spear.toml")
-        }
-    };
-
+    let manifest = resolve_manifest_path(&full_input);
     if manifest.is_file() {
         if let Some(entry) = parse_manifest_value(&manifest, "entry") {
             let entry_path = full_input.join(entry);

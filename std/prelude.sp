@@ -27,6 +27,7 @@ import "logger.sp";
 import "config.sp";
 import "test.sp";
 import "bridge.sp";
+import "interop.sp";
 import "web.sp";
 import "mobile.sp";
 import "ui.sp";

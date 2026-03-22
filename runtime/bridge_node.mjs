@@ -1,10 +1,18 @@
 import fs from "node:fs";
+import path from "node:path";
 import { createRequire } from "node:module";
 
 const [, , target, fn, reqPath, resPath] = process.argv;
 const require = createRequire(import.meta.url);
 
 async function loadModule(name) {
+  const searchRoot = process.env.SHARP_NODE_PATH || "";
+  if (searchRoot) {
+    try {
+      const scopedRequire = createRequire(path.join(searchRoot, "__sharp__.cjs"));
+      return scopedRequire(name);
+    } catch {}
+  }
   try {
     return require(name);
   } catch {

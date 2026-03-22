@@ -1,5 +1,6 @@
 import importlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -7,6 +8,10 @@ from pathlib import Path
 def main() -> int:
     _, target, fn, req_path, res_path = sys.argv
     try:
+        extra = os.environ.get("SHARP_PYTHONPATH", "")
+        for entry in reversed([v for v in extra.split(os.pathsep) if v]):
+            if entry not in sys.path:
+                sys.path.insert(0, entry)
         payload = Path(req_path).read_text(encoding="utf-8")
         module = importlib.import_module(target)
         candidate = getattr(module, fn, None)

@@ -6,6 +6,9 @@ Sharp can vendor Python and Node packages into a project and generate wrapper mo
 
 ```bash
 sharp add pip requests
+sharp add pip matplotlib
+sharp add pip plotly
+sharp add pip pillow
 sharp add npm dayjs
 sharp add npm axios
 ```
@@ -109,6 +112,76 @@ Generated helpers:
 - `read_csv_head(path, rows)`
 - `columns(path)`
 
+## Matplotlib Preset
+
+After:
+
+```bash
+sharp add pip matplotlib
+```
+
+you can use:
+
+```sp
+import "interop/matplotlib.sp";
+
+run {
+    print(line_svg("Demo", "[\"Mon\",\"Tue\",\"Wed\"]", "[4,7,5]"));
+}
+```
+
+Generated helpers:
+
+- `line_svg(title, labels_json, values_json)`
+- `bar_svg(title, labels_json, values_json)`
+
+## Plotly Preset
+
+After:
+
+```bash
+sharp add pip plotly
+```
+
+you can use:
+
+```sp
+import "interop/plotly.sp";
+
+run {
+    print(bar_html("Demo", "[\"Mon\",\"Tue\",\"Wed\"]", "[4,7,5]"));
+}
+```
+
+Generated helpers:
+
+- `bar_html(title, labels_json, values_json)`
+- `line_html(title, labels_json, values_json)`
+
+## Pillow Preset
+
+After:
+
+```bash
+sharp add pip pillow
+```
+
+you can use:
+
+```sp
+import "interop/pillow.sp";
+
+run {
+    print(image_size("input.png"));
+    print(thumbnail("input.png", 320, 240, "thumb.png"));
+}
+```
+
+Generated helpers:
+
+- `image_size(path)`
+- `thumbnail(path, width, height, output_path)`
+
 ## Dayjs Preset
 
 After:
@@ -172,6 +245,9 @@ my-app/
   main.sp
   interop/
     requests.sp
+    matplotlib.sp
+    plotly.sp
+    pillow.sp
     dayjs.sp
     axios.sp
     requests_example.sp

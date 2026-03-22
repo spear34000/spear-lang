@@ -193,6 +193,21 @@ pub fn render_interop_example(package: &str, module_name: &str) -> String {
             "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(read_csv_head(\"data.csv\", 5));\n}}\n"
         );
     }
+    if package.eq_ignore_ascii_case("matplotlib") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(line_svg(\"Demo\", \"[\\\"Mon\\\",\\\"Tue\\\",\\\"Wed\\\"]\", \"[4,7,5]\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("plotly") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(bar_html(\"Demo\", \"[\\\"Mon\\\",\\\"Tue\\\",\\\"Wed\\\"]\", \"[4,7,5]\"));\n}}\n"
+        );
+    }
+    if package.eq_ignore_ascii_case("pillow") {
+        return format!(
+            "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(image_size(\"input.png\"));\n    print(thumbnail(\"input.png\", 320, 240, \"thumb.png\"));\n}}\n"
+        );
+    }
     format!(
         "import \"interop/{module_name}.sp\";\n\nrun {{\n    print(\"interop ready\");\n}}\n"
     )
@@ -203,6 +218,9 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str,
         && (package.eq_ignore_ascii_case("requests")
             || package.eq_ignore_ascii_case("numpy")
             || package.eq_ignore_ascii_case("pandas")
+            || package.eq_ignore_ascii_case("matplotlib")
+            || package.eq_ignore_ascii_case("plotly")
+            || package.eq_ignore_ascii_case("pillow")
             || package.eq_ignore_ascii_case("demo_python"))
         || ecosystem.eq_ignore_ascii_case("npm")
             && (package.eq_ignore_ascii_case("dayjs")
@@ -234,6 +252,12 @@ pub fn render_interop_wrapper(ecosystem: &str, package: &str, module_name: &str,
         "function number array_sum(text numbers_json) {\n    return num(call(\"array_sum\", json_object1(json_field(\"values\", json_parse(numbers_json)))));\n}\n\nfunction number mean(text numbers_json) {\n    return num(call(\"mean\", json_object1(json_field(\"values\", json_parse(numbers_json)))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("pandas") {
         "function text read_csv_head(text path, number rows) {\n    return call(\"read_csv_head\", json_object2(json_field(\"path\", json_text(path)), json_field(\"rows\", json_number(rows))));\n}\n\nfunction text columns(text path) {\n    return call(\"columns\", json_object1(json_field(\"path\", json_text(path))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("matplotlib") {
+        "function text line_svg(text title, text labels_json, text values_json) {\n    return call(\"line_svg\", json_object3(json_field(\"title\", json_text(title)), json_field(\"labels\", json_parse(labels_json)), json_field(\"values\", json_parse(values_json))));\n}\n\nfunction text bar_svg(text title, text labels_json, text values_json) {\n    return call(\"bar_svg\", json_object3(json_field(\"title\", json_text(title)), json_field(\"labels\", json_parse(labels_json)), json_field(\"values\", json_parse(values_json))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("plotly") {
+        "function text bar_html(text title, text labels_json, text values_json) {\n    return call(\"bar_html\", json_object3(json_field(\"title\", json_text(title)), json_field(\"labels\", json_parse(labels_json)), json_field(\"values\", json_parse(values_json))));\n}\n\nfunction text line_html(text title, text labels_json, text values_json) {\n    return call(\"line_html\", json_object3(json_field(\"title\", json_text(title)), json_field(\"labels\", json_parse(labels_json)), json_field(\"values\", json_parse(values_json))));\n}\n"
+    } else if ecosystem.eq_ignore_ascii_case("pip") && package.eq_ignore_ascii_case("pillow") {
+        "function text image_size(text path) {\n    return call(\"image_size\", json_object1(json_field(\"path\", json_text(path))));\n}\n\nfunction text thumbnail(text path, number width, number height, text output_path) {\n    return call(\"thumbnail\", json_object4(json_field(\"path\", json_text(path)), json_field(\"width\", json_number(width)), json_field(\"height\", json_number(height)), json_field(\"output\", json_text(output_path))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("dayjs") {
         "function text format_now(text pattern) {\n    return call(\"format_now\", json_object1(json_field(\"pattern\", json_text(pattern))));\n}\n\nfunction text add_days(text iso_value, number days, text pattern) {\n    return call(\"add_days\", json_object3(json_field(\"value\", json_text(iso_value)), json_field(\"days\", json_number(days)), json_field(\"pattern\", json_text(pattern))));\n}\n\nfunction text from_iso(text iso_value, text pattern) {\n    return call(\"from_iso\", json_object2(json_field(\"value\", json_text(iso_value)), json_field(\"pattern\", json_text(pattern))));\n}\n"
     } else if ecosystem.eq_ignore_ascii_case("npm") && package.eq_ignore_ascii_case("axios") {
@@ -264,6 +288,21 @@ pub fn render_python_shim(package: &str) -> Option<String> {
     if package.eq_ignore_ascii_case("pandas") {
         return Some(
             "import json\nimport pandas as pd\n\n\ndef read_csv_head(payload):\n    path = payload.get(\"path\", \"\")\n    rows = int(payload.get(\"rows\", 5))\n    frame = pd.read_csv(path)\n    return frame.head(rows).to_json(orient=\"records\")\n\n\ndef columns(payload):\n    path = payload.get(\"path\", \"\")\n    frame = pd.read_csv(path)\n    return json.dumps(list(frame.columns))\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("matplotlib") {
+        return Some(
+            "from io import StringIO\nimport matplotlib\nmatplotlib.use(\"Agg\")\nimport matplotlib.pyplot as plt\n\n\ndef _chart(payload, kind):\n    title = payload.get(\"title\", \"Chart\")\n    labels = payload.get(\"labels\", [])\n    values = payload.get(\"values\", [])\n    fig, ax = plt.subplots(figsize=(6, 3.5))\n    if kind == \"line\":\n        ax.plot(labels, values, color=\"#2f6fed\", linewidth=2.5)\n    else:\n        ax.bar(labels, values, color=\"#2f6fed\")\n    ax.set_title(title)\n    ax.grid(True, alpha=0.2)\n    stream = StringIO()\n    fig.savefig(stream, format=\"svg\", bbox_inches=\"tight\")\n    plt.close(fig)\n    return stream.getvalue()\n\n\ndef line_svg(payload):\n    return _chart(payload, \"line\")\n\n\ndef bar_svg(payload):\n    return _chart(payload, \"bar\")\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("plotly") {
+        return Some(
+            "import plotly.graph_objects as go\n\n\ndef bar_html(payload):\n    title = payload.get(\"title\", \"Chart\")\n    labels = payload.get(\"labels\", [])\n    values = payload.get(\"values\", [])\n    fig = go.Figure(data=[go.Bar(x=labels, y=values)])\n    fig.update_layout(title=title, template=\"plotly_white\")\n    return fig.to_html(include_plotlyjs=\"cdn\", full_html=False)\n\n\ndef line_html(payload):\n    title = payload.get(\"title\", \"Chart\")\n    labels = payload.get(\"labels\", [])\n    values = payload.get(\"values\", [])\n    fig = go.Figure(data=[go.Scatter(x=labels, y=values, mode=\"lines+markers\")])\n    fig.update_layout(title=title, template=\"plotly_white\")\n    return fig.to_html(include_plotlyjs=\"cdn\", full_html=False)\n".to_string(),
+        );
+    }
+    if package.eq_ignore_ascii_case("pillow") {
+        return Some(
+            "from PIL import Image\n\n\ndef image_size(payload):\n    path = payload.get(\"path\", \"\")\n    image = Image.open(path)\n    return f\"{image.width}x{image.height}\"\n\n\ndef thumbnail(payload):\n    path = payload.get(\"path\", \"\")\n    width = int(payload.get(\"width\", 320))\n    height = int(payload.get(\"height\", 240))\n    output = payload.get(\"output\", \"thumb.png\")\n    image = Image.open(path)\n    image.thumbnail((width, height))\n    image.save(output)\n    return output\n".to_string(),
         );
     }
     if package.eq_ignore_ascii_case("demo_python") {

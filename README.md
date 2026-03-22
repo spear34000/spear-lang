@@ -187,6 +187,9 @@ Sharp는 Python, Node 패키지를 프로젝트 안에 vendor 형태로 설치�
 
 ```bash
 sharp add pip requests
+sharp add pip matplotlib
+sharp add pip plotly
+sharp add pip pillow
 sharp add npm dayjs
 sharp add npm axios
 ```
@@ -203,6 +206,12 @@ Common generated helpers:
 - `numpy.mean(numbers_json)`
 - `pandas.read_csv_head(path, rows)`
 - `pandas.columns(path)`
+- `matplotlib.line_svg(title, labels_json, values_json)`
+- `matplotlib.bar_svg(title, labels_json, values_json)`
+- `plotly.bar_html(title, labels_json, values_json)`
+- `plotly.line_html(title, labels_json, values_json)`
+- `pillow.image_size(path)`
+- `pillow.thumbnail(path, width, height, output_path)`
 - `dayjs.format_now(pattern)`
 - `dayjs.add_days(iso, days, pattern)`
 - `dayjs.from_iso(iso, pattern)`

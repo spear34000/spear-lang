@@ -1,11 +1,23 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 
 const [, , target, fn, reqPath, resPath] = process.argv;
 const require = createRequire(import.meta.url);
 
 async function loadModule(name) {
+  if (name && (name.startsWith("./") || name.startsWith("../") || path.isAbsolute(name))) {
+    const projectRoot = process.env.SHARP_PROJECT_ROOT || process.cwd();
+    const resolved = path.isAbsolute(name) ? name : path.resolve(projectRoot, name);
+    try {
+      return await import(pathToFileURL(resolved).href);
+    } catch {}
+    try {
+      const scopedRequire = createRequire(pathToFileURL(resolved).href);
+      return scopedRequire(resolved);
+    } catch {}
+  }
   const searchRoot = process.env.SHARP_NODE_PATH || "";
   if (searchRoot) {
     try {

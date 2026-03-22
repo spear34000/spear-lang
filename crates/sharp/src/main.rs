@@ -48,6 +48,14 @@ fn text(lang: Lang, key: &str) -> String {
             Lang::En => "details".to_string(),
         },
         "serve_prefix" => "sharp serve".to_string(),
+        "serve_missing_html" => match lang {
+            Lang::Ko => "serve는 HTML을 만드는 Sharp 파일에만 사용할 수 있습니다".to_string(),
+            Lang::En => "serve can only be used with Sharp files that generate HTML".to_string(),
+        },
+        "serve_run_failed" => match lang {
+            Lang::Ko => "serve 실행에 실패했습니다".to_string(),
+            Lang::En => "serve run failed".to_string(),
+        },
         "added" => match lang {
             Lang::Ko => "의존성 추가 완료".to_string(),
             Lang::En => "added dependency".to_string(),
@@ -237,11 +245,22 @@ fn add_dependency(lang: Lang, ecosystem: &str, package: &str, raw_root: Option<&
 }
 
 fn apply_interop_env(cmd: &mut Command, project_root: &Path) {
-    let manifest = resolve_manifest_path(project_root);
+    let mut interop_root = project_root.to_path_buf();
+    let mut cursor = Some(project_root);
+    while let Some(dir) = cursor {
+        let manifest = resolve_manifest_path(dir);
+        if manifest.is_file() || dir.join(".sharp").is_dir() {
+            interop_root = dir.to_path_buf();
+            break;
+        }
+        cursor = dir.parent();
+    }
+    cmd.env("SHARP_PROJECT_ROOT", &interop_root);
+    let manifest = resolve_manifest_path(&interop_root);
     let pip = parse_manifest_array(&manifest, "pip");
     if !pip.is_empty() {
-        let py_vendor = project_root.join(".sharp").join("vendor").join("python");
-        let py_shims = project_root.join(".sharp").join("shims").join("python");
+        let py_vendor = interop_root.join(".sharp").join("vendor").join("python");
+        let py_shims = interop_root.join(".sharp").join("shims").join("python");
         let mut entries: Vec<PathBuf> = Vec::new();
         if py_shims.is_dir() {
             entries.push(py_shims);
@@ -256,10 +275,10 @@ fn apply_interop_env(cmd: &mut Command, project_root: &Path) {
     }
     let npm = parse_manifest_array(&manifest, "npm");
     if !npm.is_empty() {
-        let node_modules = project_root.join(".sharp").join("vendor").join("node").join("node_modules");
+        let node_modules = interop_root.join(".sharp").join("vendor").join("node").join("node_modules");
         if node_modules.is_dir() {
-            cmd.env("SHARP_NODE_PATH", node_modules);
-            cmd.env("NODE_PATH", project_root.join(".sharp").join("vendor").join("node").join("node_modules"));
+            cmd.env("SHARP_NODE_PATH", &node_modules);
+            cmd.env("NODE_PATH", interop_root.join(".sharp").join("vendor").join("node").join("node_modules"));
         }
     }
 }
@@ -424,13 +443,17 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
+    let serve_run_log = runtime_dir.join(format!("{}.serve.log", stem));
     let run_exit = if mode == "serve" {
-        run_quiet({
-            let mut cmd = Command::new(&exe_out);
-            cmd.current_dir(&project_root);
-            apply_interop_env(&mut cmd, &project_root);
-            cmd
-        })
+        run_capture(
+            {
+                let mut cmd = Command::new(&exe_out);
+                cmd.current_dir(&project_root);
+                apply_interop_env(&mut cmd, &project_root);
+                cmd
+            },
+            &serve_run_log,
+        )
     } else {
         run_console({
             let mut cmd = Command::new(&exe_out);
@@ -441,13 +464,22 @@ fn main() -> ExitCode {
     }
     .unwrap_or(1);
 
+    if mode == "serve" && run_exit != 0 {
+        print_log(&text(lang, "serve_run_failed"), &serve_run_log);
+        return ExitCode::from(1);
+    }
+
     if mode == "serve" && run_exit == 0 {
         let html = if build_dir.join("sharp-ui.html").is_file() {
-            "http://127.0.0.1:4173/sharp-ui.html"
+            Some("http://127.0.0.1:4173/sharp-ui.html")
         } else if build_dir.join("spear-ui.html").is_file() {
-            "http://127.0.0.1:4173/spear-ui.html"
+            Some("http://127.0.0.1:4173/spear-ui.html")
         } else {
-            "http://127.0.0.1:4173/"
+            None
+        };
+        let Some(html) = html else {
+            eprintln!("{}: {}", text(lang, "error_prefix"), text(lang, "serve_missing_html"));
+            return ExitCode::from(1);
         };
         println!("{}: {}", text(lang, "serve_prefix"), html);
         let serve_script = if bin_dir.join("runtime").join("serve_static.ps1").is_file() {
@@ -485,6 +517,7 @@ fn main() -> ExitCode {
 
     if let Some(temp) = temp_dir {
         let _ = fs::remove_file(&exe_out);
+        let _ = fs::remove_file(&serve_run_log);
         let _ = fs::remove_dir_all(temp);
     }
     if run_exit == 0 {

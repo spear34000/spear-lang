@@ -19,11 +19,11 @@ function text json_parse(text body) {
 }
 
 function text module_handle() {
-    return "requests_sharp";
+    return "./.sharp/shims/node/axios_sharp.cjs";
 }
 
 function text call(text fn_name, text payload) {
-    return python_json(module_handle(), fn_name, payload);
+    return node_json(module_handle(), fn_name, payload);
 }
 
 function text call0(text fn_name) {

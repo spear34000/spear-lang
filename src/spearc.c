@@ -4510,6 +4510,12 @@ int main(int argc, char **argv) {
     }
     if (prelude_fp) {
         fclose(prelude_fp);
+        {
+            char normalized_prelude[2048];
+            if (_fullpath(normalized_prelude, prelude_path, sizeof(normalized_prelude))) {
+                checked_snprintf(prelude_path, sizeof(prelude_path), "%s", normalized_prelude);
+            }
+        }
         char *prelude = load_source_tree(prelude_path, NULL, &seen, &active);
         Buffer combined;
         buf_init(&combined);

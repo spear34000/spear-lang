@@ -156,9 +156,27 @@ static void resolve_import_path(char *out, size_t cap, const char *base, const c
             }
             return;
         }
+        checked_snprintf(candidate, sizeof(candidate), "%s\\..\\%s", g_tool_dir, clean_leaf);
+        if (file_exists(candidate)) {
+            if (_fullpath(normalized, candidate, sizeof(normalized))) {
+                checked_snprintf(out, cap, "%s", normalized);
+            } else {
+                checked_snprintf(out, cap, "%s", candidate);
+            }
+            return;
+        }
         if (strlen(clean_leaf) > 6 && strcmp(clean_leaf + strlen(clean_leaf) - 6, ".sharp") == 0) {
             checked_snprintf(legacy_candidate, sizeof(legacy_candidate), "%.*s.sp", (int) (strlen(clean_leaf) - 6), clean_leaf);
             checked_snprintf(candidate, sizeof(candidate), "%s\\%s", g_tool_dir, legacy_candidate);
+            if (file_exists(candidate)) {
+                if (_fullpath(normalized, candidate, sizeof(normalized))) {
+                    checked_snprintf(out, cap, "%s", normalized);
+                } else {
+                    checked_snprintf(out, cap, "%s", candidate);
+                }
+                return;
+            }
+            checked_snprintf(candidate, sizeof(candidate), "%s\\..\\%s", g_tool_dir, legacy_candidate);
             if (file_exists(candidate)) {
                 if (_fullpath(normalized, candidate, sizeof(normalized))) {
                     checked_snprintf(out, cap, "%s", normalized);

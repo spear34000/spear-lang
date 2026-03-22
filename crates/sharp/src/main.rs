@@ -16,44 +16,44 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 fn text(lang: Lang, key: &str) -> String {
     match key {
         "error_prefix" => match lang {
-            Lang::Ko => "sharp ?ㅻ쪟".to_string(),
+            Lang::Ko => "sharp 오류".to_string(),
             Lang::En => "sharp error".to_string(),
         },
         "usage" => match lang {
-            Lang::Ko => "?ъ슜踰?\n  sharp\n  sharp file.sharp\n  sharp <folder>\n  sharp build [file.sharp|folder]\n  sharp serve [file.sharp|folder]\n  sharp check [file.sharp|folder]\n  sharp new <name>\n  sharp add pip <package> [folder]\n  sharp add npm <package> [folder]\n".to_string(),
+            Lang::Ko => "사용법:\n  sharp\n  sharp file.sharp\n  sharp <folder>\n  sharp build [file.sharp|folder]\n  sharp serve [file.sharp|folder]\n  sharp check [file.sharp|folder]\n  sharp new <name>\n  sharp add pip <package> [folder]\n  sharp add npm <package> [folder]\n".to_string(),
             Lang::En => "usage:\n  sharp\n  sharp file.sharp\n  sharp <folder>\n  sharp build [file.sharp|folder]\n  sharp serve [file.sharp|folder]\n  sharp check [file.sharp|folder]\n  sharp new <name>\n  sharp add pip <package> [folder]\n  sharp add npm <package> [folder]\n".to_string(),
         },
         "created" => match lang {
-            Lang::Ko => "?꾨줈?앺듃 ?앹꽦 ?꾨즺".to_string(),
+            Lang::Ko => "프로젝트 생성 완료".to_string(),
             Lang::En => "created project".to_string(),
         },
         "checked" => match lang {
-            Lang::Ko => "寃???꾨즺".to_string(),
+            Lang::Ko => "검사 완료".to_string(),
             Lang::En => "checked".to_string(),
         },
         "built" => match lang {
-            Lang::Ko => "鍮뚮뱶 ?꾨즺".to_string(),
+            Lang::Ko => "빌드 완료".to_string(),
             Lang::En => "built".to_string(),
         },
         "compile_failed" => match lang {
-            Lang::Ko => "sharp 而댄뙆???ㅻ쪟: ?뚯뒪 而댄뙆?쇱뿉 ?ㅽ뙣?덉뒿?덈떎".to_string(),
+            Lang::Ko => "sharp 컴파일 오류: 소스 컴파일에 실패했습니다".to_string(),
             Lang::En => "sharp compile error: source compilation failed".to_string(),
         },
         "backend_failed" => match lang {
-            Lang::Ko => "sharp 諛깆뿏???ㅻ쪟: ?ㅼ씠?곕툕 鍮뚮뱶???ㅽ뙣?덉뒿?덈떎".to_string(),
+            Lang::Ko => "sharp 백엔드 오류: 네이티브 빌드에 실패했습니다".to_string(),
             Lang::En => "sharp backend error: native build failed".to_string(),
         },
         "details" => match lang {
-            Lang::Ko => "?먯꽭???댁슜".to_string(),
+            Lang::Ko => "자세한 내용".to_string(),
             Lang::En => "details".to_string(),
         },
         "serve_prefix" => "sharp serve".to_string(),
         "added" => match lang {
-            Lang::Ko => "?섏〈??異붽? ?꾨즺".to_string(),
+            Lang::Ko => "의존성 추가 완료".to_string(),
             Lang::En => "added dependency".to_string(),
         },
         "install_warn" => match lang {
-            Lang::Ko => "?꾧뎄瑜?李얠? 紐삵빐 manifest留?媛깆떊?덉뒿?덈떎".to_string(),
+            Lang::Ko => "패키지 도구를 찾지 못해 manifest만 갱신했습니다".to_string(),
             Lang::En => "updated manifest only because the package tool was not available".to_string(),
         },
         _ => key.to_string(),
